@@ -2074,12 +2074,14 @@ function LogoArea({ logo, setLogo, biz, onSettings }) {
           r.readAsDataURL(f);
         }}
       />
-      <button
-        style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
-        onClick={onSettings}
-      >
-        ⚙️ Settings
-      </button>
+      {onSettings && (
+        <button
+          style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
+          onClick={onSettings}
+        >
+          ⚙️ Settings
+        </button>
+      )}
     </div>
   );
 }
@@ -2845,9 +2847,66 @@ function DocModal({ doc, onClose }) {
 // ─── SETTINGS ─────────────────────────────────────────────────────
 function SettingsModal({ biz, setBiz, onClose }) {
   const [draft, setDraft] = useState({ ...biz });
-  const save = () => {
-    setBiz(draft);
-    onClose();
+  const [pwSection, setPwSection] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwMsg, setPwMsg] = useState(null);
+
+  // Staff account management
+  const [staffSection, setStaffSection] = useState(false);
+  const existingStaff = loadAuth()?.staff || null;
+  const [staffEmail, setStaffEmail] = useState(existingStaff?.email || "");
+  const [staffPw, setStaffPw] = useState("");
+  const [staffPw2, setStaffPw2] = useState("");
+  const [staffMsg, setStaffMsg] = useState(null);
+  const [confirmRemoveStaff, setConfirmRemoveStaff] = useState(false);
+
+  const save = () => { setBiz(draft); onClose(); };
+
+  const handleChangePw = () => {
+    setPwMsg(null);
+    const auth = loadAuth();
+    if (!auth) { setPwMsg({ type: "error", text: "No credentials found. Please reload." }); return; }
+    if (!currentPw) { setPwMsg({ type: "error", text: "Enter your current password." }); return; }
+    if (hashPassword(currentPw) !== auth.owner.hash) { setPwMsg({ type: "error", text: "Current password is incorrect." }); return; }
+    if (newPw.length < 6) { setPwMsg({ type: "error", text: "New password must be at least 6 characters." }); return; }
+    if (newPw !== confirmPw) { setPwMsg({ type: "error", text: "Passwords do not match." }); return; }
+    saveOwnerAuth(auth.owner.email, newPw);
+    setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    setPwMsg({ type: "success", text: "Password updated successfully." });
+  };
+
+  const handleSaveStaff = () => {
+    setStaffMsg(null);
+    if (!staffEmail.trim()) { setStaffMsg({ type: "error", text: "Staff email is required." }); return; }
+    if (!existingStaff && staffPw.length < 6) { setStaffMsg({ type: "error", text: "Password must be at least 6 characters." }); return; }
+    if (!existingStaff && staffPw !== staffPw2) { setStaffMsg({ type: "error", text: "Passwords do not match." }); return; }
+    if (staffPw && staffPw.length < 6) { setStaffMsg({ type: "error", text: "Password must be at least 6 characters." }); return; }
+    if (staffPw && staffPw !== staffPw2) { setStaffMsg({ type: "error", text: "Passwords do not match." }); return; }
+    // If password left blank on edit, keep existing hash
+    const auth = loadAuth();
+    if (existingStaff && !staffPw) {
+      saveStaffAuth(staffEmail, null); // save email update only — keep hash
+      // Actually just update email while preserving hash manually
+      const existing = loadAuth() || {};
+      localStorage.setItem("cb_auth_v2", JSON.stringify({
+        ...existing,
+        staff: { email: staffEmail.trim().toLowerCase(), hash: existingStaff.hash }
+      }));
+    } else {
+      saveStaffAuth(staffEmail, staffPw);
+    }
+    setStaffPw(""); setStaffPw2("");
+    setStaffMsg({ type: "success", text: existingStaff ? "Staff account updated." : "Staff account created successfully." });
+  };
+
+  const handleRemoveStaff = () => {
+    const existing = loadAuth() || {};
+    localStorage.setItem("cb_auth_v2", JSON.stringify({ ...existing, staff: null }));
+    setStaffEmail(""); setStaffPw(""); setStaffPw2("");
+    setStaffMsg({ type: "success", text: "Staff account removed." });
+    setConfirmRemoveStaff(false);
   };
   const F = ({ label, k, placeholder, area }) => (
     <div>
@@ -2994,6 +3053,138 @@ function SettingsModal({ biz, setBiz, onClose }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <F label="Payment Terms" k="paymentTerms" area />
             <F label="Document Footer Message" k="footer" area />
+          </div>
+
+          {/* ── CHANGE PASSWORD ── */}
+          <div style={{ marginTop: 18 }}>
+            <button
+              style={{
+                background: "none", border: "none", padding: 0, cursor: "pointer",
+                fontSize: 10, fontWeight: 700, color: T.textMuted,
+                letterSpacing: 0.8, textTransform: "uppercase",
+                display: "flex", alignItems: "center", gap: 5,
+              }}
+              onClick={() => { setPwSection(!pwSection); setPwMsg(null); }}
+            >
+              {pwSection ? "▾" : "▸"} 🔒 Change Password
+            </button>
+            {pwSection && (
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div>
+                  <label style={S.label}>Current Password</label>
+                  <input type="password" style={S.input} value={currentPw}
+                    onChange={e => { setCurrentPw(e.target.value); setPwMsg(null); }}
+                    placeholder="Your current password" autoComplete="current-password" />
+                </div>
+                <div style={S.grid(2)}>
+                  <div>
+                    <label style={S.label}>New Password</label>
+                    <input type="password" style={S.input} value={newPw}
+                      onChange={e => { setNewPw(e.target.value); setPwMsg(null); }}
+                      placeholder="Min. 6 characters" autoComplete="new-password" />
+                  </div>
+                  <div>
+                    <label style={S.label}>Confirm New Password</label>
+                    <input type="password" style={S.input} value={confirmPw}
+                      onChange={e => { setConfirmPw(e.target.value); setPwMsg(null); }}
+                      placeholder="Re-enter new password" autoComplete="new-password" />
+                  </div>
+                </div>
+                {pwMsg && (
+                  <div style={{
+                    background: pwMsg.type === "success" ? `${T.success}15` : `${T.danger}15`,
+                    border: `1px solid ${pwMsg.type === "success" ? T.success : T.danger}40`,
+                    borderRadius: 6, padding: "7px 12px", fontSize: 12,
+                    color: pwMsg.type === "success" ? T.success : T.danger,
+                  }}>
+                    {pwMsg.type === "success" ? "✓" : "⚠️"} {pwMsg.text}
+                  </div>
+                )}
+                <div>
+                  <button style={{ ...S.btn("ghost"), borderColor: T.accent, color: T.accent }} onClick={handleChangePw}>
+                    Update Password
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── STAFF ACCOUNT ── */}
+          <div style={{ marginTop: 14 }}>
+            <button
+              style={{
+                background: "none", border: "none", padding: 0, cursor: "pointer",
+                fontSize: 10, fontWeight: 700, color: T.textMuted,
+                letterSpacing: 0.8, textTransform: "uppercase",
+                display: "flex", alignItems: "center", gap: 5,
+              }}
+              onClick={() => { setStaffSection(!staffSection); setStaffMsg(null); setConfirmRemoveStaff(false); }}
+            >
+              {staffSection ? "▾" : "▸"} 👤 Staff Account
+              {existingStaff && <span style={{ ...S.badge(T.info), marginLeft: 4 }}>Active</span>}
+            </button>
+            {staffSection && (
+              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Info banner */}
+                <div style={{
+                  background: `${T.info}10`, border: `1px solid ${T.info}30`,
+                  borderRadius: 7, padding: "8px 12px", fontSize: 11, color: T.textMuted,
+                }}>
+                  👤 Staff can only access <strong style={{ color: T.text }}>Restaurant &amp; Delivery</strong> and <strong style={{ color: T.text }}>Invoices &amp; AR</strong>. They cannot access financial reports, settings, or any other section.
+                </div>
+
+                <div style={S.grid(2)}>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={S.label}>Staff Email</label>
+                    <input style={S.input} type="email" value={staffEmail}
+                      onChange={e => { setStaffEmail(e.target.value); setStaffMsg(null); }}
+                      placeholder="staff@cookiesbites.cm" autoComplete="off" />
+                  </div>
+                  <div>
+                    <label style={S.label}>{existingStaff ? "New Password (leave blank to keep)" : "Password"}</label>
+                    <input style={S.input} type="password" value={staffPw}
+                      onChange={e => { setStaffPw(e.target.value); setStaffMsg(null); }}
+                      placeholder={existingStaff ? "Leave blank to keep current" : "Min. 6 characters"} autoComplete="new-password" />
+                  </div>
+                  <div>
+                    <label style={S.label}>Confirm Password</label>
+                    <input style={S.input} type="password" value={staffPw2}
+                      onChange={e => { setStaffPw2(e.target.value); setStaffMsg(null); }}
+                      placeholder="Re-enter password" autoComplete="new-password" />
+                  </div>
+                </div>
+
+                {staffMsg && (
+                  <div style={{
+                    background: staffMsg.type === "success" ? `${T.success}15` : `${T.danger}15`,
+                    border: `1px solid ${staffMsg.type === "success" ? T.success : T.danger}40`,
+                    borderRadius: 6, padding: "7px 12px", fontSize: 12,
+                    color: staffMsg.type === "success" ? T.success : T.danger,
+                  }}>
+                    {staffMsg.type === "success" ? "✓" : "⚠️"} {staffMsg.text}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button style={{ ...S.btn("primary") }} onClick={handleSaveStaff}>
+                    {existingStaff ? "Update Staff Account" : "Create Staff Account"}
+                  </button>
+                  {existingStaff && !confirmRemoveStaff && (
+                    <button style={{ ...S.btn("ghost"), color: T.danger, borderColor: `${T.danger}50` }}
+                      onClick={() => setConfirmRemoveStaff(true)}>
+                      Remove Staff Account
+                    </button>
+                  )}
+                  {existingStaff && confirmRemoveStaff && (
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: T.danger }}>Are you sure?</span>
+                      <button style={{ ...S.btn("danger") }} onClick={handleRemoveStaff}>Yes, Remove</button>
+                      <button style={S.btn("ghost")} onClick={() => setConfirmRemoveStaff(false)}>Cancel</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div
@@ -6024,6 +6215,11 @@ function RestaurantPage({
     usedPerPlate: "",
     linkedMeals: "",
   });
+  const [invCategories, setInvCategories] = useState([
+    "Ingredient", "Packaging", "Fuel", "Beverage", "Cleaning", "Other",
+  ]);
+  const [showNewCatInput, setShowNewCatInput] = useState(false);
+  const [newCatValue, setNewCatValue] = useState("");
   // Meals state
   const [addingMeal, setAddingMeal] = useState(false);
   const [editMealId, setEditMealId] = useState(null);
@@ -7966,6 +8162,8 @@ function RestaurantPage({
               onClick={() => {
                 setAddingInv(!addingInv);
                 setEditInvId(null);
+                setShowNewCatInput(false);
+                setNewCatValue("");
                 setNi({
                   name: "",
                   category: "Ingredient",
@@ -7999,22 +8197,82 @@ function RestaurantPage({
                 </div>
                 <div>
                   <label style={S.label}>Category</label>
-                  <select
-                    style={S.select}
-                    value={ni.category}
-                    onChange={(e) => setNi({ ...ni, category: e.target.value })}
-                  >
-                    {[
-                      "Ingredient",
-                      "Packaging",
-                      "Fuel",
-                      "Beverage",
-                      "Cleaning",
-                      "Other",
-                    ].map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
+                  {showNewCatInput ? (
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <input
+                        style={{ ...S.input, flex: 1 }}
+                        autoFocus
+                        placeholder="New category name…"
+                        value={newCatValue}
+                        onChange={(e) => setNewCatValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const trimmed = newCatValue.trim();
+                            if (trimmed && !invCategories.includes(trimmed)) {
+                              setInvCategories((prev) => [...prev, trimmed]);
+                              setNi({ ...ni, category: trimmed });
+                            } else if (trimmed) {
+                              setNi({ ...ni, category: trimmed });
+                            }
+                            setNewCatValue("");
+                            setShowNewCatInput(false);
+                          }
+                          if (e.key === "Escape") {
+                            setNewCatValue("");
+                            setShowNewCatInput(false);
+                          }
+                        }}
+                      />
+                      <button
+                        style={{ ...S.btn("primary"), padding: "4px 8px", fontSize: 11 }}
+                        onClick={() => {
+                          const trimmed = newCatValue.trim();
+                          if (trimmed && !invCategories.includes(trimmed)) {
+                            setInvCategories((prev) => [...prev, trimmed]);
+                            setNi({ ...ni, category: trimmed });
+                          } else if (trimmed) {
+                            setNi({ ...ni, category: trimmed });
+                          }
+                          setNewCatValue("");
+                          setShowNewCatInput(false);
+                        }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        style={{ ...S.btn("ghost"), padding: "4px 8px", fontSize: 11 }}
+                        onClick={() => { setNewCatValue(""); setShowNewCatInput(false); }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <select
+                        style={{ ...S.select, flex: 1 }}
+                        value={ni.category}
+                        onChange={(e) => setNi({ ...ni, category: e.target.value })}
+                      >
+                        {invCategories.map((c) => (
+                          <option key={c}>{c}</option>
+                        ))}
+                      </select>
+                      <button
+                        title="Add new category"
+                        style={{
+                          ...S.btn("ghost"),
+                          padding: "4px 8px",
+                          fontSize: 13,
+                          flexShrink: 0,
+                          borderColor: T.accent,
+                          color: T.accent,
+                        }}
+                        onClick={() => setShowNewCatInput(true)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={S.label}>Unit</label>
@@ -8088,6 +8346,8 @@ function RestaurantPage({
                   onClick={() => {
                     setAddingInv(false);
                     setEditInvId(null);
+                    setShowNewCatInput(false);
+                    setNewCatValue("");
                   }}
                 >
                   Cancel
@@ -11161,6 +11421,212 @@ function buildReportHTML(title, d, biz) {
   </body></html>`;
 }
 
+// ─── AUTH HELPERS ─────────────────────────────────────────────────
+// Roles: "owner" = full access | "staff" = restaurant + invoices only
+const AUTH_KEY   = "cb_auth_v2";   // { owner: {email,hash}, staff: {email,hash} | null }
+const SESSION_KEY = "cb_session_v2"; // { role: "owner"|"staff", expires }
+const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
+
+const STAFF_TABS = ["restaurant", "invoices"]; // tabs staff can access
+
+function hashPassword(pw) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < pw.length; i++) {
+    h ^= pw.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
+}
+
+function loadAuth() {
+  try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || null; } catch { return null; }
+}
+function saveOwnerAuth(email, pw) {
+  const existing = loadAuth() || {};
+  localStorage.setItem(AUTH_KEY, JSON.stringify({
+    ...existing,
+    owner: { email: email.trim().toLowerCase(), hash: hashPassword(pw) }
+  }));
+}
+function saveStaffAuth(email, pw) {
+  const existing = loadAuth() || {};
+  localStorage.setItem(AUTH_KEY, JSON.stringify({
+    ...existing,
+    staff: pw ? { email: email.trim().toLowerCase(), hash: hashPassword(pw) } : null
+  }));
+}
+function loadSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (s && Date.now() < s.expires) return s;
+    localStorage.removeItem(SESSION_KEY);
+    return null;
+  } catch { return null; }
+}
+function saveSession(role) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ role, expires: Date.now() + SESSION_DURATION }));
+}
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+// ─── LOGIN SCREEN ─────────────────────────────────────────────────
+function LoginScreen({ onLogin }) {
+  const auth = loadAuth();
+  const isFirstTime = !auth?.owner;
+  const [email, setEmail] = useState(isFirstTime ? "cookiesbites@email.cm" : "");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = () => {
+    setError("");
+    if (!email.trim()) { setError("Email is required."); return; }
+    if (!pw) { setError("Password is required."); return; }
+
+    if (isFirstTime) {
+      // First-time owner setup
+      if (pw.length < 6) { setError("Password must be at least 6 characters."); return; }
+      if (pw !== pw2) { setError("Passwords do not match."); return; }
+      saveOwnerAuth(email, pw);
+      saveSession("owner");
+      setLoading(true);
+      setTimeout(() => onLogin("owner"), 400);
+      return;
+    }
+
+    const emailLower = email.trim().toLowerCase();
+
+    // Check owner
+    if (auth.owner && emailLower === auth.owner.email && hashPassword(pw) === auth.owner.hash) {
+      saveSession("owner");
+      setLoading(true);
+      setTimeout(() => onLogin("owner"), 400);
+      return;
+    }
+    // Check staff
+    if (auth.staff && emailLower === auth.staff.email && hashPassword(pw) === auth.staff.hash) {
+      saveSession("staff");
+      setLoading(true);
+      setTimeout(() => onLogin("staff"), 400);
+      return;
+    }
+
+    setError("Incorrect email or password.");
+  };
+
+  return (
+    <div style={{
+      fontFamily: "'DM Sans','Helvetica Neue',Arial,sans-serif",
+      background: T.bg,
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 16,
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0}
+        input:focus{border-color:#E8C547!important;box-shadow:0 0 0 2px rgba(232,197,71,0.07)!important;outline:none}
+        button:hover{opacity:0.85}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+      `}</style>
+      <div style={{ width: "100%", maxWidth: 380, animation: "fadeIn 0.35s ease" }}>
+        {/* Brand */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{
+            width: 56, height: 56, background: T.accentSoft,
+            border: `2px solid ${T.accent}`, borderRadius: 16,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 26, margin: "0 auto 12px",
+          }}>🍪</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: T.accent, letterSpacing: -0.5 }}>
+            Cookies Bites
+          </div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>
+            Business Tracker · cookiesbites.app
+          </div>
+        </div>
+
+        {/* Card */}
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "28px 28px 24px" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+            {isFirstTime ? "👋 Welcome! Set up your account" : "Sign in"}
+          </div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 22 }}>
+            {isFirstTime
+              ? "Create the owner credentials to get started."
+              : "Enter your credentials to continue."}
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>Email address</label>
+            <input style={{ ...S.input, fontSize: 14 }} type="email" autoComplete="email"
+              value={email} onChange={e => { setEmail(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              placeholder="your@email.com" />
+          </div>
+
+          <div style={{ marginBottom: isFirstTime ? 14 : 20 }}>
+            <label style={S.label}>Password</label>
+            <div style={{ position: "relative" }}>
+              <input style={{ ...S.input, fontSize: 14, paddingRight: 40 }}
+                type={showPw ? "text" : "password"}
+                autoComplete={isFirstTime ? "new-password" : "current-password"}
+                value={pw} onChange={e => { setPw(e.target.value); setError(""); }}
+                onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                placeholder={isFirstTime ? "Choose a password (min. 6 chars)" : ""} />
+              <button style={{
+                position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", color: T.textMuted,
+                cursor: "pointer", fontSize: 14, padding: "0 2px",
+              }} onClick={() => setShowPw(!showPw)} tabIndex={-1}>
+                {showPw ? "🙈" : "👁"}
+              </button>
+            </div>
+          </div>
+
+          {isFirstTime && (
+            <div style={{ marginBottom: 20 }}>
+              <label style={S.label}>Confirm password</label>
+              <input style={{ ...S.input, fontSize: 14 }}
+                type={showPw ? "text" : "password"} autoComplete="new-password"
+                value={pw2} onChange={e => { setPw2(e.target.value); setError(""); }}
+                onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                placeholder="Re-enter your password" />
+            </div>
+          )}
+
+          {error && (
+            <div style={{
+              background: `${T.danger}15`, border: `1px solid ${T.danger}40`,
+              borderRadius: 7, padding: "8px 12px", fontSize: 12, color: T.danger, marginBottom: 16,
+            }}>⚠️ {error}</div>
+          )}
+
+          <button style={{
+            ...S.btn("primary"), width: "100%", padding: "10px 16px", fontSize: 14,
+            fontWeight: 700, borderRadius: 8, display: "flex", alignItems: "center",
+            justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1,
+          }} onClick={handleSubmit} disabled={loading}>
+            {loading
+              ? <span style={{ display: "inline-block", width: 16, height: 16, border: `2px solid ${T.bg}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
+              : (isFirstTime ? "Create Account & Sign In" : "Sign In →")}
+          </button>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 16, fontSize: 10, color: T.textDim }}>
+          Session expires after 8 hours · Owner &amp; Staff accounts supported
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────
 const TABS = [
   { id: "dashboard", label: "📊 Dashboard" },
@@ -11174,7 +11640,15 @@ const TABS = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState("dashboard");
+  const [authed, setAuthed] = useState(() => !!loadSession());
+  const [role, setRole] = useState(() => loadSession()?.role || "owner");
+  const isOwner = role === "owner";
+  const visibleTabs = isOwner ? TABS : TABS.filter(t => STAFF_TABS.includes(t.id));
+  const [tab, setTab] = useState(() => {
+    const sess = loadSession();
+    if (sess?.role === "staff") return "restaurant";
+    return "dashboard";
+  });
   const [events, setEvents] = useState(INIT_EVENTS);
   const [sales, setSales] = useState(INIT_SALES);
   const [invoices, setInvoices] = useState(INIT_INVOICES);
@@ -11188,6 +11662,20 @@ export default function App() {
   const [biz, setBiz] = useState(INIT_BIZ);
   const [showSettings, setShowSettings] = useState(false);
   const isMobile = useIsMobile();
+
+  const handleLogout = () => {
+    clearSession();
+    setAuthed(false);
+  };
+
+  if (!authed) {
+    return <LoginScreen onLogin={(r) => {
+      setRole(r);
+      // Redirect staff to their first allowed tab
+      if (r === "staff") setTab("restaurant");
+      setAuthed(true);
+    }} />;
+  }
 
   return (
     <div style={S.app}>
@@ -11228,7 +11716,7 @@ export default function App() {
         .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
       `}</style>
 
-      {showSettings && (
+      {showSettings && isOwner && (
         <SettingsModal
           biz={biz}
           setBiz={setBiz}
@@ -11269,14 +11757,27 @@ export default function App() {
             )}
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <span style={{ fontSize: 10, color: T.textMuted }}>
-              {TODAY_LABEL}
-            </span>
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+              color: isOwner ? T.accent : T.info,
+              background: isOwner ? T.accentSoft : `${T.info}18`,
+              border: `1px solid ${isOwner ? T.accent : T.info}40`,
+              borderRadius: 20, padding: "1px 7px",
+            }}>{isOwner ? "OWNER" : "STAFF"}</span>
+            {isOwner && (
+              <button
+                style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 8px" }}
+                onClick={() => setShowSettings(true)}
+              >
+                ⚙️
+              </button>
+            )}
             <button
-              style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 8px" }}
-              onClick={() => setShowSettings(true)}
+              title="Sign out"
+              style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 8px", color: T.textMuted }}
+              onClick={handleLogout}
             >
-              ⚙️
+              ⏻
             </button>
           </div>
         </div>
@@ -11286,7 +11787,7 @@ export default function App() {
             logo={logo}
             setLogo={setLogo}
             biz={biz}
-            onSettings={() => setShowSettings(true)}
+            onSettings={isOwner ? () => setShowSettings(true) : null}
           />
           <div
             style={{
@@ -11297,7 +11798,7 @@ export default function App() {
             }}
           />
           <div style={S.nav}>
-            {TABS.map((t) => (
+            {visibleTabs.map((t) => (
               <button
                 key={t.id}
                 style={S.navBtn(tab === t.id)}
@@ -11307,15 +11808,24 @@ export default function App() {
               </button>
             ))}
           </div>
-          <div
-            style={{
-              fontSize: 10,
-              color: T.textMuted,
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            📍{biz.city} · {TODAY_LABEL}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+              color: isOwner ? T.accent : T.info,
+              background: isOwner ? T.accentSoft : `${T.info}18`,
+              border: `1px solid ${isOwner ? T.accent : T.info}40`,
+              borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap",
+            }}>{isOwner ? "👑 Owner" : "👤 Staff"}</span>
+            <div style={{ fontSize: 10, color: T.textMuted, whiteSpace: "nowrap" }}>
+              📍{biz.city} · {TODAY_LABEL}
+            </div>
+            <button
+              title="Sign out"
+              style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 10px" }}
+              onClick={handleLogout}
+            >
+              ⏻ Sign Out
+            </button>
           </div>
         </div>
       )}
@@ -11401,7 +11911,7 @@ export default function App() {
       </div>
 
       {/* ── MOBILE BOTTOM NAV ── */}
-      {isMobile && <MobileNav tab={tab} setTab={setTab} tabs={TABS} />}
+      {isMobile && <MobileNav tab={tab} setTab={setTab} tabs={visibleTabs} />}
     </div>
   );
 }
