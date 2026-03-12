@@ -3387,7 +3387,7 @@ function EventCostLedger({ evt, inventory, onUpdate }) {
   );
 }
 
-function CateringPage({ events, setEvents, proposals, setProposals, inventory, logo, biz, customers, setCustomers, catalogItems, catalogCategories }) {
+function CateringPage({ events, setEvents, proposals, setProposals, inventory, logo, biz, customers, setCustomers, catalogItems, catalogCategories, proposalPrefillLines, clearProposalPrefill }) {
   const [cateringSubTab, setCateringSubTab] = useState("events");
   const [sel, setSel] = useState(null);
   const [filter, setFilter] = useState("All");
@@ -3605,6 +3605,8 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
           inventory={inventory}
           logo={logo}
           biz={biz}
+          proposalPrefillLines={proposalPrefillLines}
+          clearProposalPrefill={clearProposalPrefill}
         />
       )}
 
@@ -4227,7 +4229,7 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
     </div>
   );
 }
-function CatalogPage({ categories, setCategories, items, setItems, meals, logo, biz }) {
+function CatalogPage({ categories, setCategories, items, setItems, meals, logo, biz, onCreateProposalFromCatalog }) {
   const [selCat, setSelCat] = useState(null); // null = tile overview, number = category id
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -4383,13 +4385,32 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, logo, 
       {selCat && (
         <div>
           {/* Breadcrumb */}
-          <div style={{ ...S.row, marginBottom: 12, gap: 8 }}>
+          <div style={{ ...S.row, marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
             <button style={{ ...S.btn("ghost"), fontSize: 12 }} onClick={() => { setSelCat(null); setAdding(false); setEditId(null); }}>
               ← All Categories
             </button>
             <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{selCatObj?.name}</div>
             <div style={{ fontSize: 12, color: T.textMuted }}>({items.filter(i => i.catId === selCat).length} items)</div>
             <div style={{ flex: 1 }} />
+            {onCreateProposalFromCatalog && items.filter(i => i.catId === selCat).length > 0 && (
+              <button
+                style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 10px", borderColor: T.catering, color: T.catering }}
+                title="Open Proposals and pre-fill with all items from this category"
+                onClick={() => {
+                  const catItems = items.filter(i => i.catId === selCat);
+                  const lines = catItems.map(item => ({
+                    itemId: item.id,
+                    name: item.name,
+                    qty: 1,
+                    price: item.price,
+                    unitType: item.unitType,
+                  }));
+                  onCreateProposalFromCatalog(lines);
+                }}
+              >
+                🎉 Create Proposal from this Category
+              </button>
+            )}
             <button style={S.btn("primary")} onClick={() => { setAdding(!adding); setEditId(null); setNi({ ...EMPTY_NI, catId: selCat }); }}>
               {adding && editId == null ? "✕ Cancel" : "+ Add Item"}
             </button>
@@ -4538,6 +4559,8 @@ function ProposalsPage({
   inventory,
   logo,
   biz,
+  proposalPrefillLines,
+  clearProposalPrefill,
 }) {
   const [sel, setSel] = useState(null);
   const [building, setBuilding] = useState(false);
@@ -4557,8 +4580,65 @@ function ProposalsPage({
   const [pickCat, setPickCat] = useState(null);
   const [doc, setDoc] = useState(null);
   const [showInvLink, setShowInvLink] = useState(null); // proposal index
+  const [showTemplates, setShowTemplates] = useState(false);
   const openDoc = (title, html) =>
     setDoc({ title, html, onPrint: () => printDoc(title, html) });
+
+  // Auto-open builder pre-seeded when arriving from Catalog → "Create Proposal from Category"
+  useEffect(() => {
+    if (proposalPrefillLines && proposalPrefillLines.length > 0) {
+      setDraft(d => ({ ...d, lines: proposalPrefillLines }));
+      setBuilding(true);
+      setShowTemplates(false);
+      if (clearProposalPrefill) clearProposalPrefill();
+    }
+  }, [proposalPrefillLines]);
+
+  const BLANK_DRAFT = {
+    client: "", clientPhone: "", eventType: "", plannedDate: "",
+    guests: "", location: "", discount: 0, notes: "", lines: [],
+    inventoryLinks: [], eventId: null,
+  };
+
+  const duplicateProposal = (i) => {
+    const src = proposals[i];
+    const newNum = proposals.length + 1;
+    const copy = {
+      ...src,
+      id: Date.now(),
+      num: `PROP-${THIS_YEAR}-${String(newNum).padStart(4, "0")}`,
+      status: "Draft",
+      // Clear client-specific fields — keep line items, discount, notes
+      client: "",
+      clientPhone: "",
+      plannedDate: "",
+      eventId: null,
+      duplicatedFrom: src.num,
+    };
+    setProposals(prev => [copy, ...prev]);
+  };
+
+  const loadTemplate = (propId) => {
+    const src = proposals.find(p => p.id === Number(propId));
+    if (!src) return;
+    setDraft(d => ({
+      ...d,
+      lines: src.lines.map(l => ({ ...l })),
+      discount: src.discount,
+      notes: src.notes,
+      inventoryLinks: src.inventoryLinks || [],
+      eventType: d.eventType || src.eventType,
+    }));
+    setShowTemplates(false);
+  };
+
+  const toggleTemplate = (i) => {
+    const u = [...proposals];
+    u[i] = { ...u[i], isTemplate: !u[i].isTemplate };
+    setProposals(u);
+  };
+
+  const templates = proposals.filter(p => p.isTemplate);
 
   const addLine = (item) =>
     setDraft((d) => ({
@@ -4575,27 +4655,16 @@ function ProposalsPage({
       ],
     }));
   const saveDraft = () => {
+    const newNum = proposals.length + 1;
     const p = {
       ...draft,
-      id: proposals.length + 1,
-      num: `PROP-${THIS_YEAR}-${String(proposals.length + 1).padStart(4, "0")}`,
+      id: Date.now(),
+      num: `PROP-${THIS_YEAR}-${String(newNum).padStart(4, "0")}`,
       status: "Draft",
     };
     setProposals((prev) => [...prev, p]);
     setBuilding(false);
-    setDraft({
-      client: "",
-      clientPhone: "",
-      eventType: "",
-      plannedDate: "",
-      guests: "",
-      location: "",
-      discount: 0,
-      notes: "",
-      lines: [],
-      inventoryLinks: [],
-      eventId: null,
-    });
+    setDraft({ ...BLANK_DRAFT });
   };
   const updateLine = (pi, li, field, value) => {
     const u = [...proposals];
@@ -4679,17 +4748,65 @@ function ProposalsPage({
   return (
     <div>
       <DocModal doc={doc} onClose={() => setDoc(null)} />
-      <div style={S.pageTitle}>📋 Proposals</div>
-      <div style={S.subtitle}>Build and send proposals to clients</div>
       <div style={{ ...S.row, marginBottom: 14 }}>
-        <button style={S.btn("primary")} onClick={() => setBuilding(!building)}>
-          + New Proposal
+        <div>
+          <div style={S.pageTitle}>📋 Proposals</div>
+          <div style={S.subtitle}>
+            Build and send proposals to clients
+            {templates.length > 0 && <span style={{ ...S.badge(T.accent), marginLeft: 6 }}>⭐ {templates.length} template{templates.length > 1 ? "s" : ""}</span>}
+          </div>
+        </div>
+        <button style={S.btn("primary")} onClick={() => { setBuilding(!building); setShowTemplates(false); }}>
+          {building ? "✕ Cancel" : "+ New Proposal"}
         </button>
       </div>
 
       {building && (
         <div style={{ ...S.card, marginBottom: 14, borderColor: T.accent }}>
-          <div style={S.sectionTitle}>Build Proposal</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={S.sectionTitle}>Build Proposal</div>
+            {proposals.length > 0 && (
+              <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 10px" }} onClick={() => setShowTemplates(!showTemplates)}>
+                {showTemplates ? "✕ Close" : "📋 Load from existing…"}
+              </button>
+            )}
+          </div>
+
+          {/* Template / existing proposal picker */}
+          {showTemplates && (
+            <div style={{ background: T.accentSoft, borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, marginBottom: 8 }}>
+                ⚡ Load line items from an existing proposal — client details stay blank for you to fill in
+              </div>
+              {/* Starred templates first */}
+              {templates.length > 0 && (
+                <>
+                  <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>⭐ Saved Templates</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+                    {templates.map(t => (
+                      <button key={t.id} style={{ ...S.btn("primary"), fontSize: 11, padding: "5px 12px" }} onClick={() => loadTemplate(t.id)}>
+                        {t.num} · {t.eventType || "Template"} · {t.lines.length} items · {fmt(propTotal(t.lines, t.discount))}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>All Proposals</div>
+              <select style={{ ...S.select, width: "100%" }} defaultValue="" onChange={e => { if (e.target.value) loadTemplate(e.target.value); }}>
+                <option value="">— Pick a proposal to copy its line items —</option>
+                {proposals.map(pr => (
+                  <option key={pr.id} value={pr.id}>
+                    {pr.isTemplate ? "⭐ " : ""}{pr.num} · {pr.client || "No client"} · {pr.eventType || "—"} · {pr.lines.length} items · {fmt(propTotal(pr.lines, pr.discount))} · {pr.status}
+                  </option>
+                ))}
+              </select>
+              {draft.lines.length > 0 && (
+                <div style={{ marginTop: 8, fontSize: 11, color: T.accent, fontWeight: 600 }}>
+                  ✓ {draft.lines.length} line items loaded — fill in client details below
+                </div>
+              )}
+            </div>
+          )}
           <div style={S.grid(3)}>
             <div>
               <label style={S.label}>Client Name</label>
@@ -5036,7 +5153,7 @@ function ProposalsPage({
             </div>
           )}
           <div style={{ ...S.row, marginTop: 10, justifyContent: "flex-end" }}>
-            <button style={S.btn("ghost")} onClick={() => setBuilding(false)}>
+            <button style={S.btn("ghost")} onClick={() => { setBuilding(false); setShowTemplates(false); }}>
               Cancel
             </button>
             <button style={S.btn("primary")} onClick={saveDraft}>
@@ -5061,7 +5178,8 @@ function ProposalsPage({
             >
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
-                  {p.num} — {p.client}
+                  {p.isTemplate && <span style={{ color: T.accent, marginRight: 4 }}>⭐</span>}
+                  {p.num} — {p.client || <span style={{ color: T.textMuted, fontStyle: "italic" }}>No client yet</span>}
                 </div>
                 <div
                   style={{ fontSize: 11, color: T.textMuted, marginBottom: 4 }}
@@ -5072,6 +5190,12 @@ function ProposalsPage({
                 <Badge color={stColor[p.status] || T.textMuted}>
                   {p.status}
                 </Badge>
+                {p.isTemplate && (
+                  <span style={{ ...S.badge(T.accent), marginLeft: 4 }}>⭐ Template</span>
+                )}
+                {p.duplicatedFrom && (
+                  <span style={{ ...S.badge(T.textMuted), marginLeft: 4, fontSize: 9 }}>📋 Copy of {p.duplicatedFrom}</span>
+                )}
                 {(p.inventoryLinks || []).length > 0 && (
                   <span style={{ ...S.badge(T.info), marginLeft: 4 }}>
                     📦 {p.inventoryLinks.length} linked
@@ -5411,70 +5535,55 @@ function ProposalsPage({
 
                 <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                   <button
-                    style={{
-                      ...S.btn("primary"),
-                      fontSize: 11,
-                      padding: "4px 9px",
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openDoc(
-                        `Proposal – ${p.num}`,
-                        buildProposalHTML(p, biz, logo)
-                      );
-                    }}
+                    style={{ ...S.btn("primary"), fontSize: 11, padding: "4px 9px" }}
+                    onClick={(e) => { e.stopPropagation(); openDoc(`Proposal – ${p.num}`, buildProposalHTML(p, biz, logo)); }}
                   >
                     🖨️ Print Proposal
                   </button>
                   <button
-                    style={{
-                      ...S.btn("ghost"),
-                      fontSize: 11,
-                      padding: "4px 9px",
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const u = [...proposals];
-                      u[i] = { ...p, status: "Sent" };
-                      setProposals(u);
-                    }}
+                    style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px" }}
+                    onClick={(e) => { e.stopPropagation(); const u = [...proposals]; u[i] = { ...p, status: "Sent" }; setProposals(u); }}
                   >
                     ✉️ Mark Sent
                   </button>
                   <button
-                    style={{
-                      ...S.btn("ghost"),
-                      fontSize: 11,
-                      padding: "4px 9px",
-                      borderColor: T.success,
-                      color: T.success,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const u = [...proposals];
-                      u[i] = { ...p, status: "Approved" };
-                      setProposals(u);
-                    }}
+                    style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: T.success, color: T.success }}
+                    onClick={(e) => { e.stopPropagation(); const u = [...proposals]; u[i] = { ...p, status: "Approved" }; setProposals(u); }}
                   >
                     ✓ Approve
                   </button>
                   {!p.eventId && (
                     <button
-                      style={{
-                        ...S.btn("ghost"),
-                        fontSize: 11,
-                        padding: "4px 9px",
-                        borderColor: T.catering,
-                        color: T.catering,
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        convertToEvent(i);
-                      }}
+                      style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: T.catering, color: T.catering }}
+                      onClick={(e) => { e.stopPropagation(); convertToEvent(i); }}
                     >
                       🎉 Convert to Event
                     </button>
                   )}
+                  <button
+                    style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px" }}
+                    onClick={(e) => { e.stopPropagation(); duplicateProposal(i); }}
+                    title="Create a copy of this proposal as a new Draft"
+                  >
+                    📋 Duplicate
+                  </button>
+                  <button
+                    style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px",
+                      borderColor: p.isTemplate ? T.accent : T.border,
+                      color: p.isTemplate ? T.accent : T.textMuted,
+                      background: p.isTemplate ? T.accentSoft : "transparent",
+                    }}
+                    onClick={(e) => { e.stopPropagation(); toggleTemplate(i); }}
+                    title={p.isTemplate ? "Remove from templates" : "Save as reusable template"}
+                  >
+                    {p.isTemplate ? "⭐ Template" : "☆ Save as Template"}
+                  </button>
+                  <button
+                    style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", color: T.danger, borderColor: T.danger + "40", marginLeft: "auto" }}
+                    onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete ${p.num}?`)) setProposals(prev => prev.filter((_, j) => j !== i)); }}
+                  >
+                    🗑 Delete
+                  </button>
                 </div>
               </div>
             )}
@@ -12227,6 +12336,7 @@ export default function App() {
   const [sales, setSales] = useState(() => ls_get("cb_sales", INIT_SALES));
   const [invoices, setInvoices] = useState(() => ls_get("cb_invoices", INIT_INVOICES));
   const [proposals, setProposals] = useState(() => ls_get("cb_proposals", INIT_PROPOSALS));
+  const [proposalPrefillLines, setProposalPrefillLines] = useState(null); // lines from catalog to prefill new proposal
   const [catalogItems, setCatalogItems] = useState(() => ls_get("cb_catalog", CAT_ITEMS));
   const [catalogCategories, setCatalogCategories] = useState(() => ls_get("cb_catalog_cats", CAT_CATS));
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
@@ -12496,6 +12606,8 @@ export default function App() {
             setCustomers={setCustomers}
             catalogItems={catalogItems}
             catalogCategories={catalogCategories}
+            proposalPrefillLines={proposalPrefillLines}
+            clearProposalPrefill={() => setProposalPrefillLines(null)}
           />
         )}
         {tab === "catalog" && (
@@ -12507,6 +12619,10 @@ export default function App() {
             meals={meals}
             logo={logo}
             biz={biz}
+            onCreateProposalFromCatalog={(lines) => {
+              setProposalPrefillLines(lines);
+              setTab("catering");
+            }}
           />
         )}
         {tab === "restaurant" && (
