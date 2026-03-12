@@ -1444,10 +1444,10 @@ const PRINT_CSS = `
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px;font-size:13px;line-height:1.5}
 .doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #1a1a1a}
-.brand-block{display:flex;flex-direction:column;align-items:flex-start;margin-left:0}
-.brand-block img{height:200px;max-width:480px;object-fit:contain;display:block}
+.brand-block{display:flex;flex-direction:column;align-items:flex-start;margin-left:0;gap:0}
+.brand-block img{height:150px;max-width:300px;object-fit:contain;display:block;margin-bottom:-12px;margin-left:-12px}
 .brand-name{font-size:26px;font-weight:900;letter-spacing:-1px;color:#1a1a1a;line-height:1}
-.brand-sub{font-size:11px;color:#666;margin-top:5px;line-height:1.7}
+.brand-sub{font-size:11px;color:#666;margin-top:2px;line-height:1.7}
 .doc-ref-block{text-align:right}
 .doc-type{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#999;margin-bottom:4px}
 .doc-number{font-size:28px;font-weight:900;color:#1a1a1a;letter-spacing:-0.5px}
