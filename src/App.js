@@ -1445,7 +1445,7 @@ const PRINT_CSS = `
 body{font-family:'Inter',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px;font-size:13px;line-height:1.5}
 .doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #1a1a1a}
 .brand-block{display:flex;flex-direction:column;align-items:flex-start;margin-left:0;gap:0}
-.brand-block img{height:150px;max-width:300px;object-fit:contain;display:block;margin-bottom:-12px;margin-left:-12px}
+.brand-block img{height:120px;max-width:240px;object-fit:contain;display:block;margin-bottom:6px;margin-left:0}
 .brand-name{font-size:26px;font-weight:900;letter-spacing:-1px;color:#1a1a1a;line-height:1}
 .brand-sub{font-size:11px;color:#666;margin-top:2px;line-height:1.7}
 .doc-ref-block{text-align:right}
@@ -1520,10 +1520,10 @@ tbody td.tr{text-align:right;font-weight:600}tbody td.tc{text-align:center}tbody
 `;
 
 function getBizHTML(biz, logo) {
-  const img = logo?.src
-    ? `<img src="${logo.src}" alt="logo"/>`
-    : `<div class="brand-name">${biz.name}</div>`;
+  const logoSrc = logo?.src || LOGO_SRC;
+  const img = `<img src="${logoSrc}" alt="logo"/>`;
   const sub = [
+    biz.name,
     biz.tagline,
     biz.address,
     biz.city,
@@ -1829,9 +1829,8 @@ function buildCatalogHTML(items, categories, biz, logo) {
   categories.forEach(c => { catMap[c.id] = c.name; });
   const byCat = {};
   items.forEach(i => { if (!byCat[i.catId]) byCat[i.catId] = []; byCat[i.catId].push(i); });
-  const brandImg = logo?.src
-    ? `<img src="${logo.src}" alt="logo" style="height:150px;max-width:300px;object-fit:contain;display:block;margin-bottom:0;margin-left:-12px"/>`
-    : `<div style="font-size:28px;font-weight:900;margin-bottom:4px">${biz.name}</div>`;
+  const brandLogoSrc = logo?.src || LOGO_SRC;
+  const brandImg = `<img src="${brandLogoSrc}" alt="logo" style="height:120px;max-width:240px;object-fit:contain;display:block;margin-bottom:6px;margin-left:0"/>`;
   const sections = Object.entries(byCat).map(([catId, its]) => {
     const cards = its.map(i => `
       <div class="cat-item">
