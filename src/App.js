@@ -3731,7 +3731,10 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
           events={events}
           setEvents={setEvents}
           catalogItems={catalogItems}
+          setCatalogItems={setCatalogItems}
           catalogCategories={catalogCategories}
+          setCatalogCategories={setCatalogCategories}
+          meals={meals}
           inventory={inventory}
           logo={logo}
           biz={biz}
@@ -4726,7 +4729,10 @@ function ProposalsPage({
   events,
   setEvents,
   catalogItems,
+  setCatalogItems,
   catalogCategories,
+  setCatalogCategories,
+  meals,
   inventory,
   logo,
   biz,
@@ -4751,8 +4757,64 @@ function ProposalsPage({
   });
   const [pickCat, setPickCat] = useState(null);
   const [doc, setDoc] = useState(null);
-  const [showInvLink, setShowInvLink] = useState(null); // proposal index
+  const [showInvLink, setShowInvLink] = useState(null);
   const [showTemplates, setShowTemplates] = useState(false);
+
+  // ── Inline catalog item creation ──────────────────────────────────
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [addingNewCat, setAddingNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const EMPTY_NI = {
+    catId: catalogCategories[0]?.id || 1,
+    name: "", unitType: "Per head", price: "", costPerUnit: "",
+    description: "", photo: null,
+  };
+  const [ni, setNi] = useState(EMPTY_NI);
+  const photoRef = useRef();
+
+  const handleCatalogPhoto = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = (ev) => setNi(prev => ({ ...prev, photo: ev.target.result }));
+    r.readAsDataURL(f);
+  };
+
+  const pullFromMealInline = (mealId) => {
+    if (!mealId) return;
+    const m = meals.find(ml => String(ml.id) === String(mealId));
+    if (!m) return;
+    setNi(prev => ({
+      ...prev,
+      name: m.name || prev.name,
+      price: m.price ? String(m.price) : prev.price,
+      description: m.description || prev.description,
+      photo: m.photo || prev.photo,
+      unitType: "Per head",
+    }));
+  };
+
+  const saveCatalogItem = () => {
+    if (!ni.name.trim() || !ni.price) return;
+    const item = {
+      ...ni,
+      id: Date.now(),
+      price: Number(ni.price),
+      costPerUnit: Number(ni.costPerUnit) || 0,
+    };
+    setCatalogItems(prev => [...prev, item]);
+    // Also immediately add to proposal lines
+    addLine(item);
+    setNi({ ...EMPTY_NI, catId: ni.catId });
+    setShowAddItem(false);
+  };
+
+  const addNewCategory = () => {
+    const name = newCatName.trim(); if (!name) return;
+    const newId = Math.max(0, ...catalogCategories.map(c => c.id)) + 1;
+    setCatalogCategories(prev => [...prev, { id: newId, name }]);
+    setNi(prev => ({ ...prev, catId: newId }));
+    setNewCatName(""); setAddingNewCat(false);
+  };
   const openDoc = (title, html) =>
     setDoc({ title, html, onPrint: () => printDoc(title, html) });
 
@@ -5166,6 +5228,135 @@ function ProposalsPage({
                 </div>
               ))}
           </div>
+
+          {/* ── Inline: Add new catalog item ── */}
+          {!showAddItem ? (
+            <button
+              style={{ ...S.btn("ghost"), fontSize: 11, marginTop: 8, borderStyle: "dashed", color: T.accent, borderColor: T.accent + "60" }}
+              onClick={() => {
+                setNi({ ...EMPTY_NI, catId: catalogCategories[0]?.id || 1 });
+                setShowAddItem(true);
+                setAddingNewCat(false);
+              }}
+            >
+              ＋ Add new item to catalog
+            </button>
+          ) : (
+            <div style={{ background: `${T.accent}08`, border: `1px solid ${T.accent}30`, borderRadius: 10, padding: "14px 16px", marginTop: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>➕ New Catalog Item</div>
+                <button style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 16, lineHeight: 1 }} onClick={() => { setShowAddItem(false); setAddingNewCat(false); }}>✕</button>
+              </div>
+
+              {/* Pull from meal shortcut */}
+              {meals && meals.length > 0 && (
+                <div style={{ background: T.accentSoft, borderRadius: 7, padding: "8px 11px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, color: T.accent, fontWeight: 700, whiteSpace: "nowrap" }}>⚡ Pull from Meal:</span>
+                  <select style={{ ...S.select, flex: 1, marginBottom: 0 }} onChange={e => pullFromMealInline(e.target.value)} defaultValue="">
+                    <option value="">— pick a meal to pre-fill —</option>
+                    {meals.map(m => <option key={m.id} value={m.id}>{m.name}{m.price ? ` · ${fmt(m.price)} XAF` : ""}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div style={S.grid(3)}>
+                {/* Name */}
+                <div>
+                  <label style={S.label}>Item Name *</label>
+                  <input style={S.input} value={ni.name} onChange={e => setNi({ ...ni, name: e.target.value })} placeholder="e.g. Jollof Rice" />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label style={S.label}>Category</label>
+                  {!addingNewCat ? (
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <select style={{ ...S.select, flex: 1 }} value={ni.catId} onChange={e => setNi({ ...ni, catId: Number(e.target.value) })}>
+                        {catalogCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <button
+                        style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 8px", whiteSpace: "nowrap" }}
+                        onClick={() => setAddingNewCat(true)}
+                        title="Add new category"
+                      >＋ New</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <input
+                        style={{ ...S.input, flex: 1 }}
+                        value={newCatName}
+                        onChange={e => setNewCatName(e.target.value)}
+                        placeholder="e.g. 🥗 Salads"
+                        onKeyDown={e => e.key === "Enter" && addNewCategory()}
+                        autoFocus
+                      />
+                      <button style={{ ...S.btn("primary"), fontSize: 11, padding: "4px 9px" }} onClick={addNewCategory}>Save</button>
+                      <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 8px" }} onClick={() => { setAddingNewCat(false); setNewCatName(""); }}>✕</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Unit type */}
+                <div>
+                  <label style={S.label}>Unit Type</label>
+                  <select style={S.select} value={ni.unitType} onChange={e => setNi({ ...ni, unitType: e.target.value })}>
+                    {["Per head", "Per tray", "Per platter", "Per item", "Per hour", "Per day", "Flat fee"].map(u => <option key={u}>{u}</option>)}
+                  </select>
+                </div>
+
+                {/* Price */}
+                <div>
+                  <label style={S.label}>Sale Price (XAF) *</label>
+                  <input style={S.input} type="number" value={ni.price} onChange={e => setNi({ ...ni, price: e.target.value })} placeholder="0" />
+                </div>
+
+                {/* Cost */}
+                <div>
+                  <label style={S.label}>Cost / Unit (XAF)</label>
+                  <input style={S.input} type="number" value={ni.costPerUnit} onChange={e => setNi({ ...ni, costPerUnit: e.target.value })} placeholder="0" />
+                </div>
+
+                {/* Photo */}
+                <div>
+                  <label style={S.label}>Photo</label>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    {ni.photo && (
+                      <img src={ni.photo} alt="" style={{ width: 40, height: 36, objectFit: "cover", borderRadius: 5, border: `1px solid ${T.border}` }} />
+                    )}
+                    <button
+                      style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => photoRef.current.click()}
+                    >
+                      {ni.photo ? "Change" : "📷 Upload"}
+                    </button>
+                    {ni.photo && (
+                      <button style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 13 }} onClick={() => setNi({ ...ni, photo: null })}>✕</button>
+                    )}
+                    <input ref={photoRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleCatalogPhoto} />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div style={{ gridColumn: "span 3" }}>
+                  <label style={S.label}>Description <span style={{ color: T.textDim, fontWeight: 400 }}>(optional — shown on proposal PDF)</span></label>
+                  <input style={S.input} value={ni.description} onChange={e => setNi({ ...ni, description: e.target.value })} placeholder="Short description…" />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  style={{ ...S.btn("primary"), fontSize: 12 }}
+                  disabled={!ni.name.trim() || !ni.price}
+                  onClick={saveCatalogItem}
+                >
+                  ✓ Save & Add to Proposal
+                </button>
+                <button style={{ ...S.btn("ghost"), fontSize: 12 }} onClick={() => { setShowAddItem(false); setAddingNewCat(false); }}>Cancel</button>
+                <span style={{ fontSize: 10, color: T.textDim }}>Saved to catalog and added to this proposal.</span>
+              </div>
+            </div>
+          )}
+
           {draft.lines.length > 0 && (
             <>
               <Divider />
