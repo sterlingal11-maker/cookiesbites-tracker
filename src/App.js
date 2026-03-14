@@ -148,26 +148,96 @@ const INIT_BIZ = {
 };
 
 const CAT_CATS = [
-  { id: 1, name: "🍚 Rice Dishes" },
-  { id: 2, name: "🍗 Chicken" },
-  { id: 3, name: "🥩 Beef & Goat" },
-  { id: 4, name: "🐟 Fish & Seafood" },
-  { id: 5, name: "🫙 Stews & Sauces" },
-  { id: 6, name: "🌿 Vegetarian" },
-  { id: 7, name: "🍟 Sides" },
-  { id: 8, name: "🍰 Desserts" },
-  { id: 9, name: "🍹 Drinks" },
-  { id: 10, name: "🎉 Add-ons" },
-  { id: 11, name: "🚗 Logistics" },
-  { id: 12, name: "👨‍🍳 Staffing" },
-  { id: 13, name: "🏢 Corporate" },
-  { id: 14, name: "🎊 Seasonal" },
-  { id: 15, name: "🍽️ Starters" },
-  { id: 16, name: "🥂 Service Styles" },
-  { id: 17, name: "🏕️ Equipment" },
+  { id: 1,  name: "🍚 Rice Dishes" },
+  { id: 2,  name: "🍗 Chicken" },
+  { id: 3,  name: "🥩 Beef & Goat" },
+  { id: 4,  name: "🐟 Fish & Seafood" },
+  { id: 5,  name: "🫙 Stews & Sauces" },
+  { id: 6,  name: "🌿 Vegetarian" },
+  { id: 7,  name: "🍟 Small Chops & Snacks" },
+  { id: 8,  name: "🍰 Desserts & Pastries" },
+  { id: 9,  name: "🍹 Drinks & Smoothies" },
+  { id: 10, name: "🥗 Fruit Platters & Yogurts" },
+  { id: 11, name: "🔥 Grills & Brochettes" },
+  { id: 12, name: "🎉 Add-ons" },
+  { id: 13, name: "🚗 Logistics" },
+  { id: 14, name: "👨‍🍳 Staffing" },
+  { id: 15, name: "🏢 Corporate" },
+  { id: 16, name: "🎊 Seasonal" },
+  { id: 17, name: "🍽️ Starters" },
+  { id: 18, name: "🥂 Service Styles" },
+  { id: 19, name: "🏕️ Equipment" },
 ];
 
-const CAT_ITEMS = [];
+const CAT_ITEMS = [
+  // ── 🍟 Small Chops & Snacks (cat 7) ──────────────────────────────
+  { id: 101, catId: 7, name: "Hamburger",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Classic beef patty burger with lettuce, tomato and sauce in a soft bun.", photo: null, tags: ["snack","small chops"] },
+  { id: 102, catId: 7, name: "Spring Roll",                 unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crispy fried roll filled with seasoned vegetables and/or meat.", photo: null, tags: ["snack","small chops"] },
+  { id: 103, catId: 7, name: "Samosa",                      unitType: "Per item",   price: 0, costPerUnit: 0, description: "Golden deep-fried pastry stuffed with spiced meat or vegetables.", photo: null, tags: ["snack","small chops"] },
+  { id: 104, catId: 7, name: "Meat Pie & Meat Balls",       unitType: "Per item",   price: 0, costPerUnit: 0, description: "Flaky shortcrust meat pie served with seasoned meat balls.", photo: null, tags: ["snack","small chops"] },
+  { id: 105, catId: 7, name: "Doughnuts",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Soft, fluffy deep-fried doughnuts lightly dusted with sugar.", photo: null, tags: ["snack","small chops"] },
+  { id: 106, catId: 7, name: "Sausage",                     unitType: "Per item",   price: 0, costPerUnit: 0, description: "Grilled or fried pork/chicken sausages, served as a finger snack.", photo: null, tags: ["snack","small chops"] },
+  { id: 107, catId: 7, name: "American Doughnuts (Bombonis)", unitType: "Per item", price: 0, costPerUnit: 0, description: "Light airy fried dough balls — the local favourite, known as Bombonis.", photo: null, tags: ["snack","small chops"] },
+  { id: 108, catId: 7, name: "Corn Dogs",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Sausage on a stick dipped in cornmeal batter and deep-fried to golden.", photo: null, tags: ["snack","small chops"] },
+  { id: 109, catId: 7, name: "Sandwich",                    unitType: "Per item",   price: 0, costPerUnit: 0, description: "Freshly prepared sandwich with choice of filling — chicken, tuna or beef.", photo: null, tags: ["snack","small chops"] },
+  { id: 110, catId: 7, name: "Chin Chin",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crunchy deep-fried dough bites, mildly sweet — a West African classic snack.", photo: null, tags: ["snack","small chops"] },
+  { id: 111, catId: 7, name: "Scotch Egg",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Hard-boiled egg wrapped in seasoned minced meat, crumbed and deep-fried.", photo: null, tags: ["snack","small chops"] },
+  { id: 112, catId: 7, name: "Puff Puff",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Soft, pillowy deep-fried dough balls — a beloved West/Central African snack.", photo: null, tags: ["snack","small chops"] },
+  { id: 113, catId: 7, name: "Accra Beans",                 unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crispy fried black-eyed pea fritters, seasoned with peppers and onions.", photo: null, tags: ["snack","small chops"] },
+  { id: 114, catId: 7, name: "Accra Banana",                unitType: "Per item",   price: 0, costPerUnit: 0, description: "Sweet fried plantain fritters — crispy outside, soft and sweet inside.", photo: null, tags: ["snack","small chops"] },
+  { id: 115, catId: 7, name: "Sausage Rolls",               unitType: "Per item",   price: 0, costPerUnit: 0, description: "Seasoned sausage wrapped in flaky puff pastry, baked to golden perfection.", photo: null, tags: ["snack","small chops"] },
+  { id: 116, catId: 7, name: "Sharwarma",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Wraps of seasoned grilled meat, fresh vegetables and garlic sauce in flatbread.", photo: null, tags: ["snack","small chops"] },
+  { id: 117, catId: 7, name: "Prawn & Fish Rolls",          unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crispy rolled pastry stuffed with seasoned prawn and fish filling.", photo: null, tags: ["snack","small chops","seafood"] },
+  { id: 118, catId: 7, name: "Pancakes",                    unitType: "Per item",   price: 0, costPerUnit: 0, description: "Fluffy golden pancakes served with syrup, honey or fruit toppings.", photo: null, tags: ["snack","small chops","dessert"] },
+  { id: 119, catId: 7, name: "Money Bag",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Delicate pastry pouches gathered into a purse shape, filled with savoury or sweet filling.", photo: null, tags: ["snack","small chops","fancy"] },
+
+  // ── 🔥 Grills & Brochettes (cat 11) ──────────────────────────────
+  { id: 201, catId: 11, name: "Cow Soya",                   unitType: "Per head",   price: 0, costPerUnit: 0, description: "Classic Cameroonian beef soya — spiced beef skewers grilled over open charcoal flame.", photo: null, tags: ["grill","soya","beef"] },
+  { id: 202, catId: 11, name: "Chicken Soya",               unitType: "Per head",   price: 0, costPerUnit: 0, description: "Tender marinated chicken pieces grilled on skewers with Cameroonian suya spice blend.", photo: null, tags: ["grill","soya","chicken"] },
+  { id: 203, catId: 11, name: "Goat Soya",                  unitType: "Per head",   price: 0, costPerUnit: 0, description: "Juicy goat meat skewers seasoned with suya spices and slow-grilled to perfection.", photo: null, tags: ["grill","soya","goat"] },
+  { id: 204, catId: 11, name: "Asun",                       unitType: "Per head",   price: 0, costPerUnit: 0, description: "Spicy smoked goat meat — grilled, chopped and tossed with hot peppers and onions.", photo: null, tags: ["grill","goat","spicy"] },
+  { id: 205, catId: 11, name: "Mackerel (Grilled)",         unitType: "Per item",   price: 0, costPerUnit: 0, description: "Whole fresh mackerel marinated in spices and grilled over charcoal.", photo: null, tags: ["grill","fish","seafood"] },
+  { id: 206, catId: 11, name: "Steak",                      unitType: "Per item",   price: 0, costPerUnit: 0, description: "Premium beef steak seasoned and grilled to the client's preferred doneness.", photo: null, tags: ["grill","beef","premium"] },
+  { id: 207, catId: 11, name: "Lamb Chops",                 unitType: "Per item",   price: 0, costPerUnit: 0, description: "Tender lamb chops marinated in herbs and garlic, grilled to a smoky finish.", photo: null, tags: ["grill","lamb","premium"] },
+  { id: 208, catId: 11, name: "Hot Dog",                    unitType: "Per item",   price: 0, costPerUnit: 0, description: "Grilled sausage served in a soft bun with mustard, ketchup and relish.", photo: null, tags: ["grill","sausage"] },
+  { id: 209, catId: 11, name: "Meat Skewers",               unitType: "Per item",   price: 0, costPerUnit: 0, description: "Mixed beef and vegetable skewers grilled with aromatic spices.", photo: null, tags: ["grill","beef","skewer"] },
+  { id: 210, catId: 11, name: "Chicken Skewers",            unitType: "Per item",   price: 0, costPerUnit: 0, description: "Marinated chicken pieces threaded on skewers and grilled over charcoal.", photo: null, tags: ["grill","chicken","skewer"] },
+  { id: 211, catId: 11, name: "Pork (Grilled)",             unitType: "Per item",   price: 0, costPerUnit: 0, description: "Seasoned pork cuts grilled over open flame for a rich smoky flavour.", photo: null, tags: ["grill","pork"] },
+  { id: 212, catId: 11, name: "Croakers (Grilled)",         unitType: "Per item",   price: 0, costPerUnit: 0, description: "Fresh croaker fish seasoned with peppers and spices, grilled whole.", photo: null, tags: ["grill","fish","seafood"] },
+  { id: 213, catId: 11, name: "Gambas (Grilled Prawns)",    unitType: "Per item",   price: 0, costPerUnit: 0, description: "Jumbo prawns marinated in garlic butter and spices, grilled to juicy perfection.", photo: null, tags: ["grill","seafood","prawns","premium"] },
+
+  // ── 🍰 Desserts & Pastries (cat 8) ───────────────────────────────
+  { id: 301, catId: 8, name: "Mousse",                      unitType: "Per item",   price: 0, costPerUnit: 0, description: "Light, airy mousse — available in chocolate, fruit or vanilla flavours.", photo: null, tags: ["dessert","mousse"] },
+  { id: 302, catId: 8, name: "Fruit Tart",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Buttery pastry shell filled with smooth custard cream and topped with fresh fruits.", photo: null, tags: ["dessert","pastry","tart"] },
+  { id: 303, catId: 8, name: "Panacotta",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Classic Italian set cream dessert, silky smooth with a berry or caramel sauce.", photo: null, tags: ["dessert","italian"] },
+  { id: 304, catId: 8, name: "Baked & Deconstructed Cheese Cake", unitType: "Per item", price: 0, costPerUnit: 0, description: "Rich baked cheesecake or artistically deconstructed cheesecake plating.", photo: null, tags: ["dessert","cheesecake"] },
+  { id: 305, catId: 8, name: "Swiss Roll",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Soft sponge cake rolled with a cream or jam filling — classic and elegant.", photo: null, tags: ["dessert","cake","roll"] },
+  { id: 306, catId: 8, name: "Crème Caramel",               unitType: "Per item",   price: 0, costPerUnit: 0, description: "Smooth baked custard with a golden caramel sauce — a French dessert favourite.", photo: null, tags: ["dessert","custard","french"] },
+  { id: 307, catId: 8, name: "Apple Pie & Filling",         unitType: "Per item",   price: 0, costPerUnit: 0, description: "Flaky double-crust apple pie with spiced cinnamon-apple filling, baked golden.", photo: null, tags: ["dessert","pie","fruit"] },
+  { id: 308, catId: 8, name: "Waffles",                     unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crispy golden waffles served with syrup, cream and fresh fruits.", photo: null, tags: ["dessert","waffle"] },
+  { id: 309, catId: 8, name: "Lemon Curd",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Tangy, silky lemon curd — served as a dessert filling or accompaniment.", photo: null, tags: ["dessert","lemon","filling"] },
+  { id: 310, catId: 8, name: "Blueberry Sauce",             unitType: "Per item",   price: 0, costPerUnit: 0, description: "Rich homemade blueberry compote — a perfect topping for cakes or ice cream.", photo: null, tags: ["dessert","sauce","fruit"] },
+  { id: 311, catId: 8, name: "Mocha Filling",               unitType: "Per item",   price: 0, costPerUnit: 0, description: "Coffee-chocolate mocha cream filling — ideal for cakes, rolls and pastries.", photo: null, tags: ["dessert","filling","coffee"] },
+  { id: 312, catId: 8, name: "Red Velvet",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Iconic red velvet cake with velvety texture and creamy cheese frosting.", photo: null, tags: ["dessert","cake","red velvet"] },
+  { id: 313, catId: 8, name: "Chocolate & Carrot Cake",     unitType: "Per item",   price: 0, costPerUnit: 0, description: "Rich moist chocolate cake or spiced carrot cake — both with decadent frosting.", photo: null, tags: ["dessert","cake","chocolate"] },
+  { id: 314, catId: 8, name: "Strawberry Purée",            unitType: "Per item",   price: 0, costPerUnit: 0, description: "Fresh blended strawberry purée — used as a dessert coulis or drink base.", photo: null, tags: ["dessert","fruit","sauce"] },
+  { id: 315, catId: 8, name: "Salted Caramel Sauce",        unitType: "Per item",   price: 0, costPerUnit: 0, description: "Indulgent buttery salted caramel sauce — perfect drizzled over cakes and ice cream.", photo: null, tags: ["dessert","sauce","caramel"] },
+  { id: 316, catId: 8, name: "Vanilla Custard",             unitType: "Per item",   price: 0, costPerUnit: 0, description: "Classic smooth vanilla custard — served warm or cold as a dessert accompaniment.", photo: null, tags: ["dessert","custard","vanilla"] },
+  { id: 317, catId: 8, name: "Cream Cheese Frosting",       unitType: "Per item",   price: 0, costPerUnit: 0, description: "Tangy, rich cream cheese frosting — the signature topping for red velvet and carrot cakes.", photo: null, tags: ["dessert","frosting","cake"] },
+  { id: 318, catId: 8, name: "Crumble Mix",                 unitType: "Per item",   price: 0, costPerUnit: 0, description: "Buttery oat and flour crumble topping — used on fruit crumbles and dessert platters.", photo: null, tags: ["dessert","crumble","topping"] },
+
+  // ── 🥗 Fruit Platters & Yogurts (cat 10) ─────────────────────────
+  { id: 401, catId: 10, name: "Normal & Exotic Fruit Platters", unitType: "Per platter", price: 0, costPerUnit: 0, description: "Beautifully arranged platters of seasonal local and exotic tropical fruits.", photo: null, tags: ["fruit","platter","healthy"] },
+  { id: 402, catId: 10, name: "Pineapple & Orange Juice",  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Freshly squeezed pineapple and orange juice — natural, no added sugar.", photo: null, tags: ["juice","drink","fresh"] },
+  { id: 403, catId: 10, name: "Cocktails",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Fresh fruit cocktails — mocktail versions available for all events.", photo: null, tags: ["cocktail","drink"] },
+  { id: 404, catId: 10, name: "Folere (Bissap)",            unitType: "Per item",   price: 0, costPerUnit: 0, description: "Refreshing hibiscus flower drink — a Cameroonian classic, served chilled.", photo: null, tags: ["drink","local","folere"] },
+  { id: 405, catId: 10, name: "Kossam",                     unitType: "Per item",   price: 0, costPerUnit: 0, description: "Traditional Fulani fermented milk drink — refreshing and lightly tangy.", photo: null, tags: ["drink","local","kossam"] },
+  { id: 406, catId: 10, name: "Fruits & Exotic Parfaits",   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Layered parfait cups with yogurt, granola and exotic tropical fruits.", photo: null, tags: ["dessert","parfait","fruit","yogurt"] },
+  { id: 407, catId: 10, name: "Greek & Swiss Yogurts",      unitType: "Per item",   price: 0, costPerUnit: 0, description: "Premium thick Greek or Swiss-style yogurt served plain or with fruit toppings.", photo: null, tags: ["yogurt","healthy","dairy"] },
+  { id: 408, catId: 10, name: "Detox Smoothies",            unitType: "Per item",   price: 0, costPerUnit: 0, description: "Cold-pressed green detox smoothies — spinach, cucumber, pineapple and ginger blend.", photo: null, tags: ["smoothie","drink","healthy","detox"] },
+  { id: 409, catId: 10, name: "Healthy Smoothies",          unitType: "Per item",   price: 0, costPerUnit: 0, description: "Nutrient-packed fruit and vegetable smoothies — customised to the event theme.", photo: null, tags: ["smoothie","drink","healthy"] },
+  { id: 410, catId: 10, name: "Granola",                    unitType: "Per item",   price: 0, costPerUnit: 0, description: "House-made crunchy oat granola — served with yogurt or fruit platters.", photo: null, tags: ["granola","healthy","breakfast"] },
+];
 
 // ─── MEALS (Restaurant menu items with inventory linking) ─────────
 const INIT_MEALS = [];
@@ -13532,8 +13602,20 @@ export default function App() {
       apply("cb_sales",        setSales);
       apply("cb_invoices",     setInvoices);
       apply("cb_proposals",    setProposals);
-      apply("cb_catalog",      setCatalogItems);
-      apply("cb_catalog_cats", setCatalogCategories);
+      // Catalog items: seed with CAT_ITEMS if cloud is empty
+      if (cloud["cb_catalog"] !== undefined && cloud["cb_catalog"] !== null) {
+        const cloudCat = cloud["cb_catalog"];
+        const cat = Array.isArray(cloudCat) && cloudCat.length === 0 ? CAT_ITEMS : cloudCat;
+        setCatalogItems(cat);
+        ls_set("cb_catalog", cat);
+      }
+      // Catalog categories: seed with CAT_CATS if cloud is empty
+      if (cloud["cb_catalog_cats"] !== undefined && cloud["cb_catalog_cats"] !== null) {
+        const cloudCats = cloud["cb_catalog_cats"];
+        const cats = Array.isArray(cloudCats) && cloudCats.length === 0 ? CAT_CATS : cloudCats;
+        setCatalogCategories(cats);
+        ls_set("cb_catalog_cats", cats);
+      }
       // Inventory: if cloud is empty array, seed with INIT_INVENTORY
       if (cloud["cb_inventory"] !== undefined && cloud["cb_inventory"] !== null) {
         const cloudInv = cloud["cb_inventory"];
