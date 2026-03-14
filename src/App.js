@@ -3386,7 +3386,7 @@ function EventCostLedger({ evt, inventory, onUpdate }) {
   );
 }
 
-function CateringPage({ events, setEvents, proposals, setProposals, inventory, logo, biz, customers, setCustomers, catalogItems, catalogCategories, proposalPrefillLines, clearProposalPrefill }) {
+function CateringPage({ events, setEvents, proposals, setProposals, inventory, logo, biz, customers, setCustomers, invoices, setInvoices, catalogItems, catalogCategories, proposalPrefillLines, clearProposalPrefill }) {
   const [cateringSubTab, setCateringSubTab] = useState("events");
   const [sel, setSel] = useState(null);
   const [filter, setFilter] = useState("All");
@@ -4159,8 +4159,10 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
                   padding: "4px 9px",
                 }}
                 onClick={() => {
+                  const invNum = `INV-${THIS_YEAR}-${String(evt.id).padStart(4, "0")}`;
                   const inv = {
-                    num: `INV-${THIS_YEAR}-${String(evt.id).padStart(4, "0")}`,
+                    id: evt.id,
+                    num: invNum,
                     client: evt.clientName,
                     clientPhone: evt.clientPhone,
                     issued: evt.eventDate,
@@ -4168,12 +4170,35 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
                     total: evt.revenue,
                     paid: 0,
                     status: "Unpaid",
+                    eventId: evt.id,
                     notes: "",
                   };
                   openDoc(
                     `Invoice – ${evt.name}`,
                     buildInvoiceHTML(inv, evt, biz, logo)
                   );
+                  // Save to AR (invoices) if not already there
+                  if (setInvoices) {
+                    setInvoices(prev => {
+                      const exists = prev.some(i => i.num === invNum);
+                      if (exists) return prev;
+                      return [...prev, inv];
+                    });
+                  }
+                  // Auto-upsert customer
+                  if (evt.clientName && evt.clientName.trim() && setCustomers) {
+                    const name = evt.clientName.trim();
+                    const phone = (evt.clientPhone || "").trim();
+                    setCustomers(prev => {
+                      const idx = prev.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+                      if (idx >= 0) {
+                        const updated = [...prev];
+                        updated[idx] = { ...updated[idx], phone: updated[idx].phone || phone };
+                        return updated;
+                      }
+                      return [...prev, { id: Date.now() + 2, name, phone, email: "", classification: "Regular", notes: "", createdAt: evt.eventDate || TODAY_ISO }];
+                    });
+                  }
                 }}
               >
                 📄 Invoice
@@ -9216,17 +9241,180 @@ function CustomersPage({ customers, setCustomers, invoices, setInvoices, events,
 }
 
 // ─── VENDORS PAGE ─────────────────────────────────────────────────
-function VendorsPage({ overheads, setOverheads }) {
+function VendorsPage({ overheads, setOverheads, vendors, setVendors }) {
+  const [subTab, setSubTab] = useState("directory");
+  const [adding, setAdding] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [searchQ, setSearchQ] = useState("");
+  const EMPTY_V = { name: "", phone: "", email: "", category: "Other", notes: "" };
+  const [form, setForm] = useState(EMPTY_V);
+
+  const VENDOR_CATS = ["Other", "Produce & Ingredients", "Meat & Seafood", "Beverages",
+    "Packaging", "Equipment", "Utilities", "Transport & Logistics",
+    "Cleaning & Supplies", "Staffing", "Marketing", "Professional Services"];
+
+  const filteredVendors = vendors.filter(v =>
+    !searchQ ||
+    v.name.toLowerCase().includes(searchQ.toLowerCase()) ||
+    (v.phone || "").includes(searchQ) ||
+    (v.category || "").toLowerCase().includes(searchQ.toLowerCase())
+  );
+
+  const saveVendor = () => {
+    if (!form.name.trim()) return;
+    const item = { ...form, name: form.name.trim() };
+    if (editId != null) {
+      setVendors(prev => prev.map(v => v.id === editId ? { ...item, id: editId } : v));
+      setEditId(null);
+    } else {
+      setVendors(prev => [...prev, { ...item, id: Date.now(), createdAt: TODAY_ISO }]);
+    }
+    setAdding(false);
+    setForm(EMPTY_V);
+  };
+
+  const deleteVendor = (id) => {
+    if (!window.confirm("Delete this vendor?")) return;
+    setVendors(prev => prev.filter(v => v.id !== id));
+  };
+
+  // Spending per vendor derived from overheads
+  const vendorSpend = (name) =>
+    overheads
+      .filter(o => (o.vendor || "").toLowerCase() === name.toLowerCase())
+      .reduce((s, o) => s + Number(o.amount || 0), 0);
+
+  const vendorPurchases = (name) =>
+    overheads.filter(o => (o.vendor || "").toLowerCase() === name.toLowerCase());
+
   return (
     <div>
       <div style={S.pageTitle}>🏪 Vendors & Expenses</div>
-      <OverheadsPage overheads={overheads} setOverheads={setOverheads} />
+
+      <div style={{ display: "flex", gap: 3, marginBottom: 14, flexWrap: "wrap" }}>
+        {[["directory", "🏪 Vendor Directory"], ["expenses", "📋 Expense Ledger"]].map(([t, l]) => (
+          <button key={t} style={S.navBtn(subTab === t)} onClick={() => setSubTab(t)}>{l}</button>
+        ))}
+      </div>
+
+      {subTab === "directory" && (
+        <div>
+          <div style={S.grid(3)}>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Total Vendors</div>
+              <div style={{ ...S.kpi }}>{vendors.length}</div>
+              <div style={S.kpiSub}>suppliers & payees</div>
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Total Purchases (YTD)</div>
+              <div style={{ ...S.kpi, color: T.danger }}>
+                {fmt(overheads.filter(o => o.date && o.date.startsWith(String(THIS_YEAR))).reduce((s, o) => s + Number(o.amount || 0), 0))}
+              </div>
+              <div style={S.kpiSub}>all expense types</div>
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Active Vendors (YTD)</div>
+              <div style={{ ...S.kpi, color: T.accent }}>
+                {new Set(overheads.filter(o => o.date && o.date.startsWith(String(THIS_YEAR)) && o.vendor).map(o => (o.vendor || "").toLowerCase())).size}
+              </div>
+              <div style={S.kpiSub}>with purchases this year</div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, margin: "12px 0", flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              style={{ ...S.input, flex: 1, minWidth: 180, maxWidth: 300 }}
+              placeholder="Search vendors…"
+              value={searchQ}
+              onChange={e => setSearchQ(e.target.value)}
+            />
+            <button style={S.btn("primary")} onClick={() => { setAdding(true); setEditId(null); setForm(EMPTY_V); }}>
+              + Add Vendor
+            </button>
+          </div>
+
+          {adding && (
+            <div style={{ ...S.card, marginBottom: 12 }}>
+              <div style={S.sectionTitle}>{editId ? "Edit Vendor" : "New Vendor"}</div>
+              <div style={S.grid(2)}>
+                <div>
+                  <label style={S.label}>Vendor / Supplier Name *</label>
+                  <input style={S.input} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Marché Central Douala" />
+                </div>
+                <div>
+                  <label style={S.label}>Category</label>
+                  <select style={S.input} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                    {VENDOR_CATS.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={S.label}>Phone</label>
+                  <input style={S.input} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+237 6XX XXX XXX" />
+                </div>
+                <div>
+                  <label style={S.label}>Email</label>
+                  <input style={S.input} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="vendor@email.com" />
+                </div>
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <label style={S.label}>Notes</label>
+                <input style={S.input} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Payment terms, delivery days, contact person…" />
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <button style={S.btn("primary")} onClick={saveVendor}>Save Vendor</button>
+                <button style={S.btn("ghost")} onClick={() => { setAdding(false); setEditId(null); setForm(EMPTY_V); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div className="tbl-wrap">
+            <table style={S.table}>
+              <thead>
+                <tr>
+                  {["Vendor Name", "Category", "Phone", "Email", "Total Purchases", "# Transactions", "Notes", "Actions"].map(h => (
+                    <th key={h} style={S.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVendors.length === 0 ? (
+                  <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", color: T.textDim }}>
+                    No vendors yet — they auto-populate when you record purchases.
+                  </td></tr>
+                ) : filteredVendors.map(v => (
+                  <tr key={v.id}>
+                    <td style={{ ...S.td, fontWeight: 700, color: T.accent }}>{v.name}</td>
+                    <td style={S.td}>{v.category || "—"}</td>
+                    <td style={S.td}>{v.phone || "—"}</td>
+                    <td style={S.td}>{v.email || "—"}</td>
+                    <td style={{ ...S.td, fontWeight: 700, color: T.danger }}>{fmt(vendorSpend(v.name))}</td>
+                    <td style={{ ...S.td, textAlign: "center" }}>{vendorPurchases(v.name).length}</td>
+                    <td style={{ ...S.td, color: T.textMuted, fontSize: 12 }}>{v.notes || "—"}</td>
+                    <td style={S.td}>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "2px 8px" }}
+                          onClick={() => { setForm({ ...v }); setEditId(v.id); setAdding(true); }}>Edit</button>
+                        <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "2px 8px", color: T.danger }}
+                          onClick={() => deleteVendor(v.id)}>Del</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {subTab === "expenses" && (
+        <OverheadsPage overheads={overheads} setOverheads={setOverheads} vendors={vendors} setVendors={setVendors} />
+      )}
     </div>
   );
 }
 
 // ─── OVERHEAD EXPENSES PAGE ───────────────────────────────────────
-function OverheadsPage({ overheads, setOverheads }) {
+function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
   const [subTab, setSubTab] = useState("list");
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -9326,6 +9514,15 @@ function OverheadsPage({ overheads, setOverheads }) {
     }
     setAdding(false);
     setForm(EMPTY_OH);
+    // Auto-upsert vendor from purchase entry
+    if (form.vendor && form.vendor.trim() && setVendors) {
+      const vname = form.vendor.trim();
+      setVendors(prev => {
+        const idx = prev.findIndex(v => v.name.toLowerCase() === vname.toLowerCase());
+        if (idx >= 0) return prev;
+        return [...prev, { id: Date.now() + 1, name: vname, phone: "", email: "", category: form.category || "Other", notes: "", createdAt: form.date || TODAY_ISO }];
+      });
+    }
   };
   const startEdit = (o) => {
     setForm({ ...o, amount: String(o.amount) });
@@ -12345,6 +12542,7 @@ export default function App() {
   const [logo, setLogo] = useState(() => ls_get("cb_logo", { src: LOGO_SRC }));
   const [biz, setBiz] = useState(() => ls_get("cb_biz", INIT_BIZ));
   const [customers, setCustomers] = useState(() => ls_get("cb_customers", []));
+  const [vendors, setVendors] = useState(() => ls_get("cb_vendors", []));
   const [showSettings, setShowSettings] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const isMobile = useIsMobile();
@@ -12363,25 +12561,72 @@ export default function App() {
   useEffect(() => { ls_set("cb_logo", logo); }, [logo]);
   useEffect(() => { ls_set("cb_biz", biz); }, [biz]);
   useEffect(() => { ls_set("cb_customers", customers); }, [customers]);
+  useEffect(() => { ls_set("cb_vendors", vendors); }, [vendors]);
 
-  // One-time backfill: seed customers from existing sales & events that predate the customers feature
+  // Backfill/merge customers from all sources: sales, catering events & invoices
   useEffect(() => {
-    const existing = ls_get("cb_customers", null);
-    // Only backfill if customers list is currently empty
-    if (existing && existing.length > 0) return;
-    const seen = new Map();
+    const allSources = new Map();
     [...sales, ...events].forEach((r) => {
       const name = (r.clientName || "").trim();
       if (!name) return;
       const key = name.toLowerCase();
-      if (!seen.has(key)) {
-        seen.set(key, { id: Date.now() + seen.size, name, phone: (r.clientPhone || "").trim(), email: "", classification: "Regular", notes: "", createdAt: r.date || r.eventDate || TODAY_ISO });
-      } else if (!seen.get(key).phone && r.clientPhone) {
-        seen.get(key).phone = r.clientPhone.trim();
+      if (!allSources.has(key)) {
+        allSources.set(key, { name, phone: (r.clientPhone || "").trim(), date: r.date || r.eventDate || TODAY_ISO });
+      } else if (!allSources.get(key).phone && r.clientPhone) {
+        allSources.get(key).phone = r.clientPhone.trim();
       }
     });
-    if (seen.size > 0) setCustomers([...seen.values()]);
-  }, []);
+    invoices.forEach((inv) => {
+      const name = (inv.client || "").trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (!allSources.has(key)) {
+        allSources.set(key, { name, phone: (inv.clientPhone || "").trim(), date: inv.issued || inv.date || TODAY_ISO });
+      }
+    });
+    if (allSources.size === 0) return;
+    setCustomers(prev => {
+      const existingKeys = new Set(prev.map(c => c.name.toLowerCase()));
+      const toAdd = [];
+      allSources.forEach((src, key) => {
+        if (!existingKeys.has(key)) {
+          toAdd.push({ id: Date.now() + toAdd.length, name: src.name, phone: src.phone || "", email: "", classification: "Regular", notes: "", createdAt: src.date });
+        } else {
+          // Merge phone if missing
+          const idx = prev.findIndex(c => c.name.toLowerCase() === key);
+          if (idx >= 0 && !prev[idx].phone && src.phone) {
+            prev = prev.map((c, i) => i === idx ? { ...c, phone: src.phone } : c);
+          }
+        }
+      });
+      return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+    });
+  }, [sales, events, invoices]);
+
+  // Backfill/merge vendors from all overhead/purchase entries
+  useEffect(() => {
+    if (overheads.length === 0) return;
+    const allVendors = new Map();
+    overheads.forEach((o) => {
+      const name = (o.vendor || "").trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (!allVendors.has(key)) {
+        allVendors.set(key, { name, category: o.category || "Other", date: o.date || TODAY_ISO });
+      }
+    });
+    if (allVendors.size === 0) return;
+    setVendors(prev => {
+      const existingKeys = new Set(prev.map(v => v.name.toLowerCase()));
+      const toAdd = [];
+      allVendors.forEach((src, key) => {
+        if (!existingKeys.has(key)) {
+          toAdd.push({ id: Date.now() + toAdd.length + 9000, name: src.name, phone: "", email: "", category: src.category, notes: "", createdAt: src.date });
+        }
+      });
+      return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+    });
+  }, [overheads]);
 
   const handleLogout = () => {
     clearSession();
@@ -12603,6 +12848,8 @@ export default function App() {
             biz={biz}
             customers={customers}
             setCustomers={setCustomers}
+            invoices={invoices}
+            setInvoices={setInvoices}
             catalogItems={catalogItems}
             catalogCategories={catalogCategories}
             proposalPrefillLines={proposalPrefillLines}
@@ -12654,7 +12901,7 @@ export default function App() {
           />
         )}
         {tab === "vendors" && (
-          <VendorsPage overheads={overheads} setOverheads={setOverheads} />
+          <VendorsPage overheads={overheads} setOverheads={setOverheads} vendors={vendors} setVendors={setVendors} />
         )}
         {tab === "reports" && (
           <ReportsPage
