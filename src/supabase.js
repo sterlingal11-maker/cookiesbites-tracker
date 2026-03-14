@@ -12,14 +12,15 @@ export const supabase =
 
 export const isSupabaseConfigured = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 
-// ─── Table: app_data  (key TEXT PRIMARY KEY, value JSONB) ─────────
-// One row per data key — simple key/value cloud store.
+// ─── Table: cb_app_data  (key TEXT PRIMARY KEY, value JSONB) ──────
+// Prefixed with "cb_" so it never conflicts with any other app
+// (e.g. Delightful Meals) sharing the same Supabase project.
 
 export async function cloudGet(key) {
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
-      .from("app_data")
+      .from("cb_app_data")
       .select("value")
       .eq("key", key)
       .maybeSingle();
@@ -35,7 +36,7 @@ export async function cloudSet(key, value) {
   if (!supabase) return false;
   try {
     const { error } = await supabase
-      .from("app_data")
+      .from("cb_app_data")
       .upsert({ key, value }, { onConflict: "key" });
     if (error) { console.error("[cloudSet]", key, error.message); return false; }
     return true;
@@ -50,7 +51,7 @@ export async function cloudGetAll(keys) {
   if (!supabase) return {};
   try {
     const { data, error } = await supabase
-      .from("app_data")
+      .from("cb_app_data")
       .select("key, value")
       .in("key", keys);
     if (error) { console.error("[cloudGetAll]", error.message); return {}; }
