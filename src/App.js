@@ -1777,19 +1777,15 @@ const orderCOGS = (s, catalogItems, meals) => {
         m.name.toLowerCase().includes(s.meal.toLowerCase().split(" ")[0])
     );
     if (meal) {
-      // ingredient cost requires inventory — pass 0 if no inventory context (inventory is computed inside getMealTotalCost)
-      // We store a cached costPerPlate on the meal object if available via ingredientLinks
-      // Fall through to catalog if meal has no costing data set up
       const hasCost =
         meal.laborCost > 0 ||
         (meal.otherCosts && meal.otherCosts.length > 0) ||
         (meal.ingredientLinks && meal.ingredientLinks.length > 0);
       if (hasCost) {
-        // Use laborCost + otherCosts; ingredient cost needs inventory, approximate from catalogItems
         const cat = catalogItems.find((i) =>
           i.name.toLowerCase().includes(s.meal.toLowerCase().split(" ")[0])
         );
-        const ingCost = cat ? cat.costPerUnit : 0;
+        const ingCost = Number(cat?.costPerUnit) || 0;
         const otherCost = (meal.otherCosts || []).reduce(
           (a, c) => a + Number(c.amount || 0),
           0
@@ -1801,13 +1797,16 @@ const orderCOGS = (s, catalogItems, meals) => {
       }
     }
   }
-  // Fallback: catalog cost-rate
+  // Fallback: catalog cost-rate — guard against price=0 or missing costPerUnit
   const item = catalogItems.find((i) =>
     i.name.toLowerCase().includes(s.meal.toLowerCase().split(" ")[0])
   );
-  const costRate = item ? item.costPerUnit / item.price : 0.45;
+  const costPerUnit = Number(item?.costPerUnit) || 0;
+  const price = Number(item?.price) || 0;
+  // Only use catalog rate if both cost and price are set; otherwise use 35% default
+  const costRate = (price > 0 && costPerUnit > 0) ? Math.min(costPerUnit / price, 0.75) : 0.35;
   return (
-    s.plates * s.pricePerPlate * Math.min(costRate, 0.75) +
+    s.plates * s.pricePerPlate * costRate +
     (s.deliveryFee || 0) * 0.4
   );
 };
@@ -12936,7 +12935,8 @@ function buildReportData({
   );
   const catCOGS = pEvents.reduce((s, e) => s + evtCOGS(e), 0);
   const totalCOGS = rdCOGS + catCOGS;
-  const grossProfit = totalRevenue - totalCOGS;
+  const grossProfit = totalRevenue - (isNaN(totalCOGS) ? 0 : totalCOGS);
+  const _safeTotalCOGS = isNaN(totalCOGS) ? 0 : totalCOGS;
 
   // Overhead split — only opex hits P&L
   const oh = splitOverheads(pOverheads);
@@ -12948,7 +12948,7 @@ function buildReportData({
         (ohByCategory[o.category] || 0) + Number(o.amount);
     });
   const totalOverheads = oh.totalOpex; // only opex reduces profit
-  const operatingProfit = grossProfit - totalOverheads;
+  const operatingProfit = (isNaN(grossProfit) ? totalRevenue : grossProfit) - totalOverheads;
 
   // AR / Cash
   const cashReceived = invoices
@@ -12990,8 +12990,10 @@ function buildReportData({
     totalRevenue,
     rdCOGS,
     catCOGS,
-    totalCOGS,
-    grossProfit,
+    totalCOGS: _safeTotalCOGS,
+    rdCOGS: isNaN(rdCOGS) ? 0 : rdCOGS,
+    catCOGS: isNaN(catCOGS) ? 0 : catCOGS,
+    grossProfit: isNaN(grossProfit) ? totalRevenue : grossProfit,
     ohByCategory,
     totalOverheads,
     operatingProfit,
@@ -13019,11 +13021,11 @@ function buildReportData({
     pEvents,
     pInvoices,
     pOverheads,
-    gm: totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : 0,
+    gm: totalRevenue > 0 ? (isNaN(grossProfit) ? '0.0' : ((grossProfit / totalRevenue) * 100).toFixed(1)) : '0.0',
     om:
       totalRevenue > 0
-        ? ((operatingProfit / totalRevenue) * 100).toFixed(1)
-        : 0,
+        ? (isNaN(operatingProfit) ? '0.0' : ((operatingProfit / totalRevenue) * 100).toFixed(1))
+        : '0.0',
   };
 }
 
@@ -13366,7 +13368,7 @@ function ReportsPage({
                   {fmt(d.operatingProfit)}
                 </div>
                 <div style={{ fontSize: 10, color: T.textMuted, marginTop: 2 }}>
-                  {d.period.label} · Net Margin: {d.om}%
+                  {d.period.label} · Operating Margin: {d.om}%
                 </div>
               </div>
             </div>
@@ -13509,7 +13511,7 @@ function ReportsPage({
             </div>
             <Row
               label="Cash & Cash Equivalents (est.)"
-              value={fmt(Math.max(0, d.retainedEarnings * 0.6))}
+              value={fmt(Math.max(0, d.totalCashReceived - d.allTimeOpex - d.allTimeCOGS))}
               indent
             />
             <Row
@@ -13520,7 +13522,7 @@ function ReportsPage({
             <Row label="Inventory at Cost" value={fmt(d.invValue)} indent />
             {(() => {
               const totalCurrent =
-                Math.max(0, d.retainedEarnings * 0.6) +
+                Math.max(0, d.totalCashReceived - d.allTimeOpex - d.allTimeCOGS) +
                 d.arOutstanding +
                 d.invValue;
               return (
@@ -13570,7 +13572,7 @@ function ReportsPage({
 
             {(() => {
               const totalCurrent =
-                Math.max(0, d.retainedEarnings * 0.6) +
+                Math.max(0, d.totalCashReceived - d.allTimeOpex - d.allTimeCOGS) +
                 d.arOutstanding +
                 d.invValue;
               return (
@@ -13711,7 +13713,7 @@ function ReportsPage({
             {/* Balance check */}
             {(() => {
               const totalCurrent =
-                Math.max(0, d.retainedEarnings * 0.6) +
+                Math.max(0, d.totalCashReceived - d.allTimeOpex - d.allTimeCOGS) +
                 d.arOutstanding +
                 d.invValue;
               const totalAssets = totalCurrent + d.fixedAssetValue;
@@ -13768,7 +13770,7 @@ function ReportsPage({
               <div style={S.cardTitle}>Key Ratios & Notes</div>
               {(() => {
                 const totalCurrent =
-                  Math.max(0, d.retainedEarnings * 0.6) +
+                  Math.max(0, d.totalCashReceived - d.allTimeOpex - d.allTimeCOGS) +
                   d.arOutstanding +
                   d.invValue;
                 const totalCurrLiab = d.allOh.ap + d.allOh.capexAP;
@@ -13777,7 +13779,7 @@ function ReportsPage({
                     ? (totalCurrent / totalCurrLiab).toFixed(2)
                     : "∞";
                 const quickAssets =
-                  Math.max(0, d.retainedEarnings * 0.6) + d.arOutstanding;
+                  Math.max(0, d.totalCashReceived - d.allTimeOpex - d.allTimeCOGS) + d.arOutstanding;
                 const quickRatio =
                   totalCurrLiab > 0
                     ? (quickAssets / totalCurrLiab).toFixed(2)
@@ -14045,8 +14047,14 @@ function ReportsPage({
               color={T.success}
             />
             <Row
-              label="Payments for COGS (inventory & direct)"
-              value={`(${fmt(d.totalCOGS)})`}
+              label="Restaurant COGS (direct costs)"
+              value={`(${fmt(d.rdCOGS)})`}
+              indent
+              color={T.danger}
+            />
+            <Row
+              label="Catering Event Costs"
+              value={`(${fmt(d.catCOGS)})`}
               indent
               color={T.danger}
             />
@@ -14065,7 +14073,7 @@ function ReportsPage({
             <Row
               label="Total Cash Outflows (operating)"
               value={`(${fmt(
-                d.totalCOGS + d.paidOpexInPeriod + d.liabPayInPeriod
+                d.rdCOGS + d.catCOGS + d.paidOpexInPeriod + d.liabPayInPeriod
               )})`}
               bold
               borderTop
@@ -14075,7 +14083,8 @@ function ReportsPage({
               const netOps =
                 d.rdRevenue +
                 d.pCashReceived -
-                d.totalCOGS -
+                d.rdCOGS -
+                d.catCOGS -
                 d.paidOpexInPeriod -
                 d.liabPayInPeriod;
               return (
@@ -14425,7 +14434,7 @@ function buildReportHTML(reportType, title, d, biz) {
 
   // ── BALANCE SHEET ────────────────────────────────────────────────
   if (reportType === "bs") {
-    const totalCurrent = Math.max(0, d.retainedEarnings * 0.6) + d.arOutstanding + d.invValue;
+    const totalCurrent = Math.max(0, d.totalCashReceived - d.allTimeOpex - d.allTimeCOGS) + d.arOutstanding + d.invValue;
     const totalAssets = totalCurrent + d.fixedAssetValue;
     const totalCurrLiab = d.allOh.ap + d.allOh.capexAP;
     const totalLiab = totalCurrLiab;
@@ -14446,7 +14455,7 @@ function buildReportHTML(reportType, title, d, biz) {
     </div>
     <p style="font-size:10px;color:#888;margin-bottom:16px">As at ${d.to.toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" })} · Based on recorded transactions</p>
     <div class="section"><div class="section-title">Current Assets</div><table>
-      ${rows([["Cash & Cash Equivalents (est.)", fmtN(Math.max(0, d.retainedEarnings * 0.6)), false, "#333"],["Accounts Receivable (open invoices)", fmtN(d.arOutstanding), false, "#333"],["Inventory at Cost", fmtN(d.invValue), false, "#333"]])}
+      ${rows([["Cash & Cash Equivalents (est.)", fmtN(Math.max(0, d.totalCashReceived - d.allTimeOpex - d.allTimeCOGS)), false, "#333"],["Accounts Receivable (open invoices)", fmtN(d.arOutstanding), false, "#333"],["Inventory at Cost", fmtN(d.invValue), false, "#333"]])}
       <tr class="total-row"><td>Total Current Assets</td><td style="text-align:right">${fmtN(totalCurrent)}</td></tr>
     </table></div>
     <div class="section"><div class="section-title">Non-Current Assets (Fixed Assets)</div><table>
@@ -14471,7 +14480,7 @@ function buildReportHTML(reportType, title, d, biz) {
 
   // ── CASH FLOWS ───────────────────────────────────────────────────
   const paidCapex = d.pOverheads.filter(o => o.entryType === "capex" && o.paymentStatus === "paid").reduce((s, o) => s + Number(o.amount), 0);
-  const netOps = d.rdRevenue + d.pCashReceived - d.totalCOGS - d.paidOpexInPeriod - d.liabPayInPeriod;
+  const netOps = d.rdRevenue + d.pCashReceived - d.rdCOGS - d.catCOGS - d.paidOpexInPeriod - d.liabPayInPeriod;
   const netCash = netOps - paidCapex;
   const capexItems = d.pOverheads.filter(o => o.entryType === "capex" && o.paymentStatus === "paid");
   const capexRowsCF = capexItems.length === 0
@@ -14480,7 +14489,7 @@ function buildReportHTML(reportType, title, d, biz) {
   const body = `
   <div class="kpi-grid">
     <div class="kpi"><div class="label">Total Cash In</div><div class="value" style="color:#16a34a">${fmtN(d.rdRevenue + d.pCashReceived)}</div></div>
-    <div class="kpi"><div class="label">Total Cash Out</div><div class="value" style="color:#dc2626">${fmtN(d.totalCOGS + d.paidOpexInPeriod + d.liabPayInPeriod + paidCapex)}</div></div>
+    <div class="kpi"><div class="label">Total Cash Out</div><div class="value" style="color:#dc2626">${fmtN(d.rdCOGS + d.catCOGS + d.paidOpexInPeriod + d.liabPayInPeriod + paidCapex)}</div></div>
     <div class="kpi"><div class="label">Net Cash Flow</div><div class="value" style="color:${netCash >= 0 ? "#16a34a" : "#dc2626"}">${fmtN(netCash)}</div></div>
   </div>
   <p style="font-size:10px;color:#888;margin-bottom:16px">Period: ${dateRange}</p>
@@ -14489,7 +14498,7 @@ function buildReportHTML(reportType, title, d, biz) {
     <tr class="total-row"><td>Total Cash Inflows</td><td style="text-align:right">${fmtN(d.rdRevenue + d.pCashReceived)}</td></tr>
   </table></div>
   <div class="section"><div class="section-title">Operating Activities — Outflows</div><table>
-    ${rows([["Payments for COGS", `(${fmtN(d.totalCOGS)})`, false, "#dc2626"],["Overhead Expense Payments (paid)", `(${fmtN(d.paidOpexInPeriod)})`, false, "#dc2626"],["Liability / AP Payments", `(${fmtN(d.liabPayInPeriod)})`, false, "#dc2626"]])}
+    ${rows([["Restaurant COGS (direct costs)", `(${fmtN(d.rdCOGS)})`, false, "#dc2626"],["Catering Event Costs", `(${fmtN(d.catCOGS)})`, false, "#dc2626"],["Overhead Expense Payments (paid)", `(${fmtN(d.paidOpexInPeriod)})`, false, "#dc2626"],["Liability / AP Payments", `(${fmtN(d.liabPayInPeriod)})`, false, "#dc2626"]])}
     <tr class="total-row"><td>Total Cash Outflows (operating)</td><td style="text-align:right">(${fmtN(d.totalCOGS + d.paidOpexInPeriod + d.liabPayInPeriod)})</td></tr>
     <tr style="${netOps >= 0 ? "background:#f0fdf4" : "background:#fff5f5"}"><td style="font-weight:800;padding:10px 12px">Net Cash from Operations</td><td style="text-align:right;font-weight:900;padding:10px 12px;color:${netOps >= 0 ? "#16a34a" : "#dc2626"}">${fmtN(netOps)}</td></tr>
   </table></div>
