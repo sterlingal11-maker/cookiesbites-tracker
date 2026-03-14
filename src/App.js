@@ -1763,8 +1763,8 @@ function buildProposalHTML(prop, biz, logo) {
 // ─── CATERING CONTRACT ────────────────────────────────────────────
 function buildContractHTML(prop, biz, logo, lang = "en", terms = {}) {
   const EN = lang === "en";
-  const sub  = prop.lines.reduce((s, l) => s + l.qty * l.price, 0);
-  const total = sub - (prop.discount || 0);
+  const sub     = prop.lines.reduce((s, l) => s + l.qty * l.price, 0);
+  const total   = sub - (prop.discount || 0);
   const deposit = Math.round(total * 0.5);
   const balance = total - deposit;
   const today = new Date().toLocaleDateString(EN ? "en-GB" : "fr-FR", { day:"2-digit", month:"long", year:"numeric" });
@@ -1774,63 +1774,111 @@ function buildContractHTML(prop, biz, logo, lang = "en", terms = {}) {
 
   const { img, sub: bizSub } = getBizHTML(biz, logo);
 
-  // Bilingual labels
   const L = {
-    title:      EN ? "CATERING SERVICES CONTRACT"     : "CONTRAT DE SERVICES TRAITEUR",
-    contract:   EN ? "Contract"                        : "Contrat",
-    ref:        EN ? "Ref. Proposal"                   : "Réf. Proposition",
-    date:       EN ? "Date"                            : "Date",
-    caterer:    EN ? "CATERER"                         : "PRESTATAIRE",
-    client:     EN ? "CLIENT"                          : "CLIENT",
-    services:   EN ? "SERVICES & SCOPE"                : "PRESTATIONS & PÉRIMÈTRE",
-    item:       EN ? "Description"                     : "Description",
-    unit:       EN ? "Unit"                            : "Unité",
-    qty:        EN ? "Qty"                             : "Qté",
-    price:      EN ? "Unit Price"                      : "Prix Unitaire",
-    ttl:        EN ? "Total"                           : "Total",
-    subtotal:   EN ? "Subtotal"                        : "Sous-total",
-    discount:   EN ? "Discount"                        : "Remise",
-    grandTotal: EN ? "CONTRACT TOTAL"                  : "TOTAL CONTRAT",
-    payment:    EN ? "PAYMENT SCHEDULE"                : "ÉCHÉANCIER DE PAIEMENT",
-    deposit50:  EN ? "Deposit (50%) — due on signing"  : "Acompte (50 %) — dû à la signature",
-    balance50:  EN ? "Balance — due before event"      : "Solde — dû avant l'événement",
-    method:     EN ? "Payment methods"                 : "Modes de paiement",
-    catObl:     EN ? "CATERER OBLIGATIONS"             : "OBLIGATIONS DU PRESTATAIRE",
-    cliObl:     EN ? "CLIENT OBLIGATIONS"              : "OBLIGATIONS DU CLIENT",
-    canc:       EN ? "CANCELLATION & FORCE MAJEURE"    : "ANNULATION & FORCE MAJEURE",
-    liab:       EN ? "LIABILITY"                       : "RESPONSABILITÉ",
-    sign:       EN ? "SIGNATURES"                      : "SIGNATURES",
-    signCat:    EN ? "For the Caterer"                 : "Pour le Prestataire",
-    signCli:    EN ? "For the Client"                  : "Pour le Client",
-    nameDate:   EN ? "Name & Date"                     : "Nom & Date",
-    sigLine:    EN ? "Signature"                       : "Signature",
-    agree:      EN ? "By signing below, both parties agree to the terms of this contract."
-                   : "En signant ci-dessous, les deux parties acceptent les termes du présent contrat.",
-    footer:     EN ? `This contract is governed by the laws of Cameroon. Any dispute shall be resolved by mutual agreement or before the competent courts of ${biz.city || "Douala"}.`
-                   : `Le présent contrat est régi par le droit camerounais. Tout litige sera réglé à l'amiable ou devant les juridictions compétentes de ${biz.city || "Douala"}.`,
+    title:      EN ? "CATERING SERVICES CONTRACT"         : "CONTRAT DE SERVICES TRAITEUR",
+    contract:   EN ? "Contract"                            : "Contrat",
+    ref:        EN ? "Ref. Proposal"                       : "Réf. Proposition",
+    date:       EN ? "Date"                                : "Date",
+    caterer:    EN ? "CATERER"                             : "PRESTATAIRE",
+    client:     EN ? "CLIENT"                              : "CLIENT",
+    services:   EN ? "SERVICES & SCOPE OF WORK"           : "PRESTATIONS & PÉRIMÈTRE",
+    item:       EN ? "Description"                         : "Description",
+    unit:       EN ? "Unit"                                : "Unité",
+    qty:        EN ? "Qty"                                 : "Qté",
+    price:      EN ? "Unit Price"                          : "Prix Unitaire",
+    ttl:        EN ? "Total"                               : "Total",
+    subtotal:   EN ? "Subtotal"                            : "Sous-total",
+    discount:   EN ? "Discount"                            : "Remise",
+    grandTotal: EN ? "CONTRACT TOTAL"                      : "TOTAL CONTRAT",
+    payment:    EN ? "PAYMENT SCHEDULE"                    : "ÉCHÉANCIER DE PAIEMENT",
+    deposit50:  EN ? "Deposit (50%) — due on signing"      : "Acompte (50 %) — dû à la signature",
+    balance50:  EN ? "Balance — due before event"          : "Solde — dû avant l'événement",
+    method:     EN ? "Accepted payment methods"            : "Modes de paiement acceptés",
+    catObl:     EN ? "CATERER OBLIGATIONS"                 : "OBLIGATIONS DU PRESTATAIRE",
+    cliObl:     EN ? "CLIENT OBLIGATIONS"                  : "OBLIGATIONS DU CLIENT",
+    quality:    EN ? "QUALITY, COMPLAINTS & DISPUTE RESOLUTION" : "QUALITÉ, RÉCLAMATIONS & RÉSOLUTION DES LITIGES",
+    media:      EN ? "MEDIA, PHOTOGRAPHY & REPUTATION"    : "MÉDIAS, PHOTOGRAPHIE & RÉPUTATION",
+    canc:       EN ? "CANCELLATION & FORCE MAJEURE"        : "ANNULATION & FORCE MAJEURE",
+    liab:       EN ? "LIABILITY & INDEMNIFICATION"         : "RESPONSABILITÉ & INDEMNISATION",
+    conf:       EN ? "CONFIDENTIALITY"                     : "CONFIDENTIALITÉ",
+    sign:       EN ? "SIGNATURES & ACCEPTANCE"             : "SIGNATURES & ACCEPTATION",
+    signCat:    EN ? "For the Caterer"                     : "Pour le Prestataire",
+    signCli:    EN ? "For the Client"                      : "Pour le Client",
+    nameDate:   EN ? "Name & Date"                         : "Nom & Date",
+    sigLine:    EN ? "Signature"                           : "Signature",
+    agree:      EN ? "By signing below, both parties confirm they have read, understood, and agreed to all terms of this contract. This contract is legally binding upon signature."
+                   : "En signant ci-dessous, les deux parties confirment avoir lu, compris et accepté l'ensemble des termes du présent contrat. Ce contrat est juridiquement contraignant à la signature.",
+    footer:     EN ? `This contract is governed by the laws of Cameroon. Any unresolved dispute shall be referred to the competent courts of ${biz.city || "Douala"}, Cameroon. Each party acknowledges receipt of a signed copy.`
+                   : `Le présent contrat est régi par le droit camerounais. Tout litige non résolu à l'amiable sera porté devant les juridictions compétentes de ${biz.city || "Douala"}, Cameroun. Chaque partie reconnaît avoir reçu un exemplaire signé.`,
   };
 
-  // Default obligation texts (overrideable)
-  const defaultCatObl = EN
-    ? `1. Provide all catering services described in Proposal ${prop.num} with professional quality and punctuality.\n2. Supply all food, equipment, and staff required for the event.\n3. Comply with applicable health and food safety standards.\n4. Arrive at the venue at least 1 hour before service start time.\n5. Ensure food is prepared and presented in accordance with the agreed menu.`
-    : `1. Fournir tous les services de traiteur décrits dans la Proposition ${prop.num} avec qualité et ponctualité.\n2. Assurer la fourniture de la nourriture, du matériel et du personnel nécessaires.\n3. Respecter les normes d'hygiène et de sécurité alimentaire en vigueur.\n4. Arriver sur le lieu au moins 1 heure avant le début du service.\n5. Préparer et présenter les plats conformément au menu convenu.`;
+  const defCatObl = EN ? [
+    `1. Deliver all catering services described in Proposal ${prop.num} with professionalism, punctuality, and in full accordance with the agreed scope.`,
+    `2. Supply all food, beverages, equipment, serving materials, and qualified staff necessary to execute the event.`,
+    `3. Prepare and handle all food in strict compliance with Cameroonian food safety and hygiene standards. All staff handling food will have valid health certificates where required by law.`,
+    `4. Arrive at the agreed venue no later than 1 (one) hour before the scheduled service start time to complete setup.`,
+    `5. Ensure that all dishes are prepared and presented in accordance with the agreed menu and the quantities specified in this contract.`,
+    `6. Notify the client immediately of any supply shortfall, ingredient substitution, or operational difficulty that may materially affect the agreed menu, and propose an equivalent alternative at no additional cost.`,
+    `7. Maintain a clean and orderly working area throughout the event and remove all equipment, waste, and catering materials at the conclusion of service, leaving the venue in the condition in which it was received.`,
+    `8. Assign a designated catering manager or point of contact who will be present on-site for the duration of the event and reachable by the client at all times.`,
+  ].join("\n") : [
+    `1. Exécuter l'ensemble des prestations décrites dans la Proposition ${prop.num} avec professionnalisme, ponctualité et dans le strict respect du périmètre convenu.`,
+    `2. Fournir toute la nourriture, les boissons, le matériel de service et le personnel qualifié nécessaires à la réalisation de l'événement.`,
+    `3. Préparer et manipuler les aliments dans le strict respect des normes camerounaises d'hygiène alimentaire. Le personnel manipulant les aliments disposera des certificats de santé requis par la loi.`,
+    `4. Arriver sur le lieu convenu au plus tard 1 (une) heure avant l'heure de début du service pour l'installation.`,
+    `5. Veiller à ce que tous les plats soient préparés et présentés conformément au menu convenu et aux quantités spécifiées dans le présent contrat.`,
+    `6. Informer immédiatement le client de toute rupture d'approvisionnement, substitution d'ingrédient ou difficulté opérationnelle susceptible d'affecter le menu convenu, et proposer une alternative équivalente sans surcoût.`,
+    `7. Maintenir un espace de travail propre et ordonné tout au long de l'événement et retirer le matériel, les déchets et les fournitures à la fin du service.`,
+    `8. Désigner un responsable traiteur ou un interlocuteur unique présent sur place pendant toute la durée de l'événement et joignable par le client à tout moment.`,
+  ].join("\n");
 
-  const defaultCliObl = EN
-    ? `1. Pay the deposit of ${fmt(deposit)} XAF within 48 hours of signing this contract.\n2. Pay the balance of ${fmt(balance)} XAF no later than 48 hours before the event.\n3. Provide accurate guest count and venue details at least 5 days before the event.\n4. Ensure access to the venue and adequate facilities (water, electricity, prep area).\n5. Notify the caterer immediately of any changes to guest count or venue logistics.`
-    : `1. Verser l'acompte de ${fmt(deposit)} FCFA dans les 48 heures suivant la signature.\n2. Régler le solde de ${fmt(balance)} FCFA au plus tard 48 heures avant l'événement.\n3. Fournir le nombre exact de convives et les détails du lieu au moins 5 jours avant.\n4. Assurer l'accès au lieu et les installations nécessaires (eau, électricité, espace de préparation).\n5. Informer immédiatement le prestataire de tout changement de nombre ou de logistique.`;
+  const defCliObl = EN ? [
+    `1. Pay the deposit of ${fmt(deposit)} XAF within 48 (forty-eight) hours of signing this contract to secure the booking. Failure to pay within this period may result in cancellation of this contract at the caterer's discretion.`,
+    `2. Pay the remaining balance of ${fmt(balance)} XAF no later than 48 (forty-eight) hours before the scheduled event date.`,
+    `3. Confirm the final guest count and any dietary requirements or food allergies to the caterer no later than 5 (five) business days before the event. The caterer cannot be held liable for allergy incidents that were not disclosed in advance.`,
+    `4. Ensure that the caterer has unrestricted access to the venue, including adequate working space, running water, reliable electricity supply, and a designated food preparation area, from the time of arrival.`,
+    `5. Notify the caterer immediately of any changes to the event date, guest count, venue, or service scope. Changes made fewer than 5 days before the event are subject to additional charges and must be agreed in writing.`,
+    `6. Ensure that the environment at the venue is safe, orderly, and conducive to professional service. The client is responsible for the conduct of their guests and any damage caused by guests to the caterer's equipment or property.`,
+    `7. Refrain from engaging, hiring, or permitting any other food vendor, caterer, or kitchen operation at the venue during the agreed service period without the prior written consent of the caterer.`,
+    `8. Settle any outstanding balance or additional charges agreed during the event before the caterer's team departs the venue.`,
+  ].join("\n") : [
+    `1. Verser l'acompte de ${fmt(deposit)} FCFA dans les 48 (quarante-huit) heures suivant la signature du présent contrat pour confirmer la réservation. Le non-paiement dans ce délai pourra entraîner l'annulation du contrat à la discrétion du prestataire.`,
+    `2. Régler le solde de ${fmt(balance)} FCFA au plus tard 48 (quarante-huit) heures avant la date de l'événement.`,
+    `3. Confirmer l'effectif final des convives et tout régime alimentaire ou allergie au prestataire au plus tard 5 (cinq) jours ouvrés avant l'événement. Le prestataire ne peut être tenu responsable d'incidents liés à des allergies non déclarées à l'avance.`,
+    `4. Garantir l'accès sans restriction au lieu, incluant un espace de travail adéquat, l'eau courante, l'électricité et une zone de préparation des aliments, dès l'arrivée du prestataire.`,
+    `5. Informer immédiatement le prestataire de tout changement de date, d'effectif, de lieu ou de périmètre. Les modifications effectuées moins de 5 jours avant l'événement sont susceptibles d'entraîner des frais supplémentaires et doivent être acceptées par écrit.`,
+    `6. S'assurer que l'environnement sur le lieu est sûr, calme et propice à un service professionnel. Le client est responsable du comportement de ses invités et de tout dommage causé par ceux-ci au matériel ou aux biens du prestataire.`,
+    `7. S'abstenir de faire appel à tout autre fournisseur de restauration ou opération culinaire sur le lieu pendant la période de service convenue, sans l'accord écrit préalable du prestataire.`,
+    `8. Régler tout solde ou frais supplémentaires convenus pendant l'événement avant le départ de l'équipe du prestataire.`,
+  ].join("\n");
 
-  const defaultCanc = EN
-    ? `Cancellation more than 14 days before the event: deposit refunded in full. Cancellation 7–14 days before: 50% of deposit retained. Cancellation less than 7 days before: full deposit forfeited. In the event of force majeure (natural disaster, government restriction, etc.) neither party shall be liable; the deposit shall be applied to a rescheduled date.`
-    : `Annulation plus de 14 jours avant : acompte intégralement remboursé. Annulation 7 à 14 jours avant : 50 % de l'acompte retenu. Annulation moins de 7 jours avant : acompte intégralement acquis au prestataire. En cas de force majeure, aucune partie n'est tenue responsable ; l'acompte sera appliqué à une nouvelle date.`;
+  const defQuality = EN
+    ? `Feedback & Complaints: Any complaint regarding the quality, quantity, or delivery of catering services must be raised verbally with the on-site catering manager during the event, and confirmed in writing (by SMS, WhatsApp, or email) within 24 (twenty-four) hours of the event's conclusion. Complaints raised after this window will not be considered valid grounds for a refund or dispute claim.\n\nDispute Resolution: The parties agree to first attempt resolution through good-faith negotiation within 7 (seven) days of a written complaint. If no agreement is reached, the matter shall be referred to a mutually agreed mediator, or failing that, to the competent courts of ${biz.city || "Douala"}.\n\nRefund Policy: Partial or full refunds are only considered where the caterer fails to deliver services as described in this contract and where the complaint was submitted within the 24-hour window above. No refund shall be issued for subjective dissatisfaction with taste, presentation preferences, or events where services were substantially delivered.`
+    : `Retours & Réclamations : Toute réclamation relative à la qualité, la quantité ou l'exécution des prestations doit être soulevée verbalement auprès du responsable traiteur présent sur place pendant l'événement, puis confirmée par écrit (SMS, WhatsApp ou e-mail) dans les 24 (vingt-quatre) heures suivant la fin de l'événement. Les réclamations formulées après ce délai ne seront pas considérées comme motifs valables de remboursement ou de litige.\n\nRésolution des litiges : Les parties conviennent de tenter en premier lieu un règlement amiable de bonne foi dans les 7 (sept) jours suivant une réclamation écrite. À défaut d'accord, l'affaire sera soumise à un médiateur désigné d'un commun accord ou, à défaut, aux juridictions compétentes de ${biz.city || "Douala"}.\n\nPolitique de remboursement : Un remboursement partiel ou total n'est envisageable que si le prestataire n'a pas fourni les prestations décrites dans le présent contrat et si la réclamation a été déposée dans le délai de 24 heures susmentionné. Aucun remboursement ne sera accordé pour une insatisfaction subjective relative au goût, aux préférences de présentation, ou lorsque les prestations ont été substantiellement fournies.`;
 
-  const defaultLiab = EN
-    ? `The caterer's liability is limited to the total contract value. The caterer is not responsible for delays or damages caused by the client's failure to meet obligations above. Any claims must be raised in writing within 48 hours of the event.`
-    : `La responsabilité du prestataire est limitée au montant total du contrat. Le prestataire n'est pas responsable des retards ou dommages causés par le non-respect des obligations du client. Toute réclamation doit être formulée par écrit dans les 48 heures suivant l'événement.`;
+  const defMedia = EN
+    ? `Photography & Videography: The client acknowledges that ${biz.name} may photograph or video-record its food, presentation, and services for internal documentation, portfolio, and marketing purposes. The caterer will not publish images identifying the client or their guests without prior written consent.\n\nClient Photography: The client and their guests are welcome to photograph and share images of the food and services provided. However, any public posting must be accurate and fair. The client agrees not to use selectively edited, misleadingly cropped, or deliberately unflattering images to misrepresent the quality or nature of the services provided.\n\nOnline Reviews & Social Media: The client is free to share honest, factual, and balanced feedback in any public forum. However, the client expressly agrees not to post false, misleading, defamatory, or malicious statements about ${biz.name}, its staff, food, or services on any platform including but not limited to Facebook, Instagram, TikTok, Google, WhatsApp groups, or any other digital medium. Any public statement must be based on personal, first-hand experience and not exaggerated, fabricated, or intended to harm the business's reputation.\n\nDefamation & Reputation Damages: The client acknowledges that ${biz.name}'s reputation is a core business asset. Any false, defamatory, or malicious online statement found to be in breach of this clause may be subject to legal action for damages in accordance with Cameroonian law and applicable cyber regulations. The caterer reserves the right to respond publicly to any inaccurate review in a professional manner.`
+    : `Photographie & Vidéographie : Le client reconnaît que ${biz.name} peut photographier ou filmer ses plats, présentations et prestations à des fins de documentation interne, de portfolio et de marketing. Le prestataire ne publiera pas d'images identifiant le client ou ses invités sans consentement écrit préalable.\n\nPhotographie par le client : Le client et ses invités sont libres de photographier et de partager des images des plats et prestations fournis. Toutefois, toute publication publique doit être exacte et équitable. Le client s'engage à ne pas utiliser d'images sélectivement modifiées, recadrées de manière trompeuse ou délibérément dévalorisantes pour dénaturer la qualité ou la nature des prestations fournies.\n\nAvis en ligne & Réseaux sociaux : Le client est libre de partager des commentaires honnêtes, factuels et équilibrés sur tout forum public. Cependant, le client s'engage expressément à ne pas publier de déclarations fausses, trompeuses, diffamatoires ou malveillantes concernant ${biz.name}, son personnel, ses plats ou ses prestations sur toute plateforme incluant, sans s'y limiter, Facebook, Instagram, TikTok, Google, les groupes WhatsApp ou tout autre média numérique. Toute déclaration publique doit être fondée sur une expérience personnelle et directe, sans exagération, fabrication ni intention de nuire à la réputation de l'entreprise.\n\nDiffamation & Dommages réputationnels : Le client reconnaît que la réputation de ${biz.name} constitue un actif commercial essentiel. Toute déclaration en ligne fausse, diffamatoire ou malveillante jugée contraire à la présente clause pourra faire l'objet de poursuites judiciaires en dommages et intérêts conformément au droit camerounais et aux réglementations numériques applicables. Le prestataire se réserve le droit de répondre publiquement à tout avis inexact de manière professionnelle.`;
 
-  const catObl  = terms.catObl  || defaultCatObl;
-  const cliObl  = terms.cliObl  || defaultCliObl;
-  const cancTxt = terms.canc    || defaultCanc;
-  const liabTxt = terms.liab    || defaultLiab;
+  const defCanc = EN
+    ? `Cancellation by the Client:\n— More than 14 days before the event: deposit refunded in full.\n— Between 7 and 14 days before: 50% of the deposit is retained to cover preparation costs already incurred.\n— Less than 7 days before the event: the full deposit is forfeited. If supplies, staffing, or preparation for the event has already commenced, the client may also be liable for additional costs up to the full contract value.\n\nCancellation by the Caterer: If the caterer cancels due to circumstances within their control, the full deposit will be refunded within 5 business days. The caterer's liability is limited to this refund and does not extend to consequential losses.\n\nEvent Postponement: The client may request a one-time postponement (subject to the caterer's availability) with at least 7 days' notice at no additional charge. The deposit will be transferred to the new date. A second postponement or a change of date with less than 7 days' notice will be treated as a cancellation.\n\nForce Majeure: Neither party shall be in breach of this contract for any failure or delay caused by circumstances beyond their reasonable control, including but not limited to natural disasters, government-imposed restrictions, national mourning, civil unrest, or power grid failure. In such cases, the deposit shall be applied to a mutually agreed rescheduled date within 12 months.`
+    : `Annulation par le client :\n— Plus de 14 jours avant l'événement : acompte intégralement remboursé.\n— Entre 7 et 14 jours avant : 50 % de l'acompte est retenu pour couvrir les coûts de préparation déjà engagés.\n— Moins de 7 jours avant l'événement : l'acompte est intégralement acquis au prestataire. Si les approvisionnements, le personnel ou la préparation ont déjà commencé, le client peut également être redevable de frais supplémentaires pouvant atteindre le montant total du contrat.\n\nAnnulation par le prestataire : Si le prestataire annule pour des raisons relevant de sa responsabilité, l'acompte intégral sera remboursé dans les 5 jours ouvrés. La responsabilité du prestataire se limite à ce remboursement et ne s'étend pas aux pertes consécutives.\n\nReport d'événement : Le client peut demander un report unique (sous réserve de la disponibilité du prestataire) avec un préavis d'au moins 7 jours, sans frais supplémentaires. L'acompte sera reporté à la nouvelle date. Un deuxième report ou un changement de date avec moins de 7 jours de préavis sera traité comme une annulation.\n\nForce majeure : Aucune des parties ne sera en violation du présent contrat pour tout manquement ou retard causé par des circonstances indépendantes de leur volonté raisonnable, incluant notamment les catastrophes naturelles, les restrictions gouvernementales, le deuil national, les troubles civils ou les pannes du réseau électrique. Dans ces cas, l'acompte sera appliqué à une nouvelle date convenue d'un commun accord dans les 12 mois.`;
+
+  const defLiab = EN
+    ? `Scope of Liability: The caterer's total liability under this contract is limited to the total value of this contract (${fmt(total)} XAF). Under no circumstances shall the caterer be liable for indirect, incidental, consequential, or punitive damages including but not limited to lost profits, reputational harm to the client, or costs arising from third-party claims.\n\nFood Allergies & Dietary Requirements: The caterer will exercise all reasonable professional care in the preparation of food. However, the caterer cannot guarantee the complete absence of allergens in any dish unless a specific allergen-free menu is agreed in writing and expressly included in this contract. The client assumes full responsibility for communicating known allergies of all guests and for the consumption choices made by guests at the event.\n\nEquipment & Property: The caterer is responsible for its own equipment brought to the venue. The client is responsible for any loss or damage to the caterer's equipment caused by the client's guests or by conditions at the venue that were not disclosed in advance.\n\nIndemnification: The client agrees to indemnify and hold harmless ${biz.name}, its owners, staff, and agents from any claim, demand, lawsuit, or liability arising from: (a) the client's breach of any obligation in this contract; (b) undisclosed food allergies or dietary conditions of guests; (c) actions or conduct of the client's guests; or (d) any false, defamatory, or misleading statement made by the client or their associates about ${biz.name} in any public or private forum.`
+    : `Étendue de la responsabilité : La responsabilité totale du prestataire dans le cadre du présent contrat est limitée à la valeur totale du contrat (${fmt(total)} FCFA). En aucun cas le prestataire ne sera responsable des dommages indirects, accessoires, consécutifs ou punitifs, incluant notamment la perte de bénéfices, le préjudice réputationnel du client, ou les coûts découlant de réclamations de tiers.\n\nAllergies alimentaires & régimes spéciaux : Le prestataire apportera tout le soin professionnel raisonnable à la préparation des aliments. Toutefois, le prestataire ne peut garantir l'absence totale d'allergènes dans un plat à moins qu'un menu sans allergènes spécifique ne soit convenu par écrit et expressément inclus dans le présent contrat. Le client assume l'entière responsabilité de la communication des allergies connues de tous les convives et des choix de consommation effectués par ceux-ci lors de l'événement.\n\nMatériel & Propriété : Le prestataire est responsable de son propre matériel apporté sur le lieu. Le client est responsable de toute perte ou détérioration du matériel du prestataire causée par les invités du client ou par des conditions sur le lieu qui n'auraient pas été divulguées à l'avance.\n\nIndemnisation : Le client s'engage à indemniser et à dégager de toute responsabilité ${biz.name}, ses propriétaires, employés et mandataires contre toute réclamation, demande, poursuite ou responsabilité découlant de : (a) la violation par le client d'une obligation du présent contrat ; (b) les allergies alimentaires ou régimes non divulgués des convives ; (c) les actes ou comportements des invités du client ; ou (d) toute déclaration fausse, diffamatoire ou trompeuse faite par le client ou ses associés concernant ${biz.name} dans tout forum public ou privé.`;
+
+  const defConf = EN
+    ? `Both parties agree to keep confidential all pricing, menu details, business terms, and any proprietary information disclosed during the course of this engagement. The client agrees not to share the pricing or commercial terms of this contract with any third party who could use such information to damage the caterer's commercial interests. This confidentiality obligation survives the termination or completion of this contract.`
+    : `Les deux parties s'engagent à garder confidentiels tous les tarifs, détails du menu, conditions commerciales et toute information exclusive divulguée au cours de cette mission. Le client s'engage à ne pas communiquer les tarifs ou conditions commerciales du présent contrat à un tiers susceptible d'utiliser ces informations pour nuire aux intérêts commerciaux du prestataire. Cette obligation de confidentialité survit à la résiliation ou à l'achèvement du présent contrat.`;
+
+  const catObl  = terms.catObl   || defCatObl;
+  const cliObl  = terms.cliObl   || defCliObl;
+  const qualTxt = terms.quality  || defQuality;
+  const mediaTxt= terms.media    || defMedia;
+  const cancTxt = terms.canc     || defCanc;
+  const liabTxt = terms.liab     || defLiab;
+  const confTxt = terms.conf     || defConf;
 
   const effectivePmt = (prop.paymentTerms && prop.paymentTerms.trim())
     ? prop.paymentTerms.trim()
@@ -1840,56 +1888,53 @@ function buildContractHTML(prop, biz, logo, lang = "en", terms = {}) {
     `<tr><td>${l.name}${l.description ? `<div style="font-size:10px;color:#777">${l.description}</div>` : ""}</td><td style="text-align:center">${l.unitType}</td><td style="text-align:center">${l.qty}</td><td style="text-align:right">${fmt(l.price)}</td><td style="text-align:right;font-weight:600">${fmt(l.qty*l.price)}</td></tr>`
   ).join("");
 
-  // Render multi-line text as <p> tags
-  const oblText = (txt) => txt.split("\n").map(line => `<p style="margin:0 0 5px">${line}</p>`).join("");
+  const oblText  = (txt) => txt.split("\n").map(line => line.trim() ? `<p style="margin:0 0 6px;line-height:1.6">${line}</p>` : `<p style="margin:0 0 4px">&nbsp;</p>`).join("");
+  const paraText = (txt) => txt.split("\n").map(line => line.trim() ? `<p style="margin:0 0 8px;line-height:1.65">${line}</p>` : `<p style="margin:0 0 4px">&nbsp;</p>`).join("");
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
 <style>
 ${PRINT_CSS}
-body{padding:32px 40px;font-size:12.5px}
-h2.contract-title{font-size:18px;font-weight:900;letter-spacing:-0.5px;margin-bottom:2px;color:#1a1a1a}
-.contract-sub{font-size:10px;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:24px}
-.section{margin-bottom:18px}
-.section-title{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#888;border-bottom:1.5px solid #e5e5e5;padding-bottom:4px;margin-bottom:10px}
+body{padding:28px 38px;font-size:12px}
+.section{margin-bottom:16px}
+.section-title{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#777;border-bottom:1.5px solid #e5e5e5;padding-bottom:4px;margin-bottom:9px}
 table.scope{width:100%;border-collapse:collapse;font-size:11.5px}
-table.scope th{background:#f3f3f3;padding:6px 8px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555}
-table.scope td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}
-.total-band{background:#1a1a1a;color:#fff;padding:8px 12px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
-.total-band span{font-size:10px;letter-spacing:1px;text-transform:uppercase}
-.total-band strong{font-size:16px;font-weight:900}
-.pmt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
-.pmt-cell{background:#f8f8f8;border-radius:6px;padding:9px 11px}
+table.scope th{background:#f3f3f3;padding:5px 7px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555}
+table.scope td{padding:5px 7px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+.total-band{background:#1a1a1a;color:#fff;padding:7px 11px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;margin-top:7px}
+.total-band span{font-size:9px;letter-spacing:1px;text-transform:uppercase}
+.total-band strong{font-size:15px;font-weight:900}
+.pmt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:7px}
+.pmt-cell{background:#f8f8f8;border-radius:5px;padding:8px 10px}
 .pmt-cell .lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
-.pmt-cell .val{font-size:13px;font-weight:700;color:#1a1a1a}
-.obl-box{background:#f9f9f9;border-left:3px solid #e8c547;border-radius:0 6px 6px 0;padding:10px 13px;font-size:11.5px;line-height:1.6;color:#333}
-.obl-box p{margin:0 0 4px}
-.clause{font-size:11.5px;line-height:1.65;color:#444}
+.pmt-cell .val{font-size:12px;font-weight:700;color:#1a1a1a}
+.obl-box{background:#f9f9f9;border-left:3px solid #e8c547;border-radius:0 5px 5px 0;padding:9px 12px;font-size:11.5px;line-height:1.6;color:#333}
+.clause-box{font-size:11.5px;line-height:1.65;color:#444;background:#fafafa;border-radius:5px;padding:9px 12px}
+.alert-box{background:#fff8e1;border-left:3px solid #f59e0b;border-radius:0 5px 5px 0;padding:9px 12px;font-size:11.5px;line-height:1.65;color:#444}
 .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:6px}
-.sign-box{border-top:1.5px solid #1a1a1a;padding-top:8px}
-.sign-label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:3px}
-.sign-name{font-size:12px;font-weight:600;color:#1a1a1a;margin-bottom:16px}
-.sign-line{border-bottom:1px dashed #ccc;height:28px;margin-bottom:5px}
-.sign-meta{font-size:9.5px;color:#aaa}
-.agree-txt{font-size:11px;color:#555;font-style:italic;margin-bottom:14px}
-@media print{body{padding:24px 32px}.no-print{display:none!important}@page{margin:10mm 12mm;size:A4}}
+.sign-box{border-top:1.5px solid #1a1a1a;padding-top:7px}
+.sign-label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:2px}
+.sign-name{font-size:12px;font-weight:600;color:#1a1a1a;margin-bottom:14px}
+.sign-line{border-bottom:1px dashed #bbb;height:26px;margin-bottom:4px}
+.sign-meta{font-size:9px;color:#aaa}
+.agree-txt{font-size:11px;color:#555;font-style:italic;margin-bottom:12px}
+.page-note{font-size:9px;color:#aaa;text-align:center;margin-top:6px}
+@media print{body{padding:20px 28px}.no-print{display:none!important}@page{margin:8mm 10mm;size:A4}}
 </style></head><body>
 
-<!-- HEADER -->
 <div class="doc-header">
   <div class="brand-block">${img}<div class="brand-sub">${bizSub}</div></div>
   <div class="doc-ref-block">
     <div class="doc-type">${L.title}</div>
-    <div class="doc-number" style="font-size:20px">${L.contract} #${prop.num.replace("PROP","CTR")}</div>
+    <div class="doc-number" style="font-size:19px">${L.contract} #${prop.num.replace("PROP","CTR")}</div>
     <div class="doc-meta">${L.ref}: ${prop.num}<br>${L.date}: ${today}</div>
   </div>
 </div>
 
-<!-- PARTIES -->
 <div class="parties">
   <div class="party-box">
     <div class="party-label">${L.caterer}</div>
     <div class="party-name">${biz.name}</div>
-    <div class="party-detail">${[biz.address, biz.city, biz.phone, biz.email, biz.rccm ? `RCCM: ${biz.rccm}` : ""].filter(Boolean).join("<br/>")}</div>
+    <div class="party-detail">${[biz.address, biz.city, biz.phone, biz.email, biz.rccm ? `RCCM: ${biz.rccm}` : "", biz.taxId ? `Tax ID: ${biz.taxId}` : ""].filter(Boolean).join("<br/>")}</div>
   </div>
   <div class="party-box">
     <div class="party-label">${L.client}</div>
@@ -1898,21 +1943,19 @@ table.scope td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:to
   </div>
 </div>
 
-<!-- SERVICES -->
 <div class="section">
   <div class="section-title">${L.services}</div>
   <table class="scope">
-    <thead><tr><th>${L.item}</th><th style="text-align:center;width:80px">${L.unit}</th><th style="text-align:center;width:40px">${L.qty}</th><th style="text-align:right;width:90px">${L.price} (XAF)</th><th style="text-align:right;width:90px">${L.ttl} (XAF)</th></tr></thead>
+    <thead><tr><th>${L.item}</th><th style="text-align:center;width:75px">${L.unit}</th><th style="text-align:center;width:38px">${L.qty}</th><th style="text-align:right;width:85px">${L.price} (XAF)</th><th style="text-align:right;width:85px">${L.ttl} (XAF)</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <div style="display:flex;justify-content:flex-end;margin-top:5px;gap:40px;font-size:11.5px;color:#555">
+  <div style="display:flex;justify-content:flex-end;margin-top:4px;gap:36px;font-size:11px;color:#555">
     <span>${L.subtotal}: <strong style="color:#1a1a1a">${fmt(sub)} XAF</strong></span>
     ${prop.discount > 0 ? `<span>${L.discount}: <strong style="color:#c53030">– ${fmt(prop.discount)} XAF</strong></span>` : ""}
   </div>
   <div class="total-band"><span>${L.grandTotal}</span><strong>${fmt(total)} XAF</strong></div>
 </div>
 
-<!-- PAYMENT -->
 <div class="section">
   <div class="section-title">${L.payment}</div>
   <div class="pmt-grid">
@@ -1922,36 +1965,45 @@ table.scope td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:to
   </div>
 </div>
 
-<!-- CATERER OBLIGATIONS -->
 <div class="section">
   <div class="section-title">${L.catObl}</div>
   <div class="obl-box">${oblText(catObl)}</div>
 </div>
 
-<!-- CLIENT OBLIGATIONS -->
 <div class="section">
   <div class="section-title">${L.cliObl}</div>
   <div class="obl-box" style="border-color:#4a90d9">${oblText(cliObl)}</div>
 </div>
 
-<!-- CANCELLATION -->
+<div class="section">
+  <div class="section-title">${L.quality}</div>
+  <div class="clause-box">${paraText(qualTxt)}</div>
+</div>
+
+<div class="section">
+  <div class="section-title">${L.media}</div>
+  <div class="alert-box">${paraText(mediaTxt)}</div>
+</div>
+
 <div class="section">
   <div class="section-title">${L.canc}</div>
-  <div class="clause">${cancTxt}</div>
+  <div class="clause-box">${paraText(cancTxt)}</div>
 </div>
 
-<!-- LIABILITY -->
 <div class="section">
   <div class="section-title">${L.liab}</div>
-  <div class="clause">${liabTxt}</div>
+  <div class="clause-box">${paraText(liabTxt)}</div>
 </div>
 
-<!-- GOVERNING LAW -->
-<div class="section" style="margin-bottom:22px">
-  <div class="clause" style="font-size:11px;color:#666">${L.footer}</div>
+<div class="section">
+  <div class="section-title">${L.conf}</div>
+  <div class="clause-box" style="font-size:11px;color:#555">${paraText(confTxt)}</div>
 </div>
 
-<!-- SIGNATURES -->
+<div class="section" style="margin-bottom:18px">
+  <div class="clause-box" style="font-size:10.5px;color:#666;background:#f4f4f4">${L.footer}</div>
+</div>
+
 <div class="section">
   <div class="section-title">${L.sign}</div>
   <p class="agree-txt">${L.agree}</p>
@@ -1960,13 +2012,13 @@ table.scope td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:to
       <div class="sign-label">${L.signCat}</div>
       <div class="sign-name">${biz.name}</div>
       <div class="sign-line"></div>
-      <div class="sign-meta">${L.sigLine} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${L.nameDate}</div>
+      <div class="sign-meta">${L.sigLine} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${L.nameDate}</div>
     </div>
     <div class="sign-box">
       <div class="sign-label">${L.signCli}</div>
       <div class="sign-name">${prop.client}</div>
       <div class="sign-line"></div>
-      <div class="sign-meta">${L.sigLine} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${L.nameDate}</div>
+      <div class="sign-meta">${L.sigLine} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${L.nameDate}</div>
     </div>
   </div>
 </div>
@@ -4938,7 +4990,7 @@ function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, o
 // ─── CONTRACT MODAL ──────────────────────────────────────────────
 function ContractModal({ prop, biz, logo, onClose, onPrint }) {
   const [lang, setLang] = useState("en");
-  const [terms, setTerms] = useState({ catObl: "", cliObl: "", canc: "", liab: "" });
+  const [terms, setTerms] = useState({ catObl: "", cliObl: "", quality: "", media: "", canc: "", liab: "", conf: "" });
   const [expanded, setExpanded] = useState(null);
 
   const EN = lang === "en";
@@ -4947,27 +4999,15 @@ function ContractModal({ prop, biz, logo, onClose, onPrint }) {
   const deposit = Math.round(total * 0.5);
   const balance = total - deposit;
 
-  const defaultCatObl = EN
-    ? `1. Provide all catering services described in Proposal ${prop.num} with professional quality and punctuality.\n2. Supply all food, equipment, and staff required for the event.\n3. Comply with applicable health and food safety standards.\n4. Arrive at the venue at least 1 hour before service start time.\n5. Ensure food is prepared and presented in accordance with the agreed menu.`
-    : `1. Fournir tous les services de traiteur décrits dans la Proposition ${prop.num} avec qualité et ponctualité.\n2. Assurer la fourniture de la nourriture, du matériel et du personnel nécessaires.\n3. Respecter les normes d'hygiène et de sécurité alimentaire en vigueur.\n4. Arriver sur le lieu au moins 1 heure avant le début du service.\n5. Préparer et présenter les plats conformément au menu convenu.`;
-
-  const defaultCliObl = EN
-    ? `1. Pay the deposit of ${fmt(deposit)} XAF within 48 hours of signing this contract.\n2. Pay the balance of ${fmt(balance)} XAF no later than 48 hours before the event.\n3. Provide accurate guest count and venue details at least 5 days before the event.\n4. Ensure access to the venue and adequate facilities (water, electricity, prep area).\n5. Notify the caterer immediately of any changes to guest count or venue logistics.`
-    : `1. Verser l'acompte de ${fmt(deposit)} FCFA dans les 48 heures suivant la signature.\n2. Régler le solde de ${fmt(balance)} FCFA au plus tard 48 heures avant l'événement.\n3. Fournir le nombre exact de convives et les détails du lieu au moins 5 jours avant.\n4. Assurer l'accès au lieu et les installations nécessaires (eau, électricité, espace de préparation).\n5. Informer immédiatement le prestataire de tout changement de nombre ou de logistique.`;
-
-  const defaultCanc = EN
-    ? `Cancellation more than 14 days before the event: deposit refunded in full. Cancellation 7–14 days before: 50% of deposit retained. Cancellation less than 7 days before: full deposit forfeited. In the event of force majeure (natural disaster, government restriction, etc.) neither party shall be liable; the deposit shall be applied to a rescheduled date.`
-    : `Annulation plus de 14 jours avant : acompte intégralement remboursé. Annulation 7 à 14 jours avant : 50 % de l'acompte retenu. Annulation moins de 7 jours avant : acompte intégralement acquis au prestataire. En cas de force majeure, aucune partie n'est tenue responsable ; l'acompte sera appliqué à une nouvelle date.`;
-
-  const defaultLiab = EN
-    ? `The caterer's liability is limited to the total contract value. The caterer is not responsible for delays or damages caused by the client's failure to meet obligations above. Any claims must be raised in writing within 48 hours of the event.`
-    : `La responsabilité du prestataire est limitée au montant total du contrat. Le prestataire n'est pas responsable des retards ou dommages causés par le non-respect des obligations du client. Toute réclamation doit être formulée par écrit dans les 48 heures suivant l'événement.`;
-
+  // Defaults live in buildContractHTML — modal just shows section labels for optional override
   const sections = [
-    { key: "catObl", label: EN ? "Caterer Obligations" : "Obligations du Prestataire", dflt: defaultCatObl, color: "#e8c547" },
-    { key: "cliObl", label: EN ? "Client Obligations"  : "Obligations du Client",      dflt: defaultCliObl, color: "#4a90d9" },
-    { key: "canc",   label: EN ? "Cancellation"        : "Annulation",                 dflt: defaultCanc,   color: "#e57373" },
-    { key: "liab",   label: EN ? "Liability"           : "Responsabilité",             dflt: defaultLiab,   color: "#aaa"    },
+    { key: "catObl",   label: EN ? "Caterer Obligations"              : "Obligations du Prestataire",    color: "#e8c547", hint: EN ? "Delivery, staff, hygiene, punctuality…"                : "Livraison, personnel, hygiène, ponctualité…" },
+    { key: "cliObl",   label: EN ? "Client Obligations"               : "Obligations du Client",         color: "#4a90d9", hint: EN ? "Payments, guest count, venue access, guest conduct…"   : "Paiements, effectif, accès au lieu, conduite des invités…" },
+    { key: "quality",  label: EN ? "Quality & Complaints"             : "Qualité & Réclamations",        color: "#22c55e", hint: EN ? "Complaint window, refund policy, dispute resolution…"  : "Délai de réclamation, remboursements, résolution des litiges…" },
+    { key: "media",    label: EN ? "Media & Reputation (Online Reviews)" : "Médias & Réputation (Avis en ligne)", color: "#f59e0b", hint: EN ? "Photography, social media, defamation protection…" : "Photographie, réseaux sociaux, protection contre la diffamation…" },
+    { key: "canc",     label: EN ? "Cancellation & Force Majeure"     : "Annulation & Force Majeure",    color: "#e57373", hint: EN ? "14-day / 7-day / force majeure rules…"                 : "Règles 14 jours / 7 jours / force majeure…" },
+    { key: "liab",     label: EN ? "Liability & Indemnification"      : "Responsabilité & Indemnisation", color: "#8b5cf6", hint: EN ? "Liability cap, allergens, equipment, indemnification…" : "Plafond de responsabilité, allergènes, matériel, indemnisation…" },
+    { key: "conf",     label: EN ? "Confidentiality"                  : "Confidentialité",               color: "#aaa",    hint: EN ? "Pricing and commercial terms confidentiality…"         : "Confidentialité des tarifs et conditions commerciales…" },
   ];
 
   const handlePrint = () => {
@@ -4998,7 +5038,7 @@ function ContractModal({ prop, biz, logo, onClose, onPrint }) {
             {[["en","🇬🇧 English"],["fr","🇫🇷 Français"]].map(([v,lbl]) => (
               <button key={v}
                 style={{ ...S.btn(lang===v ? "primary" : "ghost"), fontSize:12, padding:"5px 14px" }}
-                onClick={() => { setLang(v); setTerms({ catObl:"", cliObl:"", canc:"", liab:"" }); }}
+                onClick={() => { setLang(v); setTerms({ catObl:"", cliObl:"", quality:"", media:"", canc:"", liab:"", conf:"" }); }}
               >{lbl}</button>
             ))}
           </div>
@@ -5014,17 +5054,20 @@ function ContractModal({ prop, biz, logo, onClose, onPrint }) {
               style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:T.surface, cursor:"pointer" }}
               onClick={() => setExpanded(expanded === sec.key ? null : sec.key)}
             >
-              <div style={{ fontSize:11, fontWeight:700, color:T.text, display:"flex", alignItems:"center", gap:6 }}>
-                <span style={{ width:3, height:14, background:sec.color, borderRadius:2, display:"inline-block" }} />
-                {sec.label}
+              <div style={{ display:"flex", flexDirection:"column" }}>
+                <div style={{ fontSize:11, fontWeight:700, color:T.text, display:"flex", alignItems:"center", gap:6 }}>
+                  <span style={{ width:3, height:14, background:sec.color, borderRadius:2, display:"inline-block" }} />
+                  {sec.label}
+                </div>
+                <div style={{ fontSize:10, color:T.textDim, marginTop:2, paddingLeft:9 }}>{sec.hint}</div>
               </div>
-              <span style={{ fontSize:10, color:T.textDim }}>{expanded === sec.key ? "▲" : "▼"}</span>
+              <span style={{ fontSize:10, color:T.textDim, flexShrink:0 }}>{expanded === sec.key ? "▲" : "▼"}</span>
             </div>
             {expanded === sec.key && (
               <div style={{ padding:10 }}>
                 <textarea
-                  style={{ ...S.input, minHeight:90, resize:"vertical", fontSize:11, lineHeight:1.6, fontFamily:"inherit" }}
-                  placeholder={sec.dflt}
+                  style={{ ...S.input, minHeight:110, resize:"vertical", fontSize:11, lineHeight:1.6, fontFamily:"inherit" }}
+                  placeholder={"Leave blank to use the comprehensive default clause — or type here to override…"}
                   value={terms[sec.key]}
                   onChange={e => setTerms(prev => ({ ...prev, [sec.key]: e.target.value }))}
                 />
@@ -5043,8 +5086,8 @@ function ContractModal({ prop, biz, logo, onClose, onPrint }) {
             ? `• Services from Proposal ${prop.num}  •  Total: ${fmt(total)} XAF  •  Deposit: ${fmt(deposit)} XAF  •  Balance: ${fmt(balance)} XAF`
             : `• Prestations de la Proposition ${prop.num}  •  Total : ${fmt(total)} XAF  •  Acompte : ${fmt(deposit)} XAF  •  Solde : ${fmt(balance)} XAF`}
           <br/>
-          {EN ? "• Payment schedule  •  Cancellation & force majeure  •  Liability  •  Signatures"
-               : "• Échéancier de paiement  •  Annulation & force majeure  •  Responsabilité  •  Signatures"}
+          {EN ? "• Caterer & client obligations  •  Quality & complaints  •  Media & reputation protection  •  Cancellation  •  Liability  •  Confidentiality  •  Signatures"
+               : "• Obligations des parties  •  Qualité & réclamations  •  Protection médias & réputation  •  Annulation  •  Responsabilité  •  Confidentialité  •  Signatures"}
         </div>
 
         {/* Actions */}
