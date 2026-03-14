@@ -1983,8 +1983,9 @@ function BizField({ label, k, placeholder, area, draft, setDraft }) {
   );
 }
 
-function SettingsModal({ biz, setBiz, onClose }) {
+function SettingsModal({ biz, setBiz, logo, socialLinks, setSocialLinks, onClose }) {
   const [draft, setDraft] = useState({ ...biz });
+  const [draftSocial, setDraftSocial] = useState({ ...socialLinks });
   const [pwSection, setPwSection] = useState(false);
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -2000,7 +2001,7 @@ function SettingsModal({ biz, setBiz, onClose }) {
   const [staffMsg, setStaffMsg] = useState(null);
   const [confirmRemoveStaff, setConfirmRemoveStaff] = useState(false);
 
-  const save = () => { setBiz(draft); onClose(); };
+  const save = () => { setBiz(draft); setSocialLinks(draftSocial); onClose(); };
 
   const handleChangePw = () => {
     setPwMsg(null);
@@ -2305,6 +2306,131 @@ function SettingsModal({ biz, setBiz, onClose }) {
             )}
           </div>
         </div>
+        {/* ── SOCIAL LINKS ── */}
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 10 }}>
+              📱 Social Media & Links
+            </div>
+            <div style={S.grid(2)}>
+              {[
+                { key: "instagram", icon: "📷", label: "Instagram URL", ph: "https://instagram.com/cookiesbites" },
+                { key: "facebook", icon: "👤", label: "Facebook Page URL", ph: "https://facebook.com/cookiesbites" },
+                { key: "tiktok", icon: "🎵", label: "TikTok URL", ph: "https://tiktok.com/@cookiesbites" },
+                { key: "whatsapp", icon: "💬", label: "WhatsApp Number", ph: "+237 6XX XXX XXX" },
+                { key: "google", icon: "🔍", label: "Google Business Review Link", ph: "https://g.page/r/YOUR_PLACE_ID/review" },
+              ].map(s => (
+                <div key={s.key}>
+                  <label style={S.label}>{s.icon} {s.label}</label>
+                  <input style={S.input} value={draftSocial[s.key] || ""} onChange={e => setDraftSocial(p => ({ ...p, [s.key]: e.target.value }))} placeholder={s.ph} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── BUSINESS CARD ── */}
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 10 }}>
+              🪪 Business Card
+            </div>
+            <div style={{ fontSize: 11, color: T.textDim, marginBottom: 10 }}>
+              Download a print-ready business card with your logo, contact details and social links. Save and re-open settings to reflect latest edits before downloading.
+            </div>
+            <button
+              style={{ ...S.btn("primary"), fontSize: 12 }}
+              onClick={() => {
+                const b = draft;
+                const sl = draftSocial;
+                const logoSrc = logo?.src || "";
+
+                const socials = [
+                  sl.instagram && { icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`, handle: sl.instagram.replace(/.*instagram\.com\//,"@").replace(/\/$/, "") || "Instagram" },
+                  sl.facebook && { icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`, handle: sl.facebook.replace(/.*facebook\.com\//,"").replace(/\/$/, "") || "Facebook" },
+                  sl.tiktok && { icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.23 8.23 0 004.84 1.56V6.79a4.85 4.85 0 01-1.07-.1z"/></svg>`, handle: sl.tiktok.replace(/.*tiktok\.com\/@?/,"@").replace(/\/$/, "") || "TikTok" },
+                  sl.whatsapp && { icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`, handle: sl.whatsapp || "WhatsApp" },
+                ].filter(Boolean);
+
+                const socialsHTML = socials.length ? `
+                  <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">
+                    ${socials.map(s => `
+                      <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#555">
+                        <span style="color:#b85c1a;flex-shrink:0">${s.icon}</span>
+                        <span>${s.handle}</span>
+                      </div>`).join("")}
+                  </div>` : "";
+
+                const cardHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;500;600&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f0ebe3; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; font-family:'Source Sans 3', sans-serif; padding:40px 20px; }
+  h2 { font-family:'Source Sans 3',sans-serif; font-size:13px; font-weight:600; color:#888; letter-spacing:2px; text-transform:uppercase; margin-bottom:24px; }
+  .card-wrap { display:flex; gap:0; box-shadow:0 20px 60px rgba(0,0,0,0.18); border-radius:14px; overflow:hidden; width:720px; height:240px; }
+  .front { background:linear-gradient(135deg,#1a0a00 0%,#3d1a00 60%,#6b2d00 100%); width:360px; height:240px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; position:relative; overflow:hidden; flex-shrink:0; }
+  .front::before { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; background:radial-gradient(circle,rgba(184,92,26,0.3) 0%,transparent 70%); border-radius:50%; }
+  .front::after { content:''; position:absolute; bottom:-40px; left:-40px; width:150px; height:150px; background:radial-gradient(circle,rgba(255,160,60,0.15) 0%,transparent 70%); border-radius:50%; }
+  .logo-wrap { width:80px; height:80px; border-radius:50%; overflow:hidden; border:3px solid rgba(184,92,26,0.6); margin-bottom:14px; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; z-index:1; }
+  .logo-wrap img { width:100%; height:100%; object-fit:cover; }
+  .logo-placeholder { font-size:32px; }
+  .biz-name { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:#fff; text-align:center; letter-spacing:0.5px; z-index:1; margin-bottom:4px; }
+  .biz-tagline { font-size:10px; color:rgba(255,200,140,0.8); text-align:center; letter-spacing:1.5px; text-transform:uppercase; z-index:1; }
+  .divider-line { width:40px; height:2px; background:linear-gradient(90deg,transparent,#b85c1a,transparent); margin:10px auto 0; z-index:1; }
+  .back { background:#fffdf9; width:360px; height:240px; padding:28px 28px 24px; display:flex; flex-direction:column; justify-content:space-between; flex-shrink:0; }
+  .contact-block { display:flex; flex-direction:column; gap:6px; }
+  .contact-row { display:flex; align-items:center; gap:8px; font-size:11px; color:#444; }
+  .contact-icon { width:20px; height:20px; background:#b85c1a; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .contact-icon svg { width:11px; height:11px; fill:#fff; }
+  .socials-row { display:flex; flex-wrap:wrap; gap:8px; padding-top:8px; border-top:1px solid #f0ebe3; }
+  .social-chip { display:flex; align-items:center; gap:4px; font-size:10px; color:#666; }
+  .social-chip svg { color:#b85c1a; }
+  .bottom-accent { width:100%; height:3px; background:linear-gradient(90deg,#b85c1a,#f5a623,#b85c1a); border-radius:0 0 0 0; position:absolute; bottom:0; left:0; }
+  .download-btn { margin-top:28px; background:linear-gradient(135deg,#b85c1a,#d4711f); color:#fff; border:none; padding:12px 32px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; font-family:'Source Sans 3',sans-serif; letter-spacing:0.5px; box-shadow:0 4px 14px rgba(184,92,26,0.4); transition:all 0.2s; }
+  .download-btn:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(184,92,26,0.5); }
+  @media print { body { background:#fff; padding:0; } h2 { display:none; } .download-btn { display:none; } .card-wrap { box-shadow:none; } }
+</style>
+</head>
+<body>
+<h2>🪪 Business Card Preview</h2>
+<div class="card-wrap">
+  <!-- FRONT -->
+  <div class="front">
+    <div class="logo-wrap">
+      ${logoSrc ? `<img src="${logoSrc}" alt="logo"/>` : `<span class="logo-placeholder">🍽️</span>`}
+    </div>
+    <div class="biz-name">${b.name || "Business Name"}</div>
+    ${b.tagline ? `<div class="biz-tagline">${b.tagline}</div>` : ""}
+    <div class="divider-line"></div>
+  </div>
+  <!-- BACK -->
+  <div class="back" style="position:relative">
+    <div class="contact-block">
+      ${b.phone ? `<div class="contact-row"><div class="contact-icon"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><span>${b.phone}${b.phone2 ? " · " + b.phone2 : ""}</span></div>` : ""}
+      ${b.email ? `<div class="contact-row"><div class="contact-icon"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></div><span>${b.email}</span></div>` : ""}
+      ${b.website ? `<div class="contact-row"><div class="contact-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg></div><span>${b.website}</span></div>` : ""}
+      ${b.address || b.city ? `<div class="contact-row"><div class="contact-icon"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div><span>${[b.address, b.city].filter(Boolean).join(", ")}</span></div>` : ""}
+    </div>
+    ${socials.length ? `<div class="socials-row">${socials.map(s => `<div class="social-chip">${s.icon}<span>${s.handle}</span></div>`).join("")}</div>` : ""}
+    <div class="bottom-accent"></div>
+  </div>
+</div>
+<button class="download-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+<p style="margin-top:14px;font-size:11px;color:#999;font-family:'Source Sans 3',sans-serif">Tip: In print dialog, set paper to <strong>Custom 3.5×2 in</strong> or save as PDF and crop</p>
+</body>
+</html>`;
+
+                const win = window.open("", "_blank");
+                if (win) {
+                  win.document.write(cardHTML);
+                  win.document.close();
+                }
+              }}
+            >
+              🪪 Preview & Download Business Card
+            </button>
+          </div>
+
         <div
           style={{
             padding: "12px 18px",
@@ -12753,6 +12879,7 @@ export default function App() {
   const [biz, setBiz] = useState(() => ls_get("cb_biz", INIT_BIZ));
   const [customers, setCustomers] = useState(() => ls_get("cb_customers", []));
   const [vendors, setVendors] = useState(() => ls_get("cb_vendors", []));
+  const [socialLinks, setSocialLinks] = useState(() => ls_get("cb_social", { instagram: "", facebook: "", tiktok: "", whatsapp: "", google: "" }));
   const [showSettings, setShowSettings] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const isMobile = useIsMobile();
@@ -12772,6 +12899,7 @@ export default function App() {
   useEffect(() => { ls_set("cb_biz", biz); }, [biz]);
   useEffect(() => { ls_set("cb_customers", customers); }, [customers]);
   useEffect(() => { ls_set("cb_vendors", vendors); }, [vendors]);
+  useEffect(() => { ls_set("cb_social", socialLinks); }, [socialLinks]);
 
   // Backfill/merge customers from all sources: sales, catering events & invoices
   useEffect(() => {
@@ -12905,6 +13033,9 @@ export default function App() {
         <SettingsModal
           biz={biz}
           setBiz={setBiz}
+          logo={logo}
+          socialLinks={socialLinks}
+          setSocialLinks={setSocialLinks}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -13120,6 +13251,8 @@ export default function App() {
             meals={meals}
             catalogItems={catalogItems}
             logo={logo}
+            socialLinks={socialLinks}
+            setSocialLinks={setSocialLinks}
           />
         )}
       </div>
@@ -13274,7 +13407,7 @@ Output only the ready-to-send message. No commentary.`,
 const TONES = ["Professional", "Casual & Friendly", "Exciting & Bold", "Warm & Personal", "Luxurious"];
 const EMAIL_TYPES = ["Follow-up", "Proposal introduction", "Thank you after event", "Booking confirmation", "Payment reminder"];
 
-function AIStudioPage({ biz, events, meals, catalogItems, logo }) {
+function AIStudioPage({ biz, events, meals, catalogItems, logo, socialLinks, setSocialLinks }) {
   const isMobile = useIsMobile();
 
   // Context derived from app data
@@ -13309,10 +13442,6 @@ function AIStudioPage({ biz, events, meals, catalogItems, logo }) {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState([]); // [{tool, output, ts}]
   const [showHistory, setShowHistory] = useState(false);
-  const [socialLinks, setSocialLinks] = useState({
-    instagram: "", facebook: "", tiktok: "", whatsapp: "",
-    google: "",
-  });
   const [showSocial, setShowSocial] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("cb_api_key") || "");
   const [showApiKey, setShowApiKey] = useState(false);
