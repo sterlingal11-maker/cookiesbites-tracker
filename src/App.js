@@ -174,7 +174,43 @@ const INIT_MEALS = [];
 
 const INIT_EVENTS = [];
 
-const INIT_INVENTORY = [];
+const INIT_INVENTORY = [
+  { id: 1, name: "Bitterleaves",       category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 2, name: "Groundnut",          category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 3, name: "Beef",               category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 4, name: "Crayfish",           category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 5, name: "Onions",             category: "Ingredient", unit: "Piece",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 6, name: "Cooking Oil",        category: "Ingredient", unit: "Litre",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 7, name: "Plantains",          category: "Ingredient", unit: "Piece",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 8, name: "Garlic",             category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 9, name: "Ginger",             category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 10, name: "Chicken",           category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 11, name: "Carrots",           category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 12, name: "Green Beans",       category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 13, name: "Chili Pepper",      category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 14, name: "Bell Peppers",      category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 15, name: "Green Spices",      category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 16, name: "Palm Oil",          category: "Ingredient", unit: "Litre",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 17, name: "Coco Yams",         category: "Ingredient", unit: "Bucket", stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 18, name: "Achu Spices",       category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 19, name: "Cow Skin (Canda)",  category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 20, name: "Beef Tripe & Towel",category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 21, name: "Eru & Waterleaf",   category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 22, name: "Fresh Fish",        category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 23, name: "Fresh Catfish",     category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 24, name: "Beans",             category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 25, name: "Koki Beans",        category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 26, name: "Egusi",             category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 27, name: "Garri",             category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 28, name: "Rice",              category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 29, name: "Goat Meat",         category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 30, name: "Goat Meat - Roast", category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 31, name: "Pork",              category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 32, name: "Pork - Roast",      category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 33, name: "Maggi Cubes",       category: "Ingredient", unit: "Packet", stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 34, name: "Salt",              category: "Ingredient", unit: "Packet", stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+  { id: 35, name: "Yams",              category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+];
 
 const INIT_SALES = [];
 
@@ -13498,7 +13534,13 @@ export default function App() {
       apply("cb_proposals",    setProposals);
       apply("cb_catalog",      setCatalogItems);
       apply("cb_catalog_cats", setCatalogCategories);
-      apply("cb_inventory",    setInventory);
+      // Inventory: if cloud is empty array, seed with INIT_INVENTORY
+      if (cloud["cb_inventory"] !== undefined && cloud["cb_inventory"] !== null) {
+        const cloudInv = cloud["cb_inventory"];
+        const inv = Array.isArray(cloudInv) && cloudInv.length === 0 ? INIT_INVENTORY : cloudInv;
+        setInventory(inv);
+        ls_set("cb_inventory", inv);
+      }
       apply("cb_meals",        setMeals);
       apply("cb_batches",      setBatches);
       apply("cb_overheads",    setOverheads);
