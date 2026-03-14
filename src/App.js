@@ -2866,7 +2866,9 @@ function BizField({ label, k, placeholder, area, draft, setDraft }) {
   );
 }
 
-function SettingsModal({ biz, setBiz, logo, socialLinks, setSocialLinks, onClose }) {
+function SettingsModal({ biz, setBiz, logo, socialLinks, setSocialLinks, onClose,
+  setEvents, setSales, setInvoices, setProposals, setBatches, setOverheads, setCustomers,
+  cloudSet }) {
   const [draft, setDraft] = useState({ ...biz });
   const [draftSocial, setDraftSocial] = useState({ ...socialLinks });
   const [pwSection, setPwSection] = useState(false);
@@ -3313,6 +3315,42 @@ function SettingsModal({ biz, setBiz, logo, socialLinks, setSocialLinks, onClose
               🪪 Preview & Download Business Card
             </button>
           </div>
+
+        <div
+          style={{
+            padding: "12px 18px",
+            borderTop: `1px solid ${T.danger}30`,
+            background: `${T.danger}08`,
+            borderRadius: "0 0 0 0",
+          }}
+        >
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: T.danger, marginBottom: 8 }}>
+            ⚠️ Danger Zone
+          </div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10, lineHeight: 1.5 }}>
+            <strong style={{ color: T.text }}>Clear Training / Practice Data</strong><br/>
+            Removes all practice sales, events, proposals, invoices, expenses, batches and customers.
+            Inventory, meals and catalog are <strong>not</strong> affected.
+          </div>
+          <button
+            style={{ ...S.btn("ghost"), fontSize: 11, color: T.danger, borderColor: `${T.danger}60`, padding: "5px 14px" }}
+            onClick={() => {
+              if (!window.confirm("Clear all training data?\n\nThis will delete:\n• All sales & orders\n• All catering events\n• All proposals\n• All invoices\n• All expenses\n• All production batches\n• All customers\n\nInventory, Meals and Catalog will NOT be affected.\n\nThis cannot be undone.")) return;
+              const empty = [];
+              setEvents(empty);     if (cloudSet) cloudSet("cb_events",    empty);
+              setSales(empty);      if (cloudSet) cloudSet("cb_sales",     empty);
+              setInvoices(empty);   if (cloudSet) cloudSet("cb_invoices",  empty);
+              setProposals(empty);  if (cloudSet) cloudSet("cb_proposals", empty);
+              setBatches(empty);    if (cloudSet) cloudSet("cb_batches",   empty);
+              setOverheads(empty);  if (cloudSet) cloudSet("cb_overheads", empty);
+              setCustomers(empty);  if (cloudSet) cloudSet("cb_customers", empty);
+              onClose();
+              alert("✅ Training data cleared. Inventory, Meals and Catalog are untouched.");
+            }}
+          >
+            🗑 Clear All Training Data
+          </button>
+        </div>
 
         <div
           style={{
@@ -14339,6 +14377,14 @@ export default function App() {
           socialLinks={socialLinks}
           setSocialLinks={setSocialLinks}
           onClose={() => setShowSettings(false)}
+          setEvents={setEvents}
+          setSales={setSales}
+          setInvoices={setInvoices}
+          setProposals={setProposals}
+          setBatches={setBatches}
+          setOverheads={setOverheads}
+          setCustomers={setCustomers}
+          cloudSet={cloudSet}
         />
       )}
       {showImport && isOwner && (
