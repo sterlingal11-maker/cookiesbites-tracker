@@ -6105,6 +6105,8 @@ function RestaurantPage({
     partialPaid: "",
   };
   const [ns, setNs] = useState(EMPTY);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [newCust, setNewCust] = useState({ name: "", phone: "", email: "", notes: "" });
   const [addingInv, setAddingInv] = useState(false);
   const [editInvId, setEditInvId] = useState(null);
   const [ni, setNi] = useState({
@@ -6238,6 +6240,8 @@ function RestaurantPage({
     setAddSale(false);
     setEditSaleId(null);
     setNs(EMPTY);
+    setShowNewCustomer(false);
+    setNewCust({ name: "", phone: "", email: "", notes: "" });
 
     // Auto-upsert customer from order
     if (ns.clientName && ns.clientName.trim()) {
@@ -6760,11 +6764,107 @@ function RestaurantPage({
                       const val = e.target.value;
                       const match = customers.find(c => c.name === val);
                       setNs({ ...ns, clientName: val, clientPhone: match ? match.phone : ns.clientPhone });
+                      // If typed name is non-empty and doesn't match any customer, offer to add
+                      if (val.trim() && !match) {
+                        setNewCust(prev => ({ ...prev, name: val.trim() }));
+                      } else {
+                        setShowNewCustomer(false);
+                      }
                     }}
                   />
                   <datalist id="rest-customer-list">
                     {customers.map(c => <option key={c.id} value={c.name}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
                   </datalist>
+                  {/* Quick-add customer prompt */}
+                  {ns.clientName.trim() && !customers.find(c => c.name.toLowerCase() === ns.clientName.trim().toLowerCase()) && (
+                    <div style={{ marginTop: 6 }}>
+                      {!showNewCustomer ? (
+                        <button
+                          type="button"
+                          style={{ ...S.btn("ghost"), fontSize: 11, padding: "3px 10px", borderColor: T.accent, color: T.accent }}
+                          onClick={() => {
+                            setNewCust({ name: ns.clientName.trim(), phone: ns.clientPhone || "", email: "", notes: "" });
+                            setShowNewCustomer(true);
+                          }}
+                        >
+                          ➕ Save "{ns.clientName.trim()}" as new customer
+                        </button>
+                      ) : (
+                        <div style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}40`, borderRadius: 8, padding: "10px 12px", marginTop: 4 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, marginBottom: 8 }}>➕ New Customer</div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 7 }}>
+                            <div>
+                              <label style={S.label}>Name *</label>
+                              <input
+                                style={S.input}
+                                value={newCust.name}
+                                onChange={(e) => setNewCust({ ...newCust, name: e.target.value })}
+                                placeholder="Full name"
+                              />
+                            </div>
+                            <div>
+                              <label style={S.label}>Phone</label>
+                              <input
+                                style={S.input}
+                                value={newCust.phone}
+                                onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })}
+                                placeholder="+237 6XX XXX XXX"
+                              />
+                            </div>
+                            <div>
+                              <label style={S.label}>Email</label>
+                              <input
+                                style={S.input}
+                                value={newCust.email}
+                                onChange={(e) => setNewCust({ ...newCust, email: e.target.value })}
+                                placeholder="email@example.com"
+                              />
+                            </div>
+                            <div>
+                              <label style={S.label}>Notes</label>
+                              <input
+                                style={S.input}
+                                value={newCust.notes}
+                                onChange={(e) => setNewCust({ ...newCust, notes: e.target.value })}
+                                placeholder="e.g. VIP, allergies…"
+                              />
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button
+                              type="button"
+                              style={{ ...S.btn("primary"), fontSize: 11, padding: "4px 12px" }}
+                              disabled={!newCust.name.trim()}
+                              onClick={() => {
+                                const nc = {
+                                  id: Date.now(),
+                                  name: newCust.name.trim(),
+                                  phone: newCust.phone.trim(),
+                                  email: newCust.email.trim(),
+                                  notes: newCust.notes.trim(),
+                                  classification: "Regular",
+                                  createdAt: TODAY_ISO,
+                                };
+                                setCustomers(prev => [...prev, nc]);
+                                setNs(prev => ({ ...prev, clientName: nc.name, clientPhone: nc.phone }));
+                                setShowNewCustomer(false);
+                                setNewCust({ name: "", phone: "", email: "", notes: "" });
+                              }}
+                            >
+                              ✓ Save Customer
+                            </button>
+                            <button
+                              type="button"
+                              style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 10px" }}
+                              onClick={() => { setShowNewCustomer(false); setNewCust({ name: "", phone: "", email: "", notes: "" }); }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={S.label}>Client Phone <span style={{ color: T.textDim, fontWeight: 400 }}>(optional)</span></label>
@@ -6829,6 +6929,8 @@ function RestaurantPage({
                     setAddSale(false);
                     setEditSaleId(null);
                     setNs(EMPTY);
+                    setShowNewCustomer(false);
+                    setNewCust({ name: "", phone: "", email: "", notes: "" });
                   }}
                 >
                   Cancel
