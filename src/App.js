@@ -1760,6 +1760,221 @@ function buildProposalHTML(prop, biz, logo) {
     biz
   )}`;
 }
+// ─── CATERING CONTRACT ────────────────────────────────────────────
+function buildContractHTML(prop, biz, logo, lang = "en", terms = {}) {
+  const EN = lang === "en";
+  const sub  = prop.lines.reduce((s, l) => s + l.qty * l.price, 0);
+  const total = sub - (prop.discount || 0);
+  const deposit = Math.round(total * 0.5);
+  const balance = total - deposit;
+  const today = new Date().toLocaleDateString(EN ? "en-GB" : "fr-FR", { day:"2-digit", month:"long", year:"numeric" });
+  const eventDate = prop.plannedDate
+    ? new Date(prop.plannedDate).toLocaleDateString(EN ? "en-GB" : "fr-FR", { day:"2-digit", month:"long", year:"numeric" })
+    : (EN ? "Date TBD" : "Date à confirmer");
+
+  const { img, sub: bizSub } = getBizHTML(biz, logo);
+
+  // Bilingual labels
+  const L = {
+    title:      EN ? "CATERING SERVICES CONTRACT"     : "CONTRAT DE SERVICES TRAITEUR",
+    contract:   EN ? "Contract"                        : "Contrat",
+    ref:        EN ? "Ref. Proposal"                   : "Réf. Proposition",
+    date:       EN ? "Date"                            : "Date",
+    caterer:    EN ? "CATERER"                         : "PRESTATAIRE",
+    client:     EN ? "CLIENT"                          : "CLIENT",
+    services:   EN ? "SERVICES & SCOPE"                : "PRESTATIONS & PÉRIMÈTRE",
+    item:       EN ? "Description"                     : "Description",
+    unit:       EN ? "Unit"                            : "Unité",
+    qty:        EN ? "Qty"                             : "Qté",
+    price:      EN ? "Unit Price"                      : "Prix Unitaire",
+    ttl:        EN ? "Total"                           : "Total",
+    subtotal:   EN ? "Subtotal"                        : "Sous-total",
+    discount:   EN ? "Discount"                        : "Remise",
+    grandTotal: EN ? "CONTRACT TOTAL"                  : "TOTAL CONTRAT",
+    payment:    EN ? "PAYMENT SCHEDULE"                : "ÉCHÉANCIER DE PAIEMENT",
+    deposit50:  EN ? "Deposit (50%) — due on signing"  : "Acompte (50 %) — dû à la signature",
+    balance50:  EN ? "Balance — due before event"      : "Solde — dû avant l'événement",
+    method:     EN ? "Payment methods"                 : "Modes de paiement",
+    catObl:     EN ? "CATERER OBLIGATIONS"             : "OBLIGATIONS DU PRESTATAIRE",
+    cliObl:     EN ? "CLIENT OBLIGATIONS"              : "OBLIGATIONS DU CLIENT",
+    canc:       EN ? "CANCELLATION & FORCE MAJEURE"    : "ANNULATION & FORCE MAJEURE",
+    liab:       EN ? "LIABILITY"                       : "RESPONSABILITÉ",
+    sign:       EN ? "SIGNATURES"                      : "SIGNATURES",
+    signCat:    EN ? "For the Caterer"                 : "Pour le Prestataire",
+    signCli:    EN ? "For the Client"                  : "Pour le Client",
+    nameDate:   EN ? "Name & Date"                     : "Nom & Date",
+    sigLine:    EN ? "Signature"                       : "Signature",
+    agree:      EN ? "By signing below, both parties agree to the terms of this contract."
+                   : "En signant ci-dessous, les deux parties acceptent les termes du présent contrat.",
+    footer:     EN ? `This contract is governed by the laws of Cameroon. Any dispute shall be resolved by mutual agreement or before the competent courts of ${biz.city || "Douala"}.`
+                   : `Le présent contrat est régi par le droit camerounais. Tout litige sera réglé à l'amiable ou devant les juridictions compétentes de ${biz.city || "Douala"}.`,
+  };
+
+  // Default obligation texts (overrideable)
+  const defaultCatObl = EN
+    ? `1. Provide all catering services described in Proposal ${prop.num} with professional quality and punctuality.\n2. Supply all food, equipment, and staff required for the event.\n3. Comply with applicable health and food safety standards.\n4. Arrive at the venue at least 1 hour before service start time.\n5. Ensure food is prepared and presented in accordance with the agreed menu.`
+    : `1. Fournir tous les services de traiteur décrits dans la Proposition ${prop.num} avec qualité et ponctualité.\n2. Assurer la fourniture de la nourriture, du matériel et du personnel nécessaires.\n3. Respecter les normes d'hygiène et de sécurité alimentaire en vigueur.\n4. Arriver sur le lieu au moins 1 heure avant le début du service.\n5. Préparer et présenter les plats conformément au menu convenu.`;
+
+  const defaultCliObl = EN
+    ? `1. Pay the deposit of ${fmt(deposit)} XAF within 48 hours of signing this contract.\n2. Pay the balance of ${fmt(balance)} XAF no later than 48 hours before the event.\n3. Provide accurate guest count and venue details at least 5 days before the event.\n4. Ensure access to the venue and adequate facilities (water, electricity, prep area).\n5. Notify the caterer immediately of any changes to guest count or venue logistics.`
+    : `1. Verser l'acompte de ${fmt(deposit)} FCFA dans les 48 heures suivant la signature.\n2. Régler le solde de ${fmt(balance)} FCFA au plus tard 48 heures avant l'événement.\n3. Fournir le nombre exact de convives et les détails du lieu au moins 5 jours avant.\n4. Assurer l'accès au lieu et les installations nécessaires (eau, électricité, espace de préparation).\n5. Informer immédiatement le prestataire de tout changement de nombre ou de logistique.`;
+
+  const defaultCanc = EN
+    ? `Cancellation more than 14 days before the event: deposit refunded in full. Cancellation 7–14 days before: 50% of deposit retained. Cancellation less than 7 days before: full deposit forfeited. In the event of force majeure (natural disaster, government restriction, etc.) neither party shall be liable; the deposit shall be applied to a rescheduled date.`
+    : `Annulation plus de 14 jours avant : acompte intégralement remboursé. Annulation 7 à 14 jours avant : 50 % de l'acompte retenu. Annulation moins de 7 jours avant : acompte intégralement acquis au prestataire. En cas de force majeure, aucune partie n'est tenue responsable ; l'acompte sera appliqué à une nouvelle date.`;
+
+  const defaultLiab = EN
+    ? `The caterer's liability is limited to the total contract value. The caterer is not responsible for delays or damages caused by the client's failure to meet obligations above. Any claims must be raised in writing within 48 hours of the event.`
+    : `La responsabilité du prestataire est limitée au montant total du contrat. Le prestataire n'est pas responsable des retards ou dommages causés par le non-respect des obligations du client. Toute réclamation doit être formulée par écrit dans les 48 heures suivant l'événement.`;
+
+  const catObl  = terms.catObl  || defaultCatObl;
+  const cliObl  = terms.cliObl  || defaultCliObl;
+  const cancTxt = terms.canc    || defaultCanc;
+  const liabTxt = terms.liab    || defaultLiab;
+
+  const effectivePmt = (prop.paymentTerms && prop.paymentTerms.trim())
+    ? prop.paymentTerms.trim()
+    : (biz.paymentTerms || (EN ? "Cash · Mobile Money (MoMo) · Bank Transfer" : "Espèces · Mobile Money · Virement bancaire"));
+
+  const rows = prop.lines.map(l =>
+    `<tr><td>${l.name}${l.description ? `<div style="font-size:10px;color:#777">${l.description}</div>` : ""}</td><td style="text-align:center">${l.unitType}</td><td style="text-align:center">${l.qty}</td><td style="text-align:right">${fmt(l.price)}</td><td style="text-align:right;font-weight:600">${fmt(l.qty*l.price)}</td></tr>`
+  ).join("");
+
+  // Render multi-line text as <p> tags
+  const oblText = (txt) => txt.split("\n").map(line => `<p style="margin:0 0 5px">${line}</p>`).join("");
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<style>
+${PRINT_CSS}
+body{padding:32px 40px;font-size:12.5px}
+h2.contract-title{font-size:18px;font-weight:900;letter-spacing:-0.5px;margin-bottom:2px;color:#1a1a1a}
+.contract-sub{font-size:10px;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:24px}
+.section{margin-bottom:18px}
+.section-title{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#888;border-bottom:1.5px solid #e5e5e5;padding-bottom:4px;margin-bottom:10px}
+table.scope{width:100%;border-collapse:collapse;font-size:11.5px}
+table.scope th{background:#f3f3f3;padding:6px 8px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555}
+table.scope td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+.total-band{background:#1a1a1a;color:#fff;padding:8px 12px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.total-band span{font-size:10px;letter-spacing:1px;text-transform:uppercase}
+.total-band strong{font-size:16px;font-weight:900}
+.pmt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.pmt-cell{background:#f8f8f8;border-radius:6px;padding:9px 11px}
+.pmt-cell .lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.pmt-cell .val{font-size:13px;font-weight:700;color:#1a1a1a}
+.obl-box{background:#f9f9f9;border-left:3px solid #e8c547;border-radius:0 6px 6px 0;padding:10px 13px;font-size:11.5px;line-height:1.6;color:#333}
+.obl-box p{margin:0 0 4px}
+.clause{font-size:11.5px;line-height:1.65;color:#444}
+.sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:6px}
+.sign-box{border-top:1.5px solid #1a1a1a;padding-top:8px}
+.sign-label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:3px}
+.sign-name{font-size:12px;font-weight:600;color:#1a1a1a;margin-bottom:16px}
+.sign-line{border-bottom:1px dashed #ccc;height:28px;margin-bottom:5px}
+.sign-meta{font-size:9.5px;color:#aaa}
+.agree-txt{font-size:11px;color:#555;font-style:italic;margin-bottom:14px}
+@media print{body{padding:24px 32px}.no-print{display:none!important}@page{margin:10mm 12mm;size:A4}}
+</style></head><body>
+
+<!-- HEADER -->
+<div class="doc-header">
+  <div class="brand-block">${img}<div class="brand-sub">${bizSub}</div></div>
+  <div class="doc-ref-block">
+    <div class="doc-type">${L.title}</div>
+    <div class="doc-number" style="font-size:20px">${L.contract} #${prop.num.replace("PROP","CTR")}</div>
+    <div class="doc-meta">${L.ref}: ${prop.num}<br>${L.date}: ${today}</div>
+  </div>
+</div>
+
+<!-- PARTIES -->
+<div class="parties">
+  <div class="party-box">
+    <div class="party-label">${L.caterer}</div>
+    <div class="party-name">${biz.name}</div>
+    <div class="party-detail">${[biz.address, biz.city, biz.phone, biz.email, biz.rccm ? `RCCM: ${biz.rccm}` : ""].filter(Boolean).join("<br/>")}</div>
+  </div>
+  <div class="party-box">
+    <div class="party-label">${L.client}</div>
+    <div class="party-name">${prop.client}</div>
+    <div class="party-detail">${[prop.clientPhone, prop.eventType ? `${prop.eventType} · ${eventDate}` : eventDate, prop.guests ? `${prop.guests} ${EN?"guests":"convives"}` : "", prop.location].filter(Boolean).join("<br/>")}</div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<div class="section">
+  <div class="section-title">${L.services}</div>
+  <table class="scope">
+    <thead><tr><th>${L.item}</th><th style="text-align:center;width:80px">${L.unit}</th><th style="text-align:center;width:40px">${L.qty}</th><th style="text-align:right;width:90px">${L.price} (XAF)</th><th style="text-align:right;width:90px">${L.ttl} (XAF)</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div style="display:flex;justify-content:flex-end;margin-top:5px;gap:40px;font-size:11.5px;color:#555">
+    <span>${L.subtotal}: <strong style="color:#1a1a1a">${fmt(sub)} XAF</strong></span>
+    ${prop.discount > 0 ? `<span>${L.discount}: <strong style="color:#c53030">– ${fmt(prop.discount)} XAF</strong></span>` : ""}
+  </div>
+  <div class="total-band"><span>${L.grandTotal}</span><strong>${fmt(total)} XAF</strong></div>
+</div>
+
+<!-- PAYMENT -->
+<div class="section">
+  <div class="section-title">${L.payment}</div>
+  <div class="pmt-grid">
+    <div class="pmt-cell"><div class="lbl">${L.deposit50}</div><div class="val">${fmt(deposit)} XAF</div></div>
+    <div class="pmt-cell"><div class="lbl">${L.balance50}</div><div class="val">${fmt(balance)} XAF</div></div>
+    <div class="pmt-cell"><div class="lbl">${L.method}</div><div class="val" style="font-size:10px;line-height:1.4">${effectivePmt}</div></div>
+  </div>
+</div>
+
+<!-- CATERER OBLIGATIONS -->
+<div class="section">
+  <div class="section-title">${L.catObl}</div>
+  <div class="obl-box">${oblText(catObl)}</div>
+</div>
+
+<!-- CLIENT OBLIGATIONS -->
+<div class="section">
+  <div class="section-title">${L.cliObl}</div>
+  <div class="obl-box" style="border-color:#4a90d9">${oblText(cliObl)}</div>
+</div>
+
+<!-- CANCELLATION -->
+<div class="section">
+  <div class="section-title">${L.canc}</div>
+  <div class="clause">${cancTxt}</div>
+</div>
+
+<!-- LIABILITY -->
+<div class="section">
+  <div class="section-title">${L.liab}</div>
+  <div class="clause">${liabTxt}</div>
+</div>
+
+<!-- GOVERNING LAW -->
+<div class="section" style="margin-bottom:22px">
+  <div class="clause" style="font-size:11px;color:#666">${L.footer}</div>
+</div>
+
+<!-- SIGNATURES -->
+<div class="section">
+  <div class="section-title">${L.sign}</div>
+  <p class="agree-txt">${L.agree}</p>
+  <div class="sign-grid">
+    <div class="sign-box">
+      <div class="sign-label">${L.signCat}</div>
+      <div class="sign-name">${biz.name}</div>
+      <div class="sign-line"></div>
+      <div class="sign-meta">${L.sigLine} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${L.nameDate}</div>
+    </div>
+    <div class="sign-box">
+      <div class="sign-label">${L.signCli}</div>
+      <div class="sign-name">${prop.client}</div>
+      <div class="sign-line"></div>
+      <div class="sign-meta">${L.sigLine} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${L.nameDate}</div>
+    </div>
+  </div>
+</div>
+
+${footerHTML(biz)}
+</body></html>`;
+}
+
 function buildOrderReceiptHTML(sale, biz, logo) {
   const total = orderTotal(sale);
   const paid = sale.partialPaid !== "" && sale.partialPaid != null ? Number(sale.partialPaid) : total;
@@ -4720,6 +4935,132 @@ function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, o
 }
 
 // ─── PROPOSALS (with inventory linking) ───────────────────────────
+// ─── CONTRACT MODAL ──────────────────────────────────────────────
+function ContractModal({ prop, biz, logo, onClose, onPrint }) {
+  const [lang, setLang] = useState("en");
+  const [terms, setTerms] = useState({ catObl: "", cliObl: "", canc: "", liab: "" });
+  const [expanded, setExpanded] = useState(null);
+
+  const EN = lang === "en";
+  const sub     = prop.lines.reduce((s, l) => s + l.qty * l.price, 0);
+  const total   = sub - (prop.discount || 0);
+  const deposit = Math.round(total * 0.5);
+  const balance = total - deposit;
+
+  const defaultCatObl = EN
+    ? `1. Provide all catering services described in Proposal ${prop.num} with professional quality and punctuality.\n2. Supply all food, equipment, and staff required for the event.\n3. Comply with applicable health and food safety standards.\n4. Arrive at the venue at least 1 hour before service start time.\n5. Ensure food is prepared and presented in accordance with the agreed menu.`
+    : `1. Fournir tous les services de traiteur décrits dans la Proposition ${prop.num} avec qualité et ponctualité.\n2. Assurer la fourniture de la nourriture, du matériel et du personnel nécessaires.\n3. Respecter les normes d'hygiène et de sécurité alimentaire en vigueur.\n4. Arriver sur le lieu au moins 1 heure avant le début du service.\n5. Préparer et présenter les plats conformément au menu convenu.`;
+
+  const defaultCliObl = EN
+    ? `1. Pay the deposit of ${fmt(deposit)} XAF within 48 hours of signing this contract.\n2. Pay the balance of ${fmt(balance)} XAF no later than 48 hours before the event.\n3. Provide accurate guest count and venue details at least 5 days before the event.\n4. Ensure access to the venue and adequate facilities (water, electricity, prep area).\n5. Notify the caterer immediately of any changes to guest count or venue logistics.`
+    : `1. Verser l'acompte de ${fmt(deposit)} FCFA dans les 48 heures suivant la signature.\n2. Régler le solde de ${fmt(balance)} FCFA au plus tard 48 heures avant l'événement.\n3. Fournir le nombre exact de convives et les détails du lieu au moins 5 jours avant.\n4. Assurer l'accès au lieu et les installations nécessaires (eau, électricité, espace de préparation).\n5. Informer immédiatement le prestataire de tout changement de nombre ou de logistique.`;
+
+  const defaultCanc = EN
+    ? `Cancellation more than 14 days before the event: deposit refunded in full. Cancellation 7–14 days before: 50% of deposit retained. Cancellation less than 7 days before: full deposit forfeited. In the event of force majeure (natural disaster, government restriction, etc.) neither party shall be liable; the deposit shall be applied to a rescheduled date.`
+    : `Annulation plus de 14 jours avant : acompte intégralement remboursé. Annulation 7 à 14 jours avant : 50 % de l'acompte retenu. Annulation moins de 7 jours avant : acompte intégralement acquis au prestataire. En cas de force majeure, aucune partie n'est tenue responsable ; l'acompte sera appliqué à une nouvelle date.`;
+
+  const defaultLiab = EN
+    ? `The caterer's liability is limited to the total contract value. The caterer is not responsible for delays or damages caused by the client's failure to meet obligations above. Any claims must be raised in writing within 48 hours of the event.`
+    : `La responsabilité du prestataire est limitée au montant total du contrat. Le prestataire n'est pas responsable des retards ou dommages causés par le non-respect des obligations du client. Toute réclamation doit être formulée par écrit dans les 48 heures suivant l'événement.`;
+
+  const sections = [
+    { key: "catObl", label: EN ? "Caterer Obligations" : "Obligations du Prestataire", dflt: defaultCatObl, color: "#e8c547" },
+    { key: "cliObl", label: EN ? "Client Obligations"  : "Obligations du Client",      dflt: defaultCliObl, color: "#4a90d9" },
+    { key: "canc",   label: EN ? "Cancellation"        : "Annulation",                 dflt: defaultCanc,   color: "#e57373" },
+    { key: "liab",   label: EN ? "Liability"           : "Responsabilité",             dflt: defaultLiab,   color: "#aaa"    },
+  ];
+
+  const handlePrint = () => {
+    const html  = buildContractHTML(prop, biz, logo, lang, terms);
+    const title = EN ? `Contract – ${prop.num.replace("PROP","CTR")}` : `Contrat – ${prop.num.replace("PROP","CTR")}`;
+    onPrint(html, title);
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.72)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}
+      onClick={onClose}>
+      <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, width:"100%", maxWidth:600, maxHeight:"90vh", overflowY:"auto", padding:24 }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+          <div>
+            <div style={{ fontSize:14, fontWeight:700, color:"#6366f1" }}>📄 {EN ? "Generate Contract" : "Générer le Contrat"}</div>
+            <div style={{ fontSize:11, color:T.textMuted, marginTop:2 }}>{prop.num} · {prop.client} · {fmt(total)} XAF</div>
+          </div>
+          <button style={{ background:"none", border:"none", color:T.textDim, cursor:"pointer", fontSize:18 }} onClick={onClose}>✕</button>
+        </div>
+
+        {/* Language toggle */}
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>Language / Langue</div>
+          <div style={{ display:"flex", gap:6 }}>
+            {[["en","🇬🇧 English"],["fr","🇫🇷 Français"]].map(([v,lbl]) => (
+              <button key={v}
+                style={{ ...S.btn(lang===v ? "primary" : "ghost"), fontSize:12, padding:"5px 14px" }}
+                onClick={() => { setLang(v); setTerms({ catObl:"", cliObl:"", canc:"", liab:"" }); }}
+              >{lbl}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Editable clauses */}
+        <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:1, marginBottom:8 }}>
+          {EN ? "Edit clauses (optional — defaults pre-filled)" : "Modifier les clauses (optionnel — valeurs par défaut préremplies)"}
+        </div>
+        {sections.map(sec => (
+          <div key={sec.key} style={{ marginBottom:8, border:`1px solid ${T.border}`, borderRadius:8, overflow:"hidden" }}>
+            <div
+              style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:T.surface, cursor:"pointer" }}
+              onClick={() => setExpanded(expanded === sec.key ? null : sec.key)}
+            >
+              <div style={{ fontSize:11, fontWeight:700, color:T.text, display:"flex", alignItems:"center", gap:6 }}>
+                <span style={{ width:3, height:14, background:sec.color, borderRadius:2, display:"inline-block" }} />
+                {sec.label}
+              </div>
+              <span style={{ fontSize:10, color:T.textDim }}>{expanded === sec.key ? "▲" : "▼"}</span>
+            </div>
+            {expanded === sec.key && (
+              <div style={{ padding:10 }}>
+                <textarea
+                  style={{ ...S.input, minHeight:90, resize:"vertical", fontSize:11, lineHeight:1.6, fontFamily:"inherit" }}
+                  placeholder={sec.dflt}
+                  value={terms[sec.key]}
+                  onChange={e => setTerms(prev => ({ ...prev, [sec.key]: e.target.value }))}
+                />
+                <div style={{ fontSize:10, color:T.textDim, marginTop:3 }}>
+                  {EN ? "Leave blank to use the default text shown above." : "Laisser vide pour utiliser le texte par défaut ci-dessus."}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Summary */}
+        <div style={{ background:T.surface, borderRadius:8, padding:"10px 12px", marginTop:10, marginBottom:16, fontSize:11, color:T.textMuted, lineHeight:1.7 }}>
+          <strong style={{ color:T.text }}>{EN ? "Contract includes:" : "Le contrat inclut :"}</strong><br/>
+          {EN
+            ? `• Services from Proposal ${prop.num}  •  Total: ${fmt(total)} XAF  •  Deposit: ${fmt(deposit)} XAF  •  Balance: ${fmt(balance)} XAF`
+            : `• Prestations de la Proposition ${prop.num}  •  Total : ${fmt(total)} XAF  •  Acompte : ${fmt(deposit)} XAF  •  Solde : ${fmt(balance)} XAF`}
+          <br/>
+          {EN ? "• Payment schedule  •  Cancellation & force majeure  •  Liability  •  Signatures"
+               : "• Échéancier de paiement  •  Annulation & force majeure  •  Responsabilité  •  Signatures"}
+        </div>
+
+        {/* Actions */}
+        <div style={{ display:"flex", gap:8 }}>
+          <button style={{ ...S.btn("primary"), flex:1, fontSize:12 }} onClick={handlePrint}>
+            🖨️ {EN ? "Print / Save as PDF" : "Imprimer / Enregistrer PDF"}
+          </button>
+          <button style={{ ...S.btn("ghost"), fontSize:12, padding:"6px 14px" }} onClick={onClose}>
+            {EN ? "Cancel" : "Annuler"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProposalsPage({
   proposals,
   setProposals,
@@ -4756,6 +5097,9 @@ function ProposalsPage({
   const [doc, setDoc] = useState(null);
   const [showInvLink, setShowInvLink] = useState(null);
   const [showTemplates, setShowTemplates] = useState(false);
+
+  // ── Contract modal state ──────────────────────────────────────────
+  const [contractModal, setContractModal] = useState(null); // { propIdx } | null
 
   // ── Inline catalog item creation ──────────────────────────────────
   const [showAddItem, setShowAddItem] = useState(false);
@@ -4980,6 +5324,16 @@ function ProposalsPage({
   return (
     <div>
       <DocModal doc={doc} onClose={() => setDoc(null)} />
+      {contractModal !== null && (
+        <ContractModal
+          prop={proposals[contractModal.propIdx]}
+          biz={biz}
+          logo={logo}
+          onClose={() => setContractModal(null)}
+          onPrint={(html, title) => { openDoc(title, html); setContractModal(null); }}
+        />
+      )}
+
       <div style={{ ...S.row, marginBottom: 14 }}>
         <div>
           <div style={S.pageTitle}>📋 Proposals</div>
@@ -5949,6 +6303,12 @@ function ProposalsPage({
                     onClick={(e) => { e.stopPropagation(); openDoc(`Proposal – ${p.num}`, buildProposalHTML(p, biz, logo)); }}
                   >
                     🖨️ Print Proposal
+                  </button>
+                  <button
+                    style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: "#6366f1", color: "#6366f1" }}
+                    onClick={(e) => { e.stopPropagation(); setContractModal({ propIdx: i }); }}
+                  >
+                    📄 Contract
                   </button>
                   <button
                     style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px" }}
