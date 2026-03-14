@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
-import { cloudGet, cloudSet, cloudGetAll, isSupabaseConfigured } from "./supabase";
+import { cloudGet, cloudSet, cloudGetAll, isSupabaseConfigured, uploadFile, readAsDataURL } from "./supabase";
 
 // ─── MOBILE DETECTION HOOK ────────────────────────────────────────
 function useIsMobile() {
@@ -843,27 +843,27 @@ function PhasedMediaGallery({ media, onAdd, onDelete, onUpdate, currentPhase }) 
   const catInfo = (id) => MEDIA_CATEGORIES.find((c) => c.id === id) || MEDIA_CATEGORIES[7];
   const suggestedCats = PHASE_MEDIA_HINTS[uploadPhase] || ["photo", "other"];
 
-  const processFiles = (files) => {
-    Array.from(files).forEach((f) => {
-      const r = new FileReader();
-      r.onload = (ev) => {
-        const isPdf = f.type === "application/pdf";
-        const isVideo = f.type.startsWith("video/");
-        onAdd({
-          id: Date.now() + Math.random(),
-          src: ev.target.result,
-          type: isPdf ? "pdf" : isVideo ? "video" : "image",
-          name: f.name,
-          size: f.size,
-          phase: uploadPhase,
-          category: uploadCat,
-          caption: uploadCaption,
-          uploadedAt: new Date().toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" }),
-        });
-      };
-      r.readAsDataURL(f);
-    });
+  const processFiles = async (files) => {
+    const caption = uploadCaption;
     setUploadCaption("");
+    for (const f of Array.from(files)) {
+      const isPdf   = f.type === "application/pdf";
+      const isVideo = f.type.startsWith("video/");
+      const folder  = isVideo ? "events/videos" : isPdf ? "events/docs" : "events/photos";
+      // Upload to Supabase Storage (falls back to base64 if offline)
+      const src = await uploadFile(f, folder);
+      onAdd({
+        id: Date.now() + Math.random(),
+        src,
+        type: isPdf ? "pdf" : isVideo ? "video" : "image",
+        name: f.name,
+        size: f.size,
+        phase: uploadPhase,
+        category: uploadCat,
+        caption,
+        uploadedAt: new Date().toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" }),
+      });
+    }
   };
 
   const handleFileInput = (e) => { processFiles(e.target.files); e.target.value = ""; };
@@ -1165,12 +1165,11 @@ function LogoArea({ logo, setLogo, biz, onSettings }) {
         type="file"
         accept="image/*"
         style={{ display: "none" }}
-        onChange={(e) => {
+        onChange={async (e) => {
           const f = e.target.files[0];
           if (!f) return;
-          const r = new FileReader();
-          r.onload = (ev) => setLogo({ src: ev.target.result });
-          r.readAsDataURL(f);
+          const src = await uploadFile(f, "logo");
+          setLogo({ src });
         }}
       />
       {onSettings && (
@@ -4420,14 +4419,11 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, logo, 
     ? items.filter(i => i.catId === selCat && (!search || i.name.toLowerCase().includes(search.toLowerCase())))
     : items.filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()));
 
-  const handlePhoto = (e, forItem = null) => {
+  const handlePhoto = async (e, forItem = null) => {
     const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = (ev) => {
-      if (forItem != null) setItems(prev => prev.map(it => it.id === forItem ? { ...it, photo: ev.target.result } : it));
-      else setNi(n => ({ ...n, photo: ev.target.result }));
-    };
-    r.readAsDataURL(f);
+    const src = await uploadFile(f, "catalog");
+    if (forItem != null) setItems(prev => prev.map(it => it.id === forItem ? { ...it, photo: src } : it));
+    else setNi(n => ({ ...n, photo: src }));
   };
 
   const pullFromMeal = (mealId) => {
@@ -4773,11 +4769,10 @@ function ProposalsPage({
   const [ni, setNi] = useState(EMPTY_NI);
   const photoRef = useRef();
 
-  const handleCatalogPhoto = (e) => {
+  const handleCatalogPhoto = async (e) => {
     const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = (ev) => setNi(prev => ({ ...prev, photo: ev.target.result }));
-    r.readAsDataURL(f);
+    const src = await uploadFile(f, "catalog");
+    setNi(prev => ({ ...prev, photo: src }));
   };
 
   const pullFromMealInline = (mealId) => {
@@ -7739,13 +7734,11 @@ function RestaurantPage({
                       type="file"
                       accept="image/*"
                       style={{ display: "none" }}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const f = e.target.files[0];
                         if (!f) return;
-                        const r = new FileReader();
-                        r.onload = (ev) =>
-                          setNm((n) => ({ ...n, photo: ev.target.result }));
-                        r.readAsDataURL(f);
+                        const src = await uploadFile(f, "meals");
+                        setNm((n) => ({ ...n, photo: src }));
                       }}
                     />
                   </div>
@@ -8295,23 +8288,19 @@ function RestaurantPage({
                       position: "relative",
                       cursor: "pointer",
                     }}
-                    onClick={() => {
+                    onClick={async () => {
                       const inp = document.createElement("input");
                       inp.type = "file";
                       inp.accept = "image/*";
-                      inp.onchange = (e) => {
+                      inp.onchange = async (e) => {
                         const f = e.target.files[0];
                         if (!f) return;
-                        const r = new FileReader();
-                        r.onload = (ev) =>
-                          setMeals((prev) =>
-                            prev.map((m) =>
-                              m.id === meal.id
-                                ? { ...m, photo: ev.target.result }
-                                : m
-                            )
-                          );
-                        r.readAsDataURL(f);
+                        const src = await uploadFile(f, "meals");
+                        setMeals((prev) =>
+                          prev.map((m) =>
+                            m.id === meal.id ? { ...m, photo: src } : m
+                          )
+                        );
                       };
                       inp.click();
                     }}

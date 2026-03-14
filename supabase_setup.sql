@@ -14,3 +14,14 @@ alter table cb_app_data disable row level security;
 
 -- 3. Verify
 select * from cb_app_data;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- STORAGE BUCKET
+-- Also create the storage bucket manually in Supabase dashboard:
+--   Storage → New bucket → Name: "cb-media" → Public: ON → Create
+--
+-- This bucket stores all uploaded files (event photos/videos,
+-- catalog item photos, meal photos, logo) as real files instead
+-- of bloating the database with base64 strings.
+-- Free tier gives 1 GB storage — enough for thousands of photos.
+-- ─────────────────────────────────────────────────────────────────────
