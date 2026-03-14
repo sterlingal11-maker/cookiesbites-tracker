@@ -5047,6 +5047,7 @@ function ProposalsPage({
                 <table style={S.table}>
                   <thead>
                     <tr>
+                      {draft.lines.some(l => l.photo) && <th style={S.th}></th>}
                       {[
                         "Item",
                         "Unit",
@@ -5064,6 +5065,14 @@ function ProposalsPage({
                   <tbody>
                     {draft.lines.map((l, i) => (
                       <tr key={i}>
+                        {draft.lines.some(l => l.photo) && (
+                          <td style={{ ...S.td, width: 44, padding: "4px 6px" }}>
+                            {l.photo
+                              ? <img src={l.photo} alt="" style={{ width: 36, height: 32, objectFit: "cover", borderRadius: 4, display: "block" }} />
+                              : <div style={{ width: 36, height: 32, background: T.surface, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🍽️</div>
+                            }
+                          </td>
+                        )}
                         <td style={S.td}>{l.name}</td>
                         <td style={S.td}>{l.unitType}</td>
                         <td style={S.td}>
@@ -5288,6 +5297,7 @@ function ProposalsPage({
                 <table style={{ ...S.table, marginBottom: 8 }}>
                   <thead>
                     <tr>
+                      {p.lines.some(l => l.photo) && <th style={S.th}></th>}
                       {[
                         "Service / Item",
                         "Unit",
@@ -5304,6 +5314,14 @@ function ProposalsPage({
                   <tbody>
                     {p.lines.map((l, j) => (
                       <tr key={j}>
+                        {p.lines.some(l => l.photo) && (
+                          <td style={{ ...S.td, width: 44, padding: "4px 6px" }}>
+                            {l.photo
+                              ? <img src={l.photo} alt="" style={{ width: 36, height: 32, objectFit: "cover", borderRadius: 4, display: "block" }} />
+                              : <div style={{ width: 36, height: 32, background: T.surface, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🍽️</div>
+                            }
+                          </td>
+                        )}
                         <td style={{ ...S.td, fontWeight: 600 }}>{l.name}</td>
                         <td style={S.td}>{l.unitType}</td>
                         <td style={S.td}>
