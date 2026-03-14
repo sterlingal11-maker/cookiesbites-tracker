@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { cloudGet, cloudSet, cloudGetAll, isSupabaseConfigured } from "./supabase";
 
 // ─── MOBILE DETECTION HOOK ────────────────────────────────────────
 function useIsMobile() {
@@ -13044,7 +13045,7 @@ export default function App() {
     if (sess?.role === "staff") return "restaurant";
     return "dashboard";
   });
-  // ── Persist & rehydrate all business data via localStorage ────────
+  // ── localStorage helpers (offline cache + fallback) ──────────────
   function ls_get(key, fallback) {
     try {
       const raw = localStorage.getItem(key);
@@ -13055,11 +13056,17 @@ export default function App() {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
   }
 
+  // ── Cloud sync state ──────────────────────────────────────────────
+  const [cloudLoaded, setCloudLoaded] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle"); // "idle"|"saving"|"saved"|"offline"
+  const syncTimers = useRef({});
+
+  // ── All app state — initialised from localStorage cache first ─────
   const [events, setEvents] = useState(() => ls_get("cb_events", INIT_EVENTS));
   const [sales, setSales] = useState(() => ls_get("cb_sales", INIT_SALES));
   const [invoices, setInvoices] = useState(() => ls_get("cb_invoices", INIT_INVOICES));
   const [proposals, setProposals] = useState(() => ls_get("cb_proposals", INIT_PROPOSALS));
-  const [proposalPrefillLines, setProposalPrefillLines] = useState(null); // lines from catalog to prefill new proposal
+  const [proposalPrefillLines, setProposalPrefillLines] = useState(null);
   const [catalogItems, setCatalogItems] = useState(() => ls_get("cb_catalog", CAT_ITEMS));
   const [catalogCategories, setCatalogCategories] = useState(() => ls_get("cb_catalog_cats", CAT_CATS));
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
@@ -13075,22 +13082,75 @@ export default function App() {
   const [showImport, setShowImport] = useState(false);
   const isMobile = useIsMobile();
 
-  // ── Sync state changes to localStorage ────────────────────────────
-  useEffect(() => { ls_set("cb_events", events); }, [events]);
-  useEffect(() => { ls_set("cb_sales", sales); }, [sales]);
-  useEffect(() => { ls_set("cb_invoices", invoices); }, [invoices]);
-  useEffect(() => { ls_set("cb_proposals", proposals); }, [proposals]);
-  useEffect(() => { ls_set("cb_catalog", catalogItems); }, [catalogItems]);
-  useEffect(() => { ls_set("cb_catalog_cats", catalogCategories); }, [catalogCategories]);
-  useEffect(() => { ls_set("cb_inventory", inventory); }, [inventory]);
-  useEffect(() => { ls_set("cb_meals", meals); }, [meals]);
-  useEffect(() => { ls_set("cb_batches", batches); }, [batches]);
-  useEffect(() => { ls_set("cb_overheads", overheads); }, [overheads]);
-  useEffect(() => { ls_set("cb_logo", logo); }, [logo]);
-  useEffect(() => { ls_set("cb_biz", biz); }, [biz]);
-  useEffect(() => { ls_set("cb_customers", customers); }, [customers]);
-  useEffect(() => { ls_set("cb_vendors", vendors); }, [vendors]);
-  useEffect(() => { ls_set("cb_social", socialLinks); }, [socialLinks]);
+  // ── On mount: pull latest data from Supabase (cloud-first load) ───
+  const CLOUD_KEYS = [
+    "cb_events","cb_sales","cb_invoices","cb_proposals",
+    "cb_catalog","cb_catalog_cats","cb_inventory","cb_meals",
+    "cb_batches","cb_overheads","cb_logo","cb_biz",
+    "cb_customers","cb_vendors","cb_social",
+  ];
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) { setCloudLoaded(true); return; }
+    cloudGetAll(CLOUD_KEYS).then(cloud => {
+      // For each key, cloud value wins over local cache
+      const apply = (key, setter) => {
+        if (cloud[key] !== undefined && cloud[key] !== null) {
+          setter(cloud[key]);
+          ls_set(key, cloud[key]); // refresh local cache
+        }
+      };
+      apply("cb_events",       setEvents);
+      apply("cb_sales",        setSales);
+      apply("cb_invoices",     setInvoices);
+      apply("cb_proposals",    setProposals);
+      apply("cb_catalog",      setCatalogItems);
+      apply("cb_catalog_cats", setCatalogCategories);
+      apply("cb_inventory",    setInventory);
+      apply("cb_meals",        setMeals);
+      apply("cb_batches",      setBatches);
+      apply("cb_overheads",    setOverheads);
+      apply("cb_logo",         setLogo);
+      apply("cb_biz",          setBiz);
+      apply("cb_customers",    setCustomers);
+      apply("cb_vendors",      setVendors);
+      apply("cb_social",       setSocialLinks);
+      setCloudLoaded(true);
+    }).catch(() => setCloudLoaded(true)); // offline — use local cache
+  // eslint-disable-next-line
+  }, []);
+
+  // ── Debounced cloud + local sync ──────────────────────────────────
+  const syncKey = useCallback((key, value, delay = 800) => {
+    // Always write to localStorage immediately
+    ls_set(key, value);
+    // Debounce the cloud write
+    if (!isSupabaseConfigured()) return;
+    clearTimeout(syncTimers.current[key]);
+    setSyncStatus("saving");
+    syncTimers.current[key] = setTimeout(async () => {
+      const ok = await cloudSet(key, value);
+      setSyncStatus(ok ? "saved" : "offline");
+      setTimeout(() => setSyncStatus(s => s === "saved" ? "idle" : s), 2000);
+    }, delay);
+  }, []);
+
+  // ── Wire every state to cloud sync ────────────────────────────────
+  useEffect(() => { if (cloudLoaded) syncKey("cb_events",       events);       }, [events,       cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_sales",        sales);        }, [sales,        cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_invoices",     invoices);     }, [invoices,     cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_proposals",    proposals);    }, [proposals,    cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_catalog",      catalogItems); }, [catalogItems, cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_catalog_cats", catalogCategories); }, [catalogCategories, cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_inventory",    inventory);    }, [inventory,    cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_meals",        meals);        }, [meals,        cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_batches",      batches);      }, [batches,      cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_overheads",    overheads);    }, [overheads,    cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_logo",         logo,    2000);}, [logo,         cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_biz",          biz);          }, [biz,          cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_customers",    customers);    }, [customers,    cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_vendors",      vendors);      }, [vendors,      cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_social",       socialLinks);  }, [socialLinks,  cloudLoaded, syncKey]);
 
   // Backfill/merge customers from all sources: sales, catering events & invoices
   useEffect(() => {
@@ -13179,6 +13239,20 @@ export default function App() {
       if (r === "staff") setTab("restaurant");
       setAuthed(true);
     }} />;
+  }
+
+  // Show loading screen while pulling latest data from Supabase
+  if (!cloudLoaded) {
+    return (
+      <div style={{ background: "#0f0f0f", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18 }}>
+        <img src={LOGO_SRC} alt="Cookie's Bites" style={{ width: 90, height: 90, objectFit: "contain", borderRadius: "50%", border: "2px solid #2a2a2a" }} />
+        <div style={{ color: "#E8C547", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>Loading your data…</div>
+        <div style={{ width: 180, height: 3, background: "#1e1e1e", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ height: "100%", background: "linear-gradient(90deg,#E8C547,#b8952a)", borderRadius: 4, animation: "loadbar 1.2s ease-in-out infinite" }} />
+        </div>
+        <style>{`@keyframes loadbar{0%{width:0%}60%{width:85%}100%{width:100%}}`}</style>
+      </div>
+    );
   }
 
   return (
@@ -13344,6 +13418,21 @@ export default function App() {
               >
                 ⬆ Import
               </button>
+            )}
+            {/* Cloud sync indicator */}
+            {isSupabaseConfigured() && syncStatus !== "idle" && (
+              <span style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: 0.3,
+                color: syncStatus === "saving" ? T.textMuted : syncStatus === "saved" ? T.success : T.danger,
+                display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
+              }}>
+                {syncStatus === "saving" && "☁ saving…"}
+                {syncStatus === "saved"  && "✓ saved"}
+                {syncStatus === "offline" && "⚠ offline"}
+              </span>
+            )}
+            {!isSupabaseConfigured() && (
+              <span title="Add REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY to enable cloud sync" style={{ fontSize: 9, color: T.danger, fontWeight: 700, cursor: "help" }}>⚠ local only</span>
             )}
             <button
               title="Sign out"
