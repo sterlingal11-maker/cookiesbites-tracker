@@ -345,51 +345,1255 @@ const INIT_MEALS = [
   { id: 1077, name: "Grilled Chicken / Poulet Braisé", description: "Whole or half chicken marinated and grilled over charcoal / Poulet entier ou demi grillé au charbon de bois.",        price: "", category: "Main", photo: null, active: true, ingredientLinks: [], laborCost: "", otherCosts: [], availablePortions: "" },
 ];
 
-const INIT_EVENTS = [];
-
-const INIT_INVENTORY = [
-  { id: 1, name: "Bitterleaves",       category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 2, name: "Groundnut",          category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 3, name: "Beef",               category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 4, name: "Crayfish",           category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 5, name: "Onions",             category: "Ingredient", unit: "Piece",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 6, name: "Cooking Oil",        category: "Ingredient", unit: "Litre",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 7, name: "Plantains",          category: "Ingredient", unit: "Piece",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 8, name: "Garlic",             category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 9, name: "Ginger",             category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 10, name: "Chicken",           category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 11, name: "Carrots",           category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 12, name: "Green Beans",       category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 13, name: "Chili Pepper",      category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 14, name: "Bell Peppers",      category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 15, name: "Green Spices",      category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 16, name: "Palm Oil",          category: "Ingredient", unit: "Litre",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 17, name: "Coco Yams",         category: "Ingredient", unit: "Bucket", stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 18, name: "Achu Spices",       category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 19, name: "Cow Skin (Canda)",  category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 20, name: "Beef Tripe & Towel",category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 21, name: "Eru & Waterleaf",   category: "Ingredient", unit: "Pack",   stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 22, name: "Fresh Fish",        category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 23, name: "Fresh Catfish",     category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 24, name: "Beans",             category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 25, name: "Koki Beans",        category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 26, name: "Egusi",             category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 27, name: "Garri",             category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 28, name: "Rice",              category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 29, name: "Goat Meat",         category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 30, name: "Goat Meat - Roast", category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 31, name: "Pork",              category: "Ingredient", unit: "Kg",     stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 32, name: "Pork - Roast",      category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 33, name: "Maggi Cubes",       category: "Ingredient", unit: "Packet", stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 34, name: "Salt",              category: "Ingredient", unit: "Packet", stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
-  { id: 35, name: "Yams",              category: "Ingredient", unit: "Whole",  stock: 0, reorderAt: "", costPerUnit: "", linkedMeals: "" },
+const INIT_EVENTS = [
+  {
+    "id": 6101,
+    "name": "Wedding – Kana Family",
+    "clientName": "Hortense Kana",
+    "clientPhone": "+237 691 554 772",
+    "eventDate": "2026-02-22",
+    "location": "Salle des Fêtes Akwa, Douala",
+    "eventType": "Wedding",
+    "serviceStyle": "Buffet",
+    "guests": 120,
+    "pricePerHead": 9000,
+    "addOns": 50000,
+    "discount": 50000,
+    "phase": "Event Completed",
+    "notes": "Buffet wedding. Ndolé, Eru, Soya. Ran smoothly. Client very satisfied.",
+    "revenue": 1080000,
+    "media": [],
+    "costLines": [],
+    "costs": {
+      "inventory": 180000,
+      "labor": 80000,
+      "transport": 30000,
+      "overhead": 20000
+    }
+  },
+  {
+    "id": 6102,
+    "name": "Bridal Shower – Aminatou Bello",
+    "clientName": "Aminatou Bello",
+    "clientPhone": "+237 655 321 987",
+    "eventDate": "2026-02-15",
+    "location": "Akwa Palace Hotel, Douala",
+    "eventType": "Bridal Shower",
+    "serviceStyle": "Cocktail",
+    "guests": 40,
+    "pricePerHead": 11800,
+    "addOns": 0,
+    "discount": 0,
+    "phase": "Event Completed",
+    "notes": "Small chops & dessert-focused event. Elegant setup. Full payment received.",
+    "revenue": 472000,
+    "media": [],
+    "costLines": [],
+    "costs": {
+      "inventory": 65000,
+      "labor": 40000,
+      "transport": 15000,
+      "overhead": 10000
+    }
+  },
+  {
+    "id": 6103,
+    "name": "Corporate Lunch – MTN Cameroon",
+    "clientName": "Serge Nguimfack",
+    "clientPhone": "+237 699 731 560",
+    "eventDate": "2026-02-10",
+    "location": "MTN HQ, Bonanjo",
+    "eventType": "Corporate",
+    "serviceStyle": "Plated",
+    "guests": 45,
+    "pricePerHead": 8000,
+    "addOns": 20000,
+    "discount": 0,
+    "phase": "Event Completed",
+    "notes": "Plated corporate lunch. Ndolé & Poulet DG. Team of 45 executives.",
+    "revenue": 380000,
+    "media": [],
+    "costLines": [],
+    "costs": {
+      "inventory": 95000,
+      "labor": 55000,
+      "transport": 20000,
+      "overhead": 15000
+    }
+  },
+  {
+    "id": 6104,
+    "name": "Birthday – Jean-Paul Tchamda",
+    "clientName": "Jean-Paul Tchamda",
+    "clientPhone": "+237 699 456 789",
+    "eventDate": "2026-03-08",
+    "location": "Résidence Tchamda, Makepe",
+    "eventType": "Birthday",
+    "serviceStyle": "Buffet",
+    "guests": 80,
+    "pricePerHead": 7500,
+    "addOns": 30000,
+    "discount": 20000,
+    "phase": "Confirmed",
+    "notes": "Deposit paid. Menu confirmed: Kati Kati, Soya, Small Chops, Dessert table.",
+    "revenue": 610000,
+    "media": [],
+    "costLines": [],
+    "costs": {
+      "inventory": 0,
+      "labor": 0,
+      "transport": 0,
+      "overhead": 0
+    }
+  },
+  {
+    "id": 6105,
+    "name": "Wedding Enquiry – Fon Family",
+    "clientName": "Emmanuel Fon",
+    "clientPhone": "+237 670 889 001",
+    "eventDate": "2026-04-12",
+    "location": "TBD, Douala",
+    "eventType": "Wedding",
+    "serviceStyle": "Buffet",
+    "guests": 200,
+    "pricePerHead": 10000,
+    "addOns": 0,
+    "discount": 0,
+    "phase": "Lead / Inquiry",
+    "notes": "Initial enquiry. Site visit scheduled for March 5.",
+    "revenue": 0,
+    "media": [],
+    "costLines": [],
+    "costs": {
+      "inventory": 0,
+      "labor": 0,
+      "transport": 0,
+      "overhead": 0
+    }
+  }
 ];
 
-const INIT_SALES = [];
+const INIT_INVENTORY = [
+  {
+    "id": 1,
+    "name": "Bitterleaves",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 8,
+    "reorderAt": "3",
+    "costPerUnit": "2500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 2,
+    "name": "Groundnut",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 12,
+    "reorderAt": "5",
+    "costPerUnit": "1800",
+    "linkedMeals": ""
+  },
+  {
+    "id": 3,
+    "name": "Beef",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 15,
+    "reorderAt": "5",
+    "costPerUnit": "4500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 4,
+    "name": "Crayfish",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 4,
+    "reorderAt": "2",
+    "costPerUnit": "8000",
+    "linkedMeals": ""
+  },
+  {
+    "id": 5,
+    "name": "Onions",
+    "category": "Ingredient",
+    "unit": "Piece",
+    "stock": 30,
+    "reorderAt": "10",
+    "costPerUnit": "150",
+    "linkedMeals": ""
+  },
+  {
+    "id": 6,
+    "name": "Cooking Oil",
+    "category": "Ingredient",
+    "unit": "Litre",
+    "stock": 10,
+    "reorderAt": "4",
+    "costPerUnit": "1200",
+    "linkedMeals": ""
+  },
+  {
+    "id": 7,
+    "name": "Plantains",
+    "category": "Ingredient",
+    "unit": "Piece",
+    "stock": 24,
+    "reorderAt": "10",
+    "costPerUnit": "200",
+    "linkedMeals": ""
+  },
+  {
+    "id": 8,
+    "name": "Garlic",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 8,
+    "reorderAt": "3",
+    "costPerUnit": "500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 9,
+    "name": "Ginger",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 6,
+    "reorderAt": "3",
+    "costPerUnit": "400",
+    "linkedMeals": ""
+  },
+  {
+    "id": 10,
+    "name": "Chicken",
+    "category": "Ingredient",
+    "unit": "Whole",
+    "stock": 20,
+    "reorderAt": "8",
+    "costPerUnit": "3500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 11,
+    "name": "Carrots",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 10,
+    "reorderAt": "4",
+    "costPerUnit": "350",
+    "linkedMeals": ""
+  },
+  {
+    "id": 12,
+    "name": "Green Beans",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 7,
+    "reorderAt": "3",
+    "costPerUnit": "400",
+    "linkedMeals": ""
+  },
+  {
+    "id": 13,
+    "name": "Chili Pepper",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 12,
+    "reorderAt": "4",
+    "costPerUnit": "300",
+    "linkedMeals": ""
+  },
+  {
+    "id": 14,
+    "name": "Bell Peppers",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 8,
+    "reorderAt": "3",
+    "costPerUnit": "450",
+    "linkedMeals": ""
+  },
+  {
+    "id": 15,
+    "name": "Green Spices",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 10,
+    "reorderAt": "4",
+    "costPerUnit": "350",
+    "linkedMeals": ""
+  },
+  {
+    "id": 16,
+    "name": "Palm Oil",
+    "category": "Ingredient",
+    "unit": "Litre",
+    "stock": 8,
+    "reorderAt": "3",
+    "costPerUnit": "1500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 17,
+    "name": "Coco Yams",
+    "category": "Ingredient",
+    "unit": "Bucket",
+    "stock": 5,
+    "reorderAt": "2",
+    "costPerUnit": "3000",
+    "linkedMeals": ""
+  },
+  {
+    "id": 18,
+    "name": "Achu Spices",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 6,
+    "reorderAt": "2",
+    "costPerUnit": "600",
+    "linkedMeals": ""
+  },
+  {
+    "id": 19,
+    "name": "Cow Skin (Canda)",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 5,
+    "reorderAt": "2",
+    "costPerUnit": "3000",
+    "linkedMeals": ""
+  },
+  {
+    "id": 20,
+    "name": "Beef Tripe & Towel",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 4,
+    "reorderAt": "2",
+    "costPerUnit": "2800",
+    "linkedMeals": ""
+  },
+  {
+    "id": 21,
+    "name": "Eru & Waterleaf",
+    "category": "Ingredient",
+    "unit": "Pack",
+    "stock": 9,
+    "reorderAt": "3",
+    "costPerUnit": "1200",
+    "linkedMeals": ""
+  },
+  {
+    "id": 22,
+    "name": "Fresh Fish",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 6,
+    "reorderAt": "3",
+    "costPerUnit": "3500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 23,
+    "name": "Fresh Catfish",
+    "category": "Ingredient",
+    "unit": "Whole",
+    "stock": 8,
+    "reorderAt": "3",
+    "costPerUnit": "2500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 24,
+    "name": "Beans",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 10,
+    "reorderAt": "4",
+    "costPerUnit": "900",
+    "linkedMeals": ""
+  },
+  {
+    "id": 25,
+    "name": "Koki Beans",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 6,
+    "reorderAt": "2",
+    "costPerUnit": "1100",
+    "linkedMeals": ""
+  },
+  {
+    "id": 26,
+    "name": "Egusi",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 5,
+    "reorderAt": "2",
+    "costPerUnit": "2200",
+    "linkedMeals": ""
+  },
+  {
+    "id": 27,
+    "name": "Garri",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 8,
+    "reorderAt": "3",
+    "costPerUnit": "500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 28,
+    "name": "Rice",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 25,
+    "reorderAt": "10",
+    "costPerUnit": "700",
+    "linkedMeals": ""
+  },
+  {
+    "id": 29,
+    "name": "Goat Meat",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 10,
+    "reorderAt": "4",
+    "costPerUnit": "5500",
+    "linkedMeals": ""
+  },
+  {
+    "id": 30,
+    "name": "Goat Meat - Roast",
+    "category": "Ingredient",
+    "unit": "Whole",
+    "stock": 4,
+    "reorderAt": "2",
+    "costPerUnit": "18000",
+    "linkedMeals": ""
+  },
+  {
+    "id": 31,
+    "name": "Pork",
+    "category": "Ingredient",
+    "unit": "Kg",
+    "stock": 7,
+    "reorderAt": "3",
+    "costPerUnit": "4000",
+    "linkedMeals": ""
+  },
+  {
+    "id": 32,
+    "name": "Pork - Roast",
+    "category": "Ingredient",
+    "unit": "Whole",
+    "stock": 3,
+    "reorderAt": "1",
+    "costPerUnit": "22000",
+    "linkedMeals": ""
+  },
+  {
+    "id": 33,
+    "name": "Maggi Cubes",
+    "category": "Ingredient",
+    "unit": "Packet",
+    "stock": 15,
+    "reorderAt": "5",
+    "costPerUnit": "300",
+    "linkedMeals": ""
+  },
+  {
+    "id": 34,
+    "name": "Salt",
+    "category": "Ingredient",
+    "unit": "Packet",
+    "stock": 10,
+    "reorderAt": "4",
+    "costPerUnit": "200",
+    "linkedMeals": ""
+  },
+  {
+    "id": 35,
+    "name": "Yams",
+    "category": "Ingredient",
+    "unit": "Whole",
+    "stock": 12,
+    "reorderAt": "4",
+    "costPerUnit": "800",
+    "linkedMeals": ""
+  }
+];
 
-const INIT_INVOICES = [];
+const INIT_SALES = [
+  {
+    "id": 7001,
+    "saleIndex": 1,
+    "date": "2026-02-03",
+    "meal": "Ndolé",
+    "mealId": 1061,
+    "plates": 4,
+    "pricePerPlate": 3500,
+    "method": "Mobile Money",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Marie Ngo Mbock",
+    "clientPhone": "+237 677 112 233",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7002,
+    "saleIndex": 2,
+    "date": "2026-02-03",
+    "meal": "Cow Soya",
+    "mealId": 1020,
+    "plates": 6,
+    "pricePerPlate": 2500,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Emmanuel Fon",
+    "clientPhone": "+237 670 889 001",
+    "notes": "Extra spicy",
+    "partialPaid": ""
+  },
+  {
+    "id": 7003,
+    "saleIndex": 3,
+    "date": "2026-02-05",
+    "meal": "Poulet DG",
+    "mealId": 1072,
+    "plates": 3,
+    "pricePerPlate": 4500,
+    "method": "Mobile Money",
+    "type": "Takeaway",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Jean-Paul Tchamda",
+    "clientPhone": "+237 699 456 789",
+    "notes": "Office order",
+    "partialPaid": ""
+  },
+  {
+    "id": 7004,
+    "saleIndex": 4,
+    "date": "2026-02-05",
+    "meal": "Eru",
+    "mealId": 1062,
+    "plates": 5,
+    "pricePerPlate": 3500,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Pauline Essomba",
+    "clientPhone": "+237 677 445 882",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7005,
+    "saleIndex": 5,
+    "date": "2026-02-06",
+    "meal": "Mbongo Tchobi",
+    "mealId": 1064,
+    "plates": 2,
+    "pricePerPlate": 4000,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "",
+    "clientPhone": "",
+    "notes": "Walk-in",
+    "partialPaid": ""
+  },
+  {
+    "id": 7006,
+    "saleIndex": 6,
+    "date": "2026-02-07",
+    "meal": "Achu & Yellow Soup",
+    "mealId": 1063,
+    "plates": 4,
+    "pricePerPlate": 3500,
+    "method": "Mobile Money",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Hortense Kana",
+    "clientPhone": "+237 691 554 772",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7007,
+    "saleIndex": 7,
+    "date": "2026-02-08",
+    "meal": "Poulet DG",
+    "mealId": 1072,
+    "plates": 2,
+    "pricePerPlate": 4500,
+    "method": "Cash",
+    "type": "Delivery",
+    "deliveryFee": 1000,
+    "deliveryAddress": "Akwa, Rue de la Paix",
+    "clientName": "Sylvain Mbarga",
+    "clientPhone": "+237 676 220 114",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7008,
+    "saleIndex": 8,
+    "date": "2026-02-10",
+    "meal": "Ndolé",
+    "mealId": 1061,
+    "plates": 8,
+    "pricePerPlate": 3500,
+    "method": "Bank Transfer",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Serge Nguimfack",
+    "clientPhone": "+237 699 731 560",
+    "notes": "Team lunch Camtel",
+    "partialPaid": ""
+  },
+  {
+    "id": 7009,
+    "saleIndex": 9,
+    "date": "2026-02-10",
+    "meal": "Chicken Soya",
+    "mealId": 1021,
+    "plates": 5,
+    "pricePerPlate": 2500,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Emmanuel Fon",
+    "clientPhone": "+237 670 889 001",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7010,
+    "saleIndex": 10,
+    "date": "2026-02-12",
+    "meal": "Kati Kati",
+    "mealId": 1073,
+    "plates": 3,
+    "pricePerPlate": 4000,
+    "method": "Mobile Money",
+    "type": "Takeaway",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Marie Ngo Mbock",
+    "clientPhone": "+237 677 112 233",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7011,
+    "saleIndex": 11,
+    "date": "2026-02-13",
+    "meal": "Eru",
+    "mealId": 1062,
+    "plates": 4,
+    "pricePerPlate": 3500,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Pauline Essomba",
+    "clientPhone": "+237 677 445 882",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7012,
+    "saleIndex": 12,
+    "date": "2026-02-14",
+    "meal": "Steak",
+    "mealId": 1025,
+    "plates": 2,
+    "pricePerPlate": 8500,
+    "method": "Bank Transfer",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Hortense Kana",
+    "clientPhone": "+237 691 554 772",
+    "notes": "Valentine dinner",
+    "partialPaid": ""
+  },
+  {
+    "id": 7013,
+    "saleIndex": 13,
+    "date": "2026-02-14",
+    "meal": "Ndolé",
+    "mealId": 1061,
+    "plates": 6,
+    "pricePerPlate": 3500,
+    "method": "Mobile Money",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "",
+    "clientPhone": "",
+    "notes": "Valentine special",
+    "partialPaid": ""
+  },
+  {
+    "id": 7014,
+    "saleIndex": 14,
+    "date": "2026-02-15",
+    "meal": "Poulet DG",
+    "mealId": 1072,
+    "plates": 4,
+    "pricePerPlate": 4500,
+    "method": "Cash",
+    "type": "Delivery",
+    "deliveryFee": 1000,
+    "deliveryAddress": "Bonanjo, Douala",
+    "clientName": "Sylvain Mbarga",
+    "clientPhone": "+237 676 220 114",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7015,
+    "saleIndex": 15,
+    "date": "2026-02-17",
+    "meal": "Pepper Soup",
+    "mealId": 1074,
+    "plates": 3,
+    "pricePerPlate": 3000,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Didier Mouaha",
+    "clientPhone": "+237 655 193 067",
+    "notes": "Referred client",
+    "partialPaid": ""
+  },
+  {
+    "id": 7016,
+    "saleIndex": 16,
+    "date": "2026-02-17",
+    "meal": "Cow Soya",
+    "mealId": 1020,
+    "plates": 6,
+    "pricePerPlate": 2500,
+    "method": "Mobile Money",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Emmanuel Fon",
+    "clientPhone": "+237 670 889 001",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7017,
+    "saleIndex": 17,
+    "date": "2026-02-19",
+    "meal": "Kwacoco & Banga",
+    "mealId": 1066,
+    "plates": 3,
+    "pricePerPlate": 3500,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "",
+    "clientPhone": "",
+    "notes": "Walk-in",
+    "partialPaid": ""
+  },
+  {
+    "id": 7018,
+    "saleIndex": 18,
+    "date": "2026-02-20",
+    "meal": "Ndolé",
+    "mealId": 1061,
+    "plates": 5,
+    "pricePerPlate": 3500,
+    "method": "Bank Transfer",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Jean-Paul Tchamda",
+    "clientPhone": "+237 699 456 789",
+    "notes": "Friday office lunch",
+    "partialPaid": ""
+  },
+  {
+    "id": 7019,
+    "saleIndex": 19,
+    "date": "2026-02-21",
+    "meal": "Goat Soya",
+    "mealId": 1022,
+    "plates": 4,
+    "pricePerPlate": 3000,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Didier Mouaha",
+    "clientPhone": "+237 655 193 067",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7020,
+    "saleIndex": 20,
+    "date": "2026-02-21",
+    "meal": "Grilled Chicken / Poulet Braisé",
+    "mealId": 1077,
+    "plates": 2,
+    "pricePerPlate": 5000,
+    "method": "Mobile Money",
+    "type": "Takeaway",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Christelle Abanda",
+    "clientPhone": "+237 652 008 435",
+    "notes": "Weekend special",
+    "partialPaid": ""
+  },
+  {
+    "id": 7021,
+    "saleIndex": 21,
+    "date": "2026-02-22",
+    "meal": "Eru",
+    "mealId": 1062,
+    "plates": 5,
+    "pricePerPlate": 3500,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Pauline Essomba",
+    "clientPhone": "+237 677 445 882",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7022,
+    "saleIndex": 22,
+    "date": "2026-02-24",
+    "meal": "Kati Kati",
+    "mealId": 1073,
+    "plates": 3,
+    "pricePerPlate": 4000,
+    "method": "Mobile Money",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Marie Ngo Mbock",
+    "clientPhone": "+237 677 112 233",
+    "notes": "",
+    "partialPaid": ""
+  },
+  {
+    "id": 7023,
+    "saleIndex": 23,
+    "date": "2026-02-25",
+    "meal": "Poulet DG",
+    "mealId": 1072,
+    "plates": 6,
+    "pricePerPlate": 4500,
+    "method": "Bank Transfer",
+    "type": "Delivery",
+    "deliveryFee": 1500,
+    "deliveryAddress": "Bali, Douala",
+    "clientName": "Serge Nguimfack",
+    "clientPhone": "+237 699 731 560",
+    "notes": "Team lunch delivery",
+    "partialPaid": ""
+  },
+  {
+    "id": 7024,
+    "saleIndex": 24,
+    "date": "2026-02-26",
+    "meal": "Ekwang",
+    "mealId": 1067,
+    "plates": 3,
+    "pricePerPlate": 3500,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "",
+    "clientPhone": "",
+    "notes": "Walk-in",
+    "partialPaid": ""
+  },
+  {
+    "id": 7025,
+    "saleIndex": 25,
+    "date": "2026-02-27",
+    "meal": "Ndolé",
+    "mealId": 1061,
+    "plates": 5,
+    "pricePerPlate": 3500,
+    "method": "Mobile Money",
+    "type": "Takeaway",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Hortense Kana",
+    "clientPhone": "+237 691 554 772",
+    "notes": "End of month order",
+    "partialPaid": ""
+  },
+  {
+    "id": 7026,
+    "saleIndex": 26,
+    "date": "2026-02-28",
+    "meal": "Mbongo Tchobi",
+    "mealId": 1064,
+    "plates": 4,
+    "pricePerPlate": 4000,
+    "method": "Cash",
+    "type": "Dine-in",
+    "deliveryFee": 0,
+    "deliveryAddress": "",
+    "clientName": "Emmanuel Fon",
+    "clientPhone": "+237 670 889 001",
+    "notes": "",
+    "partialPaid": ""
+  }
+];
 
-const INIT_PROPOSALS = [];
+const INIT_INVOICES = [
+  {
+    "id": 6101,
+    "num": "INV-2026-6101",
+    "client": "Hortense Kana",
+    "clientPhone": "+237 691 554 772",
+    "issued": "2026-02-22",
+    "due": "2026-02-22",
+    "total": 1080000,
+    "paid": 1080000,
+    "status": "Paid",
+    "eventId": 6101,
+    "notes": "Full payment received via bank transfer. Wedding complete."
+  },
+  {
+    "id": 6102,
+    "num": "INV-2026-6102",
+    "client": "Aminatou Bello",
+    "clientPhone": "+237 655 321 987",
+    "issued": "2026-02-15",
+    "due": "2026-02-15",
+    "total": 472000,
+    "paid": 472000,
+    "status": "Paid",
+    "eventId": 6102,
+    "notes": "Full payment received. Bridal shower completed."
+  },
+  {
+    "id": 6103,
+    "num": "INV-2026-6103",
+    "client": "Serge Nguimfack",
+    "clientPhone": "+237 699 731 560",
+    "issued": "2026-02-10",
+    "due": "2026-02-17",
+    "total": 380000,
+    "paid": 200000,
+    "status": "Partial",
+    "eventId": 6103,
+    "notes": "Balance of 80,000 FCFA outstanding. Follow-up sent."
+  }
+];
+
+const INIT_PROPOSALS = [
+  {
+    "id": 6001,
+    "num": "PROP-2026-0001",
+    "status": "Approved",
+    "client": "Hortense Kana",
+    "clientPhone": "+237 691 554 772",
+    "eventType": "Wedding",
+    "plannedDate": "2026-02-22",
+    "guests": "120",
+    "location": "Salle des Fêtes Akwa, Douala",
+    "discount": 50000,
+    "paymentTerms": "50% deposit on signing, balance 48h before event",
+    "notes": "Client prefers Ndolé & Eru as main dishes. Buffet style.",
+    "inventoryLinks": [],
+    "eventId": 6101,
+    "lines": [
+      {
+        "itemId": 501,
+        "name": "Ndolé",
+        "qty": 120,
+        "price": 3500,
+        "unitType": "Per head",
+        "photo": null,
+        "description": "Bitterleaf stew with groundnut and assorted meat"
+      },
+      {
+        "itemId": 502,
+        "name": "Eru",
+        "qty": 120,
+        "price": 3000,
+        "unitType": "Per head",
+        "photo": null,
+        "description": "Eru leaves with cow skin and fish"
+      },
+      {
+        "itemId": 201,
+        "name": "Cow Soya",
+        "qty": 120,
+        "price": 2500,
+        "unitType": "Per head",
+        "photo": null,
+        "description": "Grilled beef skewers"
+      },
+      {
+        "itemId": 401,
+        "name": "Normal & Exotic Fruit Platters",
+        "qty": 10,
+        "price": 15000,
+        "unitType": "Per platter",
+        "photo": null,
+        "description": "Seasonal fruit arrangement"
+      }
+    ]
+  },
+  {
+    "id": 6002,
+    "num": "PROP-2026-0002",
+    "status": "Sent",
+    "client": "Serge Nguimfack",
+    "clientPhone": "+237 699 731 560",
+    "eventType": "Corporate",
+    "plannedDate": "2026-03-05",
+    "guests": "60",
+    "location": "Camtel Conference Centre, Douala",
+    "discount": 0,
+    "paymentTerms": "100% prepayment by bank transfer",
+    "notes": "Corporate lunch. Mix of Cameroonian and continental options.",
+    "inventoryLinks": [],
+    "eventId": null,
+    "lines": [
+      {
+        "itemId": 512,
+        "name": "Poulet DG",
+        "qty": 60,
+        "price": 4500,
+        "unitType": "Per head",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 502,
+        "name": "Eru",
+        "qty": 60,
+        "price": 3000,
+        "unitType": "Per head",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 109,
+        "name": "Sandwich",
+        "qty": 60,
+        "price": 2000,
+        "unitType": "Per item",
+        "photo": null,
+        "description": "Assorted finger sandwiches"
+      },
+      {
+        "itemId": 403,
+        "name": "Cocktails",
+        "qty": 60,
+        "price": 1500,
+        "unitType": "Per item",
+        "photo": null,
+        "description": "Fresh mocktails"
+      }
+    ]
+  },
+  {
+    "id": 6003,
+    "num": "PROP-2026-0003",
+    "status": "Draft",
+    "client": "Christelle Abanda",
+    "clientPhone": "+237 652 008 435",
+    "eventType": "Birthday",
+    "plannedDate": "2026-03-15",
+    "guests": "80",
+    "location": "Résidence Privée, Bonapriso",
+    "discount": 20000,
+    "paymentTerms": "50% deposit, 50% on event day",
+    "notes": "Sweet 30 celebration. Dessert table required.",
+    "inventoryLinks": [],
+    "eventId": null,
+    "lines": [
+      {
+        "itemId": 513,
+        "name": "Kati Kati",
+        "qty": 80,
+        "price": 4000,
+        "unitType": "Per head",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 101,
+        "name": "Hamburger",
+        "qty": 80,
+        "price": 2000,
+        "unitType": "Per item",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 312,
+        "name": "Red Velvet",
+        "qty": 5,
+        "price": 25000,
+        "unitType": "Per item",
+        "photo": null,
+        "description": "Red velvet cake, serves 16 portions"
+      },
+      {
+        "itemId": 406,
+        "name": "Fruits & Exotic Parfaits",
+        "qty": 80,
+        "price": 1500,
+        "unitType": "Per item",
+        "photo": null,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "id": 6004,
+    "num": "PROP-2026-0004",
+    "status": "Approved",
+    "client": "Aminatou Bello",
+    "clientPhone": "+237 655 321 987",
+    "eventType": "Bridal Shower",
+    "plannedDate": "2026-02-15",
+    "guests": "40",
+    "location": "Akwa Palace Hotel, Douala",
+    "discount": 0,
+    "paymentTerms": "50% deposit, balance day before",
+    "notes": "Elegant bridal shower. Small chops & dessert focus.",
+    "inventoryLinks": [],
+    "eventId": 6102,
+    "lines": [
+      {
+        "itemId": 102,
+        "name": "Spring Roll",
+        "qty": 40,
+        "price": 1500,
+        "unitType": "Per item",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 104,
+        "name": "Meat Pie & Meat Balls",
+        "qty": 40,
+        "price": 1500,
+        "unitType": "Per item",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 115,
+        "name": "Sausage Rolls",
+        "qty": 40,
+        "price": 1200,
+        "unitType": "Per item",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 302,
+        "name": "Fruit Tart",
+        "qty": 40,
+        "price": 2000,
+        "unitType": "Per item",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 309,
+        "name": "Lemon Curd",
+        "qty": 40,
+        "price": 1500,
+        "unitType": "Per item",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 407,
+        "name": "Greek & Swiss Yogurts",
+        "qty": 40,
+        "price": 1500,
+        "unitType": "Per item",
+        "photo": null,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "id": 6005,
+    "num": "PROP-2026-0005",
+    "status": "Declined",
+    "client": "Didier Mouaha",
+    "clientPhone": "+237 655 193 067",
+    "eventType": "Birthday",
+    "plannedDate": "2026-02-28",
+    "guests": "200",
+    "location": "Palais des Congrès, Yaoundé",
+    "discount": 0,
+    "paymentTerms": "50% deposit upfront",
+    "notes": "Budget too low for requested scope. Awaiting revised brief.",
+    "inventoryLinks": [],
+    "eventId": null,
+    "lines": [
+      {
+        "itemId": 501,
+        "name": "Ndolé",
+        "qty": 200,
+        "price": 3500,
+        "unitType": "Per head",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 502,
+        "name": "Eru",
+        "qty": 200,
+        "price": 3000,
+        "unitType": "Per head",
+        "photo": null,
+        "description": ""
+      },
+      {
+        "itemId": 201,
+        "name": "Cow Soya",
+        "qty": 200,
+        "price": 2500,
+        "unitType": "Per head",
+        "photo": null,
+        "description": ""
+      }
+    ]
+  }
+];
 
 // ─── OVERHEAD / EXPENSE ENTRY TYPES ──────────────────────────────
 // entryType: "opex"   = direct operating expense (hits P&L)
@@ -441,7 +1645,544 @@ const ENTRY_TYPES = [
   },
 ];
 
-const INIT_OVERHEADS = [];
+const INIT_OVERHEADS = [
+  {
+    "id": 5001,
+    "date": "2026-02-01",
+    "category": "Rent & Premises",
+    "description": "Monthly kitchen & dining space rent — Rue Njo Njo",
+    "amount": 150000,
+    "frequency": "Monthly",
+    "vendor": "Propriétaire Akwa",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5002,
+    "date": "2026-02-01",
+    "category": "Personnel",
+    "description": "Chef salary — February 2026",
+    "amount": 120000,
+    "frequency": "Monthly",
+    "vendor": "Chef Bertrand Fouda",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5003,
+    "date": "2026-02-01",
+    "category": "Personnel",
+    "description": "Serving staff wages — February 2026",
+    "amount": 80000,
+    "frequency": "Monthly",
+    "vendor": "Staff Pool",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5004,
+    "date": "2026-02-02",
+    "category": "Utilities",
+    "description": "Electricity bill — January usage",
+    "amount": 45000,
+    "frequency": "Monthly",
+    "vendor": "AES-SONEL / ENEO",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5005,
+    "date": "2026-02-02",
+    "category": "Utilities",
+    "description": "Water & gas — February",
+    "amount": 22000,
+    "frequency": "Monthly",
+    "vendor": "CDE / Gas Supplier",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5006,
+    "date": "2026-02-04",
+    "category": "Marketing",
+    "description": "Facebook & Instagram ads — February campaign",
+    "amount": 35000,
+    "frequency": "Monthly",
+    "vendor": "Meta Ads",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5007,
+    "date": "2026-02-05",
+    "category": "Transportation",
+    "description": "Fuel & delivery costs — Week 1",
+    "amount": 18000,
+    "frequency": "One-time",
+    "vendor": "Fuel Station",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5008,
+    "date": "2026-02-08",
+    "category": "Equipment",
+    "description": "New 10L heavy-duty cooking pot",
+    "amount": 45000,
+    "frequency": "One-time",
+    "vendor": "Marché Central Douala",
+    "entryType": "capex",
+    "paymentStatus": "paid",
+    "assetName": "10L Cooking Pot"
+  },
+  {
+    "id": 5009,
+    "date": "2026-02-10",
+    "category": "Subscriptions",
+    "description": "cookiesbites.app platform — monthly",
+    "amount": 5000,
+    "frequency": "Monthly",
+    "vendor": "Platform",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5010,
+    "date": "2026-02-12",
+    "category": "Transportation",
+    "description": "Fuel & delivery costs — Week 2",
+    "amount": 20000,
+    "frequency": "One-time",
+    "vendor": "Fuel Station",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5011,
+    "date": "2026-02-14",
+    "category": "Marketing",
+    "description": "Valentine's Day flyers printing — 500 copies",
+    "amount": 15000,
+    "frequency": "One-time",
+    "vendor": "Print Shop Akwa",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5012,
+    "date": "2026-02-15",
+    "category": "Equipment",
+    "description": "Catering serving trays x 20",
+    "amount": 60000,
+    "frequency": "One-time",
+    "vendor": "Marché Central Douala",
+    "entryType": "capex",
+    "paymentStatus": "paid",
+    "assetName": "Serving Trays x20"
+  },
+  {
+    "id": 5013,
+    "date": "2026-02-17",
+    "category": "Maintenance",
+    "description": "Kitchen deep-clean & equipment maintenance",
+    "amount": 25000,
+    "frequency": "One-time",
+    "vendor": "Nettoyage Pro Douala",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5014,
+    "date": "2026-02-18",
+    "category": "Transportation",
+    "description": "Fuel & delivery costs — Week 3",
+    "amount": 17000,
+    "frequency": "One-time",
+    "vendor": "Fuel Station",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5015,
+    "date": "2026-02-20",
+    "category": "Professional Fees",
+    "description": "Accountant / bookkeeping fee — Q1 2026",
+    "amount": 30000,
+    "frequency": "Quarterly",
+    "vendor": "Cabinet Comptable Fokou",
+    "entryType": "opex",
+    "paymentStatus": "unpaid",
+    "assetName": ""
+  },
+  {
+    "id": 5016,
+    "date": "2026-02-22",
+    "category": "Transportation",
+    "description": "Wedding event — van hire & logistics",
+    "amount": 35000,
+    "frequency": "One-time",
+    "vendor": "Location Véhicules Douala",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5017,
+    "date": "2026-02-24",
+    "category": "Transportation",
+    "description": "Fuel & delivery costs — Week 4",
+    "amount": 19000,
+    "frequency": "One-time",
+    "vendor": "Fuel Station",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5018,
+    "date": "2026-02-25",
+    "category": "Marketing",
+    "description": "March event flyers design",
+    "amount": 12000,
+    "frequency": "One-time",
+    "vendor": "Graphiste Douala",
+    "entryType": "opex",
+    "paymentStatus": "unpaid",
+    "assetName": ""
+  },
+  {
+    "id": 5019,
+    "date": "2026-02-28",
+    "category": "Insurance",
+    "description": "Business liability insurance — Q1 2026",
+    "amount": 55000,
+    "frequency": "Quarterly",
+    "vendor": "Assurances du Cameroun",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  },
+  {
+    "id": 5020,
+    "date": "2026-02-28",
+    "category": "Other",
+    "description": "Disposable packaging — boxes, bags, foil",
+    "amount": 28000,
+    "frequency": "Monthly",
+    "vendor": "Emballages Douala",
+    "entryType": "opex",
+    "paymentStatus": "paid",
+    "assetName": ""
+  }
+];
+
+const INIT_CUSTOMERS = [
+  {
+    "id": 9001,
+    "name": "Marie Ngo Mbock",
+    "phone": "+237 677 112 233",
+    "email": "marie.ngo@gmail.com",
+    "classification": "VIP",
+    "notes": "Prefers Ndolé, always pays on time. Birthday in April.",
+    "createdAt": "2026-02-03"
+  },
+  {
+    "id": 9002,
+    "name": "Jean-Paul Tchamda",
+    "phone": "+237 699 456 789",
+    "email": "jptchamda@yahoo.fr",
+    "classification": "Regular",
+    "notes": "Orders for office lunches every Friday.",
+    "createdAt": "2026-02-05"
+  },
+  {
+    "id": 9003,
+    "name": "Aminatou Bello",
+    "phone": "+237 655 321 987",
+    "email": "aminatou.bello@hotmail.com",
+    "classification": "Regular",
+    "notes": "Catering client — organised bridal shower.",
+    "createdAt": "2026-02-07"
+  },
+  {
+    "id": 9004,
+    "name": "Emmanuel Fon",
+    "phone": "+237 670 889 001",
+    "email": "",
+    "classification": "Regular",
+    "notes": "Walk-in customer, orders Poulet DG frequently.",
+    "createdAt": "2026-02-10"
+  },
+  {
+    "id": 9005,
+    "name": "Hortense Kana",
+    "phone": "+237 691 554 772",
+    "email": "h.kana@orange.cm",
+    "classification": "VIP",
+    "notes": "Organised two catering events. Very satisfied client.",
+    "createdAt": "2026-02-01"
+  },
+  {
+    "id": 9006,
+    "name": "Sylvain Mbarga",
+    "phone": "+237 676 220 114",
+    "email": "sylvain.mbarga@gmail.com",
+    "classification": "Regular",
+    "notes": "Delivery customer in Bonanjo area.",
+    "createdAt": "2026-02-12"
+  },
+  {
+    "id": 9007,
+    "name": "Christelle Abanda",
+    "phone": "+237 652 008 435",
+    "email": "",
+    "classification": "New",
+    "notes": "First-time client, birthday event enquiry.",
+    "createdAt": "2026-02-18"
+  },
+  {
+    "id": 9008,
+    "name": "Serge Nguimfack",
+    "phone": "+237 699 731 560",
+    "email": "s.nguimfack@camtel.cm",
+    "classification": "Regular",
+    "notes": "Corporate client from Camtel.",
+    "createdAt": "2026-02-08"
+  },
+  {
+    "id": 9009,
+    "name": "Pauline Essomba",
+    "phone": "+237 677 445 882",
+    "email": "pauline.e@gmail.com",
+    "classification": "Regular",
+    "notes": "Dine-in regular, comes on weekends.",
+    "createdAt": "2026-02-14"
+  },
+  {
+    "id": 9010,
+    "name": "Didier Mouaha",
+    "phone": "+237 655 193 067",
+    "email": "",
+    "classification": "New",
+    "notes": "Referred by Marie Ngo Mbock.",
+    "createdAt": "2026-02-22"
+  }
+];
+
+const INIT_BATCHES = [
+  {
+    "id": 8001,
+    "date": "2026-02-03",
+    "mealId": 1061,
+    "mealName": "Ndolé",
+    "portions": 30,
+    "totalCost": 45000,
+    "notes": "Regular Monday batch — standard recipe",
+    "deductInventory": false
+  },
+  {
+    "id": 8002,
+    "date": "2026-02-03",
+    "mealId": 1020,
+    "mealName": "Cow Soya",
+    "portions": 40,
+    "totalCost": 35000,
+    "notes": "Charcoal grills prepped for week start",
+    "deductInventory": false
+  },
+  {
+    "id": 8003,
+    "date": "2026-02-05",
+    "mealId": 1062,
+    "mealName": "Eru",
+    "portions": 25,
+    "totalCost": 38000,
+    "notes": "Wednesday Eru — extra waterleaf added",
+    "deductInventory": false
+  },
+  {
+    "id": 8004,
+    "date": "2026-02-06",
+    "mealId": 1064,
+    "mealName": "Mbongo Tchobi",
+    "portions": 20,
+    "totalCost": 32000,
+    "notes": "Fish Mbongo — catfish used",
+    "deductInventory": false
+  },
+  {
+    "id": 8005,
+    "date": "2026-02-07",
+    "mealId": 1063,
+    "mealName": "Achu & Yellow Soup",
+    "portions": 20,
+    "totalCost": 28000,
+    "notes": "Weekend special batch",
+    "deductInventory": false
+  },
+  {
+    "id": 8006,
+    "date": "2026-02-10",
+    "mealId": 1072,
+    "mealName": "Poulet DG",
+    "portions": 25,
+    "totalCost": 42000,
+    "notes": "Chicken cooked with ripe plantains, rich sauce",
+    "deductInventory": false
+  },
+  {
+    "id": 8007,
+    "date": "2026-02-10",
+    "mealId": 1021,
+    "mealName": "Chicken Soya",
+    "portions": 35,
+    "totalCost": 28000,
+    "notes": "Full week batch — suya blend seasoning",
+    "deductInventory": false
+  },
+  {
+    "id": 8008,
+    "date": "2026-02-12",
+    "mealId": 1073,
+    "mealName": "Kati Kati",
+    "portions": 18,
+    "totalCost": 31000,
+    "notes": "Fire-grilled, traditional sauce",
+    "deductInventory": false
+  },
+  {
+    "id": 8009,
+    "date": "2026-02-14",
+    "mealId": 1061,
+    "mealName": "Ndolé",
+    "portions": 35,
+    "totalCost": 52000,
+    "notes": "Valentine's Friday special — larger batch",
+    "deductInventory": false
+  },
+  {
+    "id": 8010,
+    "date": "2026-02-14",
+    "mealId": 1025,
+    "mealName": "Steak",
+    "portions": 15,
+    "totalCost": 45000,
+    "notes": "Valentine's Day special — premium beef",
+    "deductInventory": false
+  },
+  {
+    "id": 8011,
+    "date": "2026-02-17",
+    "mealId": 1062,
+    "mealName": "Eru",
+    "portions": 30,
+    "totalCost": 44000,
+    "notes": "Monday batch — cow skin + tripe mix",
+    "deductInventory": false
+  },
+  {
+    "id": 8012,
+    "date": "2026-02-17",
+    "mealId": 1074,
+    "mealName": "Pepper Soup",
+    "portions": 22,
+    "totalCost": 25000,
+    "notes": "Goat meat pepper soup",
+    "deductInventory": false
+  },
+  {
+    "id": 8013,
+    "date": "2026-02-19",
+    "mealId": 1066,
+    "mealName": "Kwacoco & Banga",
+    "portions": 16,
+    "totalCost": 22000,
+    "notes": "Midweek special",
+    "deductInventory": false
+  },
+  {
+    "id": 8014,
+    "date": "2026-02-21",
+    "mealId": 1072,
+    "mealName": "Poulet DG",
+    "portions": 28,
+    "totalCost": 46000,
+    "notes": "Weekend batch — extra sauce prepared",
+    "deductInventory": false
+  },
+  {
+    "id": 8015,
+    "date": "2026-02-21",
+    "mealId": 1022,
+    "mealName": "Goat Soya",
+    "portions": 30,
+    "totalCost": 38000,
+    "notes": "Weekend grill — slow charcoal",
+    "deductInventory": false
+  },
+  {
+    "id": 8016,
+    "date": "2026-02-24",
+    "mealId": 1061,
+    "mealName": "Ndolé",
+    "portions": 30,
+    "totalCost": 45000,
+    "notes": "Standard Monday Ndolé",
+    "deductInventory": false
+  },
+  {
+    "id": 8017,
+    "date": "2026-02-24",
+    "mealId": 1077,
+    "mealName": "Grilled Chicken / Poulet Braisé",
+    "portions": 20,
+    "totalCost": 35000,
+    "notes": "Whole chickens marinated overnight",
+    "deductInventory": false
+  },
+  {
+    "id": 8018,
+    "date": "2026-02-26",
+    "mealId": 1067,
+    "mealName": "Ekwang",
+    "portions": 16,
+    "totalCost": 24000,
+    "notes": "Wednesday special — wrapped in banana leaves",
+    "deductInventory": false
+  },
+  {
+    "id": 8019,
+    "date": "2026-02-27",
+    "mealId": 1073,
+    "mealName": "Kati Kati",
+    "portions": 20,
+    "totalCost": 34000,
+    "notes": "Month-end batch",
+    "deductInventory": false
+  },
+  {
+    "id": 8020,
+    "date": "2026-02-28",
+    "mealId": 1064,
+    "mealName": "Mbongo Tchobi",
+    "portions": 18,
+    "totalCost": 29000,
+    "notes": "End-of-month fish Mbongo",
+    "deductInventory": false
+  }
+];
 
 // ─── HELPERS ──────────────────────────────────────────────────────
 const eCOGS = (c, costLines) => {
@@ -13701,10 +15442,26 @@ export default function App() {
           ls_set(key, cloud[key]); // refresh local cache
         }
       };
-      apply("cb_events",       setEvents);
-      apply("cb_sales",        setSales);
-      apply("cb_invoices",     setInvoices);
-      apply("cb_proposals",    setProposals);
+      if (cloud["cb_events"] !== undefined && cloud["cb_events"] !== null) {
+        const _v = cloud["cb_events"];
+        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_EVENTS : _v;
+        setEvents(_d); ls_set("cb_events", _d);
+      }
+      if (cloud["cb_sales"] !== undefined && cloud["cb_sales"] !== null) {
+        const _v = cloud["cb_sales"];
+        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_SALES : _v;
+        setSales(_d); ls_set("cb_sales", _d);
+      }
+      if (cloud["cb_invoices"] !== undefined && cloud["cb_invoices"] !== null) {
+        const _v = cloud["cb_invoices"];
+        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_INVOICES : _v;
+        setInvoices(_d); ls_set("cb_invoices", _d);
+      }
+      if (cloud["cb_proposals"] !== undefined && cloud["cb_proposals"] !== null) {
+        const _v = cloud["cb_proposals"];
+        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_PROPOSALS : _v;
+        setProposals(_d); ls_set("cb_proposals", _d);
+      }
       // Catalog items: seed with CAT_ITEMS if cloud is empty
       if (cloud["cb_catalog"] !== undefined && cloud["cb_catalog"] !== null) {
         const cloudCat = cloud["cb_catalog"];
@@ -13733,11 +15490,23 @@ export default function App() {
         setMeals(meals);
         ls_set("cb_meals", meals);
       }
-      apply("cb_batches",      setBatches);
-      apply("cb_overheads",    setOverheads);
+      if (cloud["cb_batches"] !== undefined && cloud["cb_batches"] !== null) {
+        const _v = cloud["cb_batches"];
+        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_BATCHES : _v;
+        setBatches(_d); ls_set("cb_batches", _d);
+      }
+      if (cloud["cb_overheads"] !== undefined && cloud["cb_overheads"] !== null) {
+        const _v = cloud["cb_overheads"];
+        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_OVERHEADS : _v;
+        setOverheads(_d); ls_set("cb_overheads", _d);
+      }
       apply("cb_logo",         setLogo);
       apply("cb_biz",          setBiz);
-      apply("cb_customers",    setCustomers);
+      if (cloud["cb_customers"] !== undefined && cloud["cb_customers"] !== null) {
+        const _v = cloud["cb_customers"];
+        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_CUSTOMERS : _v;
+        setCustomers(_d); ls_set("cb_customers", _d);
+      }
       apply("cb_vendors",      setVendors);
       apply("cb_social",       setSocialLinks);
       setCloudLoaded(true);
