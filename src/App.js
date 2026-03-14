@@ -10634,8 +10634,12 @@ function ReportsPage({
     ]
   );
 
-  const printReport = (title) => {
-    const html = buildReportHTML(title, d, biz);
+  const printReport = () => {
+    const title =
+      reportType === "pl" ? "Profit & Loss Statement"
+      : reportType === "bs" ? "Balance Sheet"
+      : "Statement of Cash Flows";
+    const html = buildReportHTML(reportType, title, d, biz);
     printDoc(title, html);
   };
 
@@ -10747,15 +10751,7 @@ function ReportsPage({
         </select>
         <button
           style={S.btn("primary")}
-          onClick={() =>
-            printReport(
-              reportType === "pl"
-                ? "Profit & Loss Statement"
-                : reportType === "bs"
-                ? "Balance Sheet"
-                : "Statement of Cash Flows"
-            )
-          }
+          onClick={() => printReport()}
         >
           🖨️ Print / Export
         </button>
@@ -11932,109 +11928,149 @@ function ReportsPage({
   );
 }
 
-function buildReportHTML(title, d, biz) {
+function buildReportHTML(reportType, title, d, biz) {
   const fmtN = (n) => Math.round(n || 0).toLocaleString("en-US") + " XAF";
+  const dateRange = `${d.from.toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" })} – ${d.to.toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" })}`;
   const rows = (items) =>
-    items
-      .map(
-        ([label, value, bold, color]) =>
-          `<tr style="${
-            bold ? "font-weight:700;" : ""
-          }"><td style="padding:7px 12px;font-size:12px;color:${
-            color || "#333"
-          }">${label}</td><td style="padding:7px 12px;font-size:12px;text-align:right;font-weight:${
-            bold ? 700 : 500
-          };color:${color || "#111"}">${value}</td></tr>`
-      )
-      .join("");
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
-  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px;font-size:13px}
-  h1{font-size:22px;font-weight:900;letter-spacing:-0.5px;margin-bottom:4px}
-  .sub{color:#888;font-size:12px;margin-bottom:24px}.section{margin-bottom:20px}
-  .section-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #1a1a1a}
-  table{width:100%;border-collapse:collapse;margin-bottom:12px}
-  tr:nth-child(even) td{background:#fafafa}
+    items.map(([label, value, bold, color]) =>
+      `<tr style="${bold ? "font-weight:700;" : ""}"><td style="padding:7px 12px;font-size:12px;color:${color || "#333"}">${label}</td><td style="padding:7px 12px;font-size:12px;text-align:right;font-weight:${bold ? 700 : 500};color:${color || "#111"}">${value}</td></tr>`
+    ).join("");
+
+  const css = `<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px;font-size:13px}
+  .section{margin-bottom:22px}.section-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #1a1a1a}
+  table{width:100%;border-collapse:collapse;margin-bottom:12px}tr:nth-child(even) td{background:#fafafa}
   td{padding:7px 12px;font-size:12px;border-bottom:1px solid #ebebeb}
   .total-row td{font-weight:800;font-size:13px;background:#1a1a1a;color:#fff;padding:10px 12px}
-  .highlight{background:#f0fdf4!important}.danger{background:#fff5f5!important}
+  .highlight td{background:#f0fdf4!important}.danger td{background:#fff5f5!important}
   .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
   .kpi{background:#f8f8f8;border-radius:8px;padding:12px 14px}
   .kpi .label{font-size:10px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
   .kpi .value{font-size:18px;font-weight:900;color:#1a1a1a}
-  @media print{body{padding:20px}}</style></head><body>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a1a1a;padding-bottom:16px;margin-bottom:20px">
-    <div><div style="font-size:24px;font-weight:900">${
-      biz.name
-    }</div><div style="font-size:11px;color:#888">${biz.tagline} · ${
-    biz.city
-  }</div></div>
+  .indent td:first-child{padding-left:24px;color:#555}
+  @media print{body{padding:20px}}</style>`;
+
+  const header = `<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a1a1a;padding-bottom:16px;margin-bottom:20px">
+    <div><div style="font-size:24px;font-weight:900">${biz.name}</div><div style="font-size:11px;color:#888">${biz.tagline} · ${biz.city}</div></div>
     <div style="text-align:right"><div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px">${title}</div>
     <div style="font-size:18px;font-weight:900">${d.period.label}</div>
-    <div style="font-size:11px;color:#888">${d.from.toLocaleDateString(
-      "fr-CM",
-      { day: "2-digit", month: "short", year: "numeric" }
-    )} – ${d.to.toLocaleDateString("fr-CM", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  })}</div></div>
-  </div>
+    <div style="font-size:11px;color:#888">${dateRange}</div></div>
+  </div>`;
+
+  const footer = `<div style="margin-top:30px;padding-top:16px;border-top:1px solid #ddd;text-align:center;font-size:11px;color:#aaa">Generated by ${biz.name} · ${new Date().toLocaleDateString()} · ${title}</div>`;
+
+  // ── P&L ──────────────────────────────────────────────────────────
+  if (reportType === "pl") {
+    const body = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Total Revenue</div><div class="value">${fmtN(d.totalRevenue)}</div></div>
+      <div class="kpi"><div class="label">Gross Profit</div><div class="value">${fmtN(d.grossProfit)}</div></div>
+      <div class="kpi"><div class="label">Net Profit</div><div class="value" style="color:${d.operatingProfit >= 0 ? "#16a34a" : "#dc2626"}">${fmtN(d.operatingProfit)}</div></div>
+    </div>
+    <div class="section"><div class="section-title">Revenue</div><table>
+      ${rows([["Restaurant & Delivery Sales", fmtN(d.rdRevenue), false, "#333"],["Catering Events Revenue", fmtN(d.catRevenue), false, "#333"]])}
+      <tr class="total-row"><td>Total Revenue</td><td style="text-align:right">${fmtN(d.totalRevenue)}</td></tr>
+    </table></div>
+    <div class="section"><div class="section-title">Cost of Goods Sold</div><table>
+      ${rows([["Restaurant & Delivery COGS", fmtN(d.rdCOGS), false, "#333"],["Catering Events COGS", fmtN(d.catCOGS), false, "#333"]])}
+      <tr class="total-row"><td>Total COGS</td><td style="text-align:right">${fmtN(d.totalCOGS)}</td></tr>
+      <tr class="highlight"><td style="font-weight:700;padding:8px 12px">Gross Profit</td><td style="text-align:right;font-weight:800;color:#16a34a;padding:8px 12px">${fmtN(d.grossProfit)}</td></tr>
+    </table></div>
+    <div class="section"><div class="section-title">Operating Expenses (Overhead)</div><table>
+      ${Object.entries(d.ohByCategory).map(([cat, amt]) => `<tr class="indent"><td>${cat}</td><td style="text-align:right;color:#333;font-weight:500">${fmtN(amt)}</td></tr>`).join("")}
+      ${Object.keys(d.ohByCategory).length === 0 ? '<tr><td colspan="2" style="padding:10px 12px;color:#aaa">No overhead expenses recorded for this period.</td></tr>' : ""}
+      <tr class="total-row"><td>Total Operating Expenses</td><td style="text-align:right">${fmtN(d.totalOverheads)}</td></tr>
+      <tr style="${d.operatingProfit >= 0 ? "background:#f0fdf4" : "background:#fff5f5"}"><td style="font-weight:800;padding:10px 12px;font-size:14px">NET PROFIT / (LOSS)</td><td style="text-align:right;font-weight:900;font-size:16px;padding:10px 12px;color:${d.operatingProfit >= 0 ? "#16a34a" : "#dc2626"}">${fmtN(d.operatingProfit)}</td></tr>
+    </table></div>`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>${css}</head><body>${header}${body}${footer}</body></html>`;
+  }
+
+  // ── BALANCE SHEET ────────────────────────────────────────────────
+  if (reportType === "bs") {
+    const totalCurrent = Math.max(0, d.retainedEarnings * 0.6) + d.arOutstanding + d.invValue;
+    const totalAssets = totalCurrent + d.fixedAssetValue;
+    const totalCurrLiab = d.allOh.ap + d.allOh.capexAP;
+    const totalLiab = totalCurrLiab;
+    const ownersCapital = d.fixedAssetValue > 0 ? 0 : 450000;
+    const equity = d.retainedEarnings + ownersCapital;
+    const currentRatio = totalCurrLiab > 0 ? (totalCurrent / totalCurrLiab).toFixed(2) : "∞";
+    const capexRows = d.allOh.capex.length === 0
+      ? rows([["Fixed Assets (no capex recorded)", fmtN(0), false, "#999"]])
+      : d.allOh.capex.map(a => `<tr class="indent"><td>${a.assetName || a.description}</td><td style="text-align:right">${fmtN(a.amount)}</td></tr>`).join("");
+    const apRows = d.allOh.opex.filter(o => o.paymentStatus === "unpaid").length === 0
+      ? '<tr><td colspan="2" style="padding:10px 12px;color:#aaa">No unpaid expenses.</td></tr>'
+      : d.allOh.opex.filter(o => o.paymentStatus === "unpaid").map(o => `<tr class="indent"><td>${o.description}${o.vendor ? " · " + o.vendor : ""}</td><td style="text-align:right;color:#dc2626">${fmtN(o.amount)}</td></tr>`).join("");
+    const body = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Total Assets</div><div class="value">${fmtN(totalAssets)}</div></div>
+      <div class="kpi"><div class="label">Total Liabilities</div><div class="value" style="color:#dc2626">${fmtN(totalLiab)}</div></div>
+      <div class="kpi"><div class="label">Equity</div><div class="value" style="color:${equity >= 0 ? "#16a34a" : "#dc2626"}">${fmtN(equity)}</div></div>
+    </div>
+    <p style="font-size:10px;color:#888;margin-bottom:16px">As at ${d.to.toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" })} · Based on recorded transactions</p>
+    <div class="section"><div class="section-title">Current Assets</div><table>
+      ${rows([["Cash & Cash Equivalents (est.)", fmtN(Math.max(0, d.retainedEarnings * 0.6)), false, "#333"],["Accounts Receivable (open invoices)", fmtN(d.arOutstanding), false, "#333"],["Inventory at Cost", fmtN(d.invValue), false, "#333"]])}
+      <tr class="total-row"><td>Total Current Assets</td><td style="text-align:right">${fmtN(totalCurrent)}</td></tr>
+    </table></div>
+    <div class="section"><div class="section-title">Non-Current Assets (Fixed Assets)</div><table>
+      ${capexRows}
+      <tr class="total-row"><td>Total Fixed Assets (gross)</td><td style="text-align:right">${fmtN(d.fixedAssetValue)}</td></tr>
+      <tr style="background:#f0f7ff"><td style="font-weight:800;padding:10px 12px">TOTAL ASSETS</td><td style="text-align:right;font-weight:900;font-size:14px;padding:10px 12px;color:#1d4ed8">${fmtN(totalAssets)}</td></tr>
+    </table></div>
+    <div class="section"><div class="section-title">Current Liabilities</div><table>
+      ${rows([["Accounts Payable (unpaid opex)", fmtN(d.allOh.ap), false, "#dc2626"],["Payable on Asset Purchases", fmtN(d.allOh.capexAP), false, "#dc2626"]])}
+      <tr class="total-row"><td>Total Current Liabilities</td><td style="text-align:right">${fmtN(totalCurrLiab)}</td></tr>
+    </table></div>
+    <div class="section"><div class="section-title">Equity</div><table>
+      ${rows([["Retained Earnings (cumulative net profit)", fmtN(d.retainedEarnings), false, d.retainedEarnings >= 0 ? "#16a34a" : "#dc2626"],["Owner's Capital (est.)", fmtN(ownersCapital), false, "#333"]])}
+      <tr class="total-row"><td>TOTAL EQUITY</td><td style="text-align:right">${fmtN(equity)}</td></tr>
+    </table></div>
+    <div class="section"><div class="section-title">Accounts Payable Detail</div><table>${apRows}</table></div>
+    <div style="background:#f8f8f8;border-radius:8px;padding:12px 14px;margin-top:8px;font-size:11px;color:#555">
+      Current Ratio: <strong>${currentRatio}</strong> &nbsp;|&nbsp; AR Outstanding: <strong>${fmtN(d.arOutstanding)}</strong> &nbsp;|&nbsp; Gross Margin: <strong>${d.gm}%</strong>
+    </div>`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>${css}</head><body>${header}${body}${footer}</body></html>`;
+  }
+
+  // ── CASH FLOWS ───────────────────────────────────────────────────
+  const paidCapex = d.pOverheads.filter(o => o.entryType === "capex" && o.paymentStatus === "paid").reduce((s, o) => s + Number(o.amount), 0);
+  const netOps = d.rdRevenue + d.pCashReceived - d.totalCOGS - d.paidOpexInPeriod - d.liabPayInPeriod;
+  const netCash = netOps - paidCapex;
+  const capexItems = d.pOverheads.filter(o => o.entryType === "capex" && o.paymentStatus === "paid");
+  const capexRowsCF = capexItems.length === 0
+    ? rows([["No asset purchases paid this period", fmtN(0), false, "#999"]])
+    : capexItems.map(a => `<tr class="indent"><td>Asset: ${a.assetName || a.description}</td><td style="text-align:right;color:#d97706">(${fmtN(a.amount)})</td></tr>`).join("");
+  const body = `
   <div class="kpi-grid">
-    <div class="kpi"><div class="label">Total Revenue</div><div class="value">${fmtN(
-      d.totalRevenue
-    )}</div></div>
-    <div class="kpi"><div class="label">Gross Profit</div><div class="value">${fmtN(
-      d.grossProfit
-    )}</div></div>
-    <div class="kpi"><div class="label">Net Profit</div><div class="value" style="color:${
-      d.operatingProfit >= 0 ? "#16a34a" : "#dc2626"
-    }">${fmtN(d.operatingProfit)}</div></div>
+    <div class="kpi"><div class="label">Total Cash In</div><div class="value" style="color:#16a34a">${fmtN(d.rdRevenue + d.pCashReceived)}</div></div>
+    <div class="kpi"><div class="label">Total Cash Out</div><div class="value" style="color:#dc2626">${fmtN(d.totalCOGS + d.paidOpexInPeriod + d.liabPayInPeriod + paidCapex)}</div></div>
+    <div class="kpi"><div class="label">Net Cash Flow</div><div class="value" style="color:${netCash >= 0 ? "#16a34a" : "#dc2626"}">${fmtN(netCash)}</div></div>
   </div>
-  <div class="section"><div class="section-title">Revenue</div><table>
-    ${rows([
-      ["Restaurant & Delivery Sales", fmtN(d.rdRevenue), false, "#333"],
-      ["Catering Events Revenue", fmtN(d.catRevenue), false, "#333"],
-    ])}
-    <tr class="total-row"><td>Total Revenue</td><td style="text-align:right">${fmtN(
-      d.totalRevenue
-    )}</td></tr></table></div>
-  <div class="section"><div class="section-title">Cost of Goods Sold</div><table>
-    ${rows([
-      ["Restaurant & Delivery COGS", fmtN(d.rdCOGS), false, "#333"],
-      ["Catering Events COGS", fmtN(d.catCOGS), false, "#333"],
-    ])}
-    <tr class="total-row"><td>Total COGS</td><td style="text-align:right">${fmtN(
-      d.totalCOGS
-    )}</td></tr>
-    <tr class="highlight"><td style="font-weight:700;padding:8px 12px">Gross Profit</td><td style="text-align:right;font-weight:800;color:#16a34a;padding:8px 12px">${fmtN(
-      d.grossProfit
-    )}</td></tr></table></div>
-  <div class="section"><div class="section-title">Operating Expenses (Overhead)</div><table>
-    ${Object.entries(d.ohByCategory)
-      .map(
-        ([cat, amt]) =>
-          `<tr><td style="padding:7px 12px;padding-left:20px;color:#555">${cat}</td><td style="padding:7px 12px;text-align:right;color:#333;font-weight:500">${fmtN(
-            amt
-          )}</td></tr>`
-      )
-      .join("")}
-    ${
-      Object.keys(d.ohByCategory).length === 0
-        ? '<tr><td colspan="2" style="padding:10px 12px;color:#aaa">No overhead expenses recorded for this period.</td></tr>'
-        : ""
-    }
-    <tr class="total-row"><td>Total Operating Expenses</td><td style="text-align:right">${fmtN(
-      d.totalOverheads
-    )}</td></tr>
-    <tr style="${
-      d.operatingProfit >= 0 ? "background:#f0fdf4" : "background:#fff5f5"
-    }"><td style="font-weight:800;padding:10px 12px;font-size:14px">NET PROFIT / (LOSS)</td><td style="text-align:right;font-weight:900;font-size:16px;padding:10px 12px;color:${
-    d.operatingProfit >= 0 ? "#16a34a" : "#dc2626"
-  }">${fmtN(d.operatingProfit)}</td></tr></table></div>
-  <div style="margin-top:30px;padding-top:16px;border-top:1px solid #ddd;text-align:center;font-size:11px;color:#aaa">Generated by ${
-    biz.name
-  } · ${new Date().toLocaleDateString()} · ${title}</div>
-  </body></html>`;
+  <p style="font-size:10px;color:#888;margin-bottom:16px">Period: ${dateRange}</p>
+  <div class="section"><div class="section-title">Operating Activities — Inflows</div><table>
+    ${rows([["Cash from Restaurant Sales", fmtN(d.rdRevenue), false, "#16a34a"],["Cash from Catering (collected)", fmtN(d.pCashReceived), false, "#16a34a"]])}
+    <tr class="total-row"><td>Total Cash Inflows</td><td style="text-align:right">${fmtN(d.rdRevenue + d.pCashReceived)}</td></tr>
+  </table></div>
+  <div class="section"><div class="section-title">Operating Activities — Outflows</div><table>
+    ${rows([["Payments for COGS", `(${fmtN(d.totalCOGS)})`, false, "#dc2626"],["Overhead Expense Payments (paid)", `(${fmtN(d.paidOpexInPeriod)})`, false, "#dc2626"],["Liability / AP Payments", `(${fmtN(d.liabPayInPeriod)})`, false, "#dc2626"]])}
+    <tr class="total-row"><td>Total Cash Outflows (operating)</td><td style="text-align:right">(${fmtN(d.totalCOGS + d.paidOpexInPeriod + d.liabPayInPeriod)})</td></tr>
+    <tr style="${netOps >= 0 ? "background:#f0fdf4" : "background:#fff5f5"}"><td style="font-weight:800;padding:10px 12px">Net Cash from Operations</td><td style="text-align:right;font-weight:900;padding:10px 12px;color:${netOps >= 0 ? "#16a34a" : "#dc2626"}">${fmtN(netOps)}</td></tr>
+  </table></div>
+  <div class="section"><div class="section-title">Investing Activities</div><table>
+    ${capexRowsCF}
+    <tr class="total-row"><td>Net Cash from Investing</td><td style="text-align:right">${paidCapex > 0 ? `(${fmtN(paidCapex)})` : fmtN(0)}</td></tr>
+  </table></div>
+  <div class="section"><div class="section-title">Financing Activities</div><table>
+    ${rows([["Owner Capital Contributions", "—", false, "#999"],["Loan Repayments Made", d.liabPayInPeriod > 0 ? `(${fmtN(d.liabPayInPeriod)})` : fmtN(0), false, "#2563eb"]])}
+    <tr class="total-row"><td>Net Cash from Financing</td><td style="text-align:right">${fmtN(0)}</td></tr>
+  </table></div>
+  <div style="${netCash >= 0 ? "background:#f0fdf4;border:1px solid #bbf7d0" : "background:#fff5f5;border:1px solid #fecaca"};border-radius:8px;padding:14px 16px;margin-top:8px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:4px">Net Change in Cash</div>
+    <div style="font-size:22px;font-weight:900;color:${netCash >= 0 ? "#16a34a" : "#dc2626"}">${fmtN(netCash)}</div>
+    ${d.arOutstanding > 0 ? `<div style="font-size:11px;color:#555;margin-top:6px">⚠️ Collecting ${fmtN(d.arOutstanding)} in outstanding AR would further improve cash.</div>` : ""}
+  </div>
+  <div style="margin-top:14px;background:#f8f8f8;border-radius:8px;padding:12px 14px;font-size:11px;color:#555">
+    AR Outstanding: <strong>${fmtN(d.arOutstanding)}</strong> &nbsp;|&nbsp; AP Outstanding: <strong>${fmtN(d.allOh.ap + d.allOh.capexAP)}</strong>
+  </div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>${css}</head><body>${header}${body}${footer}</body></html>`;
 }
 
 // ─── AUTH HELPERS ─────────────────────────────────────────────────
