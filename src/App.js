@@ -5582,6 +5582,10 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
           setProposals={setProposals}
           events={events}
           setEvents={setEvents}
+          invoices={invoices}
+          setInvoices={setInvoices}
+          customers={customers}
+          setCustomers={setCustomers}
           catalogItems={catalogItems}
           setCatalogItems={setCatalogItems}
           catalogCategories={catalogCategories}
@@ -6700,6 +6704,10 @@ function ProposalsPage({
   setProposals,
   events,
   setEvents,
+  invoices,
+  setInvoices,
+  customers,
+  setCustomers,
   catalogItems,
   setCatalogItems,
   catalogCategories,
@@ -6952,6 +6960,84 @@ function ProposalsPage({
     setEvents((prev) => [...prev, newEvent]);
     const u = [...proposals];
     u[propIdx] = { ...p, status: "Converted to Event", eventId: newEvent.id };
+    setProposals(u);
+  };
+
+  // ── Approve: auto-create Event + Invoice + upsert Customer ────────
+  const approveProposal = (propIdx) => {
+    const p = proposals[propIdx];
+    if (p.eventId) {
+      // Already linked — just mark approved
+      const u = [...proposals];
+      u[propIdx] = { ...p, status: "Approved" };
+      setProposals(u);
+      return;
+    }
+    const total = propTotal(p.lines, p.discount);
+    const deposit = Math.round(total * 0.5);
+    const guests = Number(p.guests) || 0;
+    const pricePerHead = guests > 0 ? Math.round(total / guests) : 0;
+    const eventId = Date.now();
+    const invId = eventId + 1;
+    const invNum = `INV-${THIS_YEAR}-${String(invId).slice(-4).padStart(4, "0")}`;
+
+    // 1. Create Event
+    const newEvent = {
+      id: eventId,
+      name: `${p.eventType || "Event"} – ${p.client}`,
+      clientName: p.client,
+      clientPhone: p.clientPhone || "",
+      eventDate: p.plannedDate || "",
+      location: p.location || "",
+      eventType: p.eventType || "Other",
+      serviceStyle: "Buffet",
+      guests,
+      pricePerHead,
+      addOns: 0,
+      discount: Number(p.discount) || 0,
+      phase: "Confirmed",
+      notes: `Auto-created on proposal approval · ${p.num}${p.notes ? "\n" + p.notes : ""}`,
+      revenue: total,
+      media: [],
+      costLines: [],
+      costs: { inventory: 0, labor: 0, transport: 0, overhead: 0 },
+    };
+    setEvents(prev => [...prev, newEvent]);
+
+    // 2. Create Invoice (Unpaid, 50% deposit due)
+    const newInvoice = {
+      id: invId,
+      num: invNum,
+      client: p.client,
+      clientPhone: p.clientPhone || "",
+      issued: new Date().toISOString().slice(0, 10),
+      due: p.plannedDate || new Date().toISOString().slice(0, 10),
+      total,
+      paid: 0,
+      status: "Unpaid",
+      eventId,
+      notes: `Auto-generated on approval of ${p.num}. Deposit due: ${fmt(deposit)} XAF.`,
+    };
+    if (setInvoices) setInvoices(prev => [...prev, newInvoice]);
+
+    // 3. Upsert Customer
+    if (p.client && p.client.trim() && setCustomers) {
+      const name = p.client.trim();
+      const phone = (p.clientPhone || "").trim();
+      setCustomers(prev => {
+        const idx = prev.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], phone: updated[idx].phone || phone };
+          return updated;
+        }
+        return [...prev, { id: invId + 1, name, phone, email: "", classification: "Regular", notes: "", createdAt: new Date().toISOString().slice(0, 10) }];
+      });
+    }
+
+    // 4. Update proposal — Approved + linked IDs
+    const u = [...proposals];
+    u[propIdx] = { ...p, status: "Approved", eventId, invoiceId: invId };
     setProposals(u);
   };
 
@@ -7952,11 +8038,23 @@ function ProposalsPage({
                   </button>
                   <button
                     style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: T.success, color: T.success }}
-                    onClick={(e) => { e.stopPropagation(); const u = [...proposals]; u[i] = { ...p, status: "Approved" }; setProposals(u); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (p.status === "Approved") return;
+                      if (!window.confirm(
+                        `Approve ${p.num}?\n\nThis will automatically:\n✅ Mark proposal as Approved\n🎉 Create a Confirmed event\n🧾 Generate an unpaid invoice (${p.lines.length > 0 ? fmt(propTotal(p.lines, p.discount)) : "—"} XAF)\n👤 Add/update client in Customers\n\nProceed?`
+                      )) return;
+                      approveProposal(i);
+                    }}
                   >
                     ✓ Approve
                   </button>
-                  {!p.eventId && (
+                  {p.status === "Approved" && p.eventId && (
+                    <span style={{ fontSize: 10, color: T.success, padding: "4px 6px", background: T.success + "15", borderRadius: 6, display: "flex", alignItems: "center", gap: 3 }}>
+                      🎉 Event &amp; invoice created
+                    </span>
+                  )}
+                  {!p.eventId && p.status !== "Approved" && (
                     <button
                       style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: T.catering, color: T.catering }}
                       onClick={(e) => { e.stopPropagation(); convertToEvent(i); }}
