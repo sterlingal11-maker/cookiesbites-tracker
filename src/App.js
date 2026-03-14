@@ -6275,6 +6275,8 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, logo, 
     if (editId != null) {
       setItems(prev => prev.map(it => it.id === editId ? { ...item, id: editId } : it));
       setEditId(null);
+      // If category changed, navigate to the new category so item stays visible
+      if (item.catId !== selCat) setSelCat(item.catId);
     } else {
       setItems(prev => [...prev, { ...item, id: Date.now() }]);
     }
@@ -6434,9 +6436,13 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, logo, 
                 </div>
                 <div>
                   <label style={S.label}>Category</label>
-                  <select style={S.select} value={ni.catId} onChange={e => setNi({ ...ni, catId: Number(e.target.value) })}>
+                  <select style={{ ...S.select, ...(editId != null && ni.catId !== selCat ? { borderColor: T.accent, fontWeight: 700 } : {}) }}
+                    value={ni.catId} onChange={e => setNi({ ...ni, catId: Number(e.target.value) })}>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
+                  {editId != null && ni.catId !== selCat && (
+                    <div style={{ fontSize: 9, color: T.accent, marginTop: 2 }}>↪ Item will move to this category on save</div>
+                  )}
                 </div>
                 <div>
                   <label style={S.label}>Unit Type</label>
@@ -6534,7 +6540,7 @@ function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, o
         <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
           {(Array.isArray(item.tags) ? item.tags : []).map(t => <span key={t} style={S.tag}>{t}</span>)}
           <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-            <button style={{ ...S.btn("ghost"), fontSize: 9, padding: "1px 6px" }} onClick={() => startEdit(item)}>Edit</button>
+            <button style={{ ...S.btn("ghost"), fontSize: 9, padding: "1px 6px" }} onClick={() => startEdit(item)}>✏️ Edit</button>
             {onDelete && <button style={{ ...S.btn("ghost"), fontSize: 9, padding: "1px 6px", color: T.danger, borderColor: T.danger + "40" }} onClick={onDelete}>✕</button>}
           </div>
         </div>
