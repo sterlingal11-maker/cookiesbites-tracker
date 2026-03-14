@@ -13038,6 +13038,8 @@ function ReportsPage({
   biz,
   inventory,
   meals,
+  customers,
+  batches,
 }) {
   const [reportType, setReportType] = useState("pl");
   const [periodId, setPeriodId] = useState(() => {
@@ -13079,7 +13081,11 @@ function ReportsPage({
     const title =
       reportType === "pl" ? "Profit & Loss Statement"
       : reportType === "bs" ? "Balance Sheet"
-      : "Statement of Cash Flows";
+      : reportType === "cf" ? "Statement of Cash Flows"
+      : reportType === "sales" ? "Sales Analysis Report"
+      : reportType === "catering" ? "Catering Performance Report"
+      : reportType === "customers" ? "Customer Report"
+      : "Expense Ledger";
     const html = buildReportHTML(reportType, title, d, biz);
     printDoc(title, html);
   };
@@ -13149,6 +13155,10 @@ function ReportsPage({
             ["pl", "📊 P&L"],
             ["bs", "🏦 Balance Sheet"],
             ["cf", "💸 Cash Flows"],
+            ["sales", "🍽️ Sales"],
+            ["catering", "🎉 Catering"],
+            ["customers", "👥 Customers"],
+            ["expenses", "📋 Expenses"],
           ].map(([t, label]) => (
             <button
               key={t}
@@ -14372,6 +14382,498 @@ function ReportsPage({
           </div>
         </div>
       )}
+
+      {/* ── SALES ANALYSIS ── */}
+      {reportType === "sales" && (() => {
+        const pSales = d.pSales;
+        const totalSalesRev = pSales.reduce((s, r) => s + orderTotal(r), 0);
+        const totalOrders = pSales.length;
+        const avgOrderVal = totalOrders > 0 ? totalSalesRev / totalOrders : 0;
+
+        // Meals ranked by revenue
+        const byMeal = {};
+        pSales.forEach(s => {
+          const key = s.meal || "Unknown";
+          if (!byMeal[key]) byMeal[key] = { revenue: 0, orders: 0, plates: 0 };
+          byMeal[key].revenue += orderTotal(s);
+          byMeal[key].orders += 1;
+          byMeal[key].plates += s.plates;
+        });
+        const mealRanked = Object.entries(byMeal).sort((a,b) => b[1].revenue - a[1].revenue);
+
+        // By order type
+        const byType = {};
+        pSales.forEach(s => {
+          byType[s.type] = (byType[s.type] || 0) + orderTotal(s);
+        });
+
+        // By payment method
+        const byMethod = {};
+        pSales.forEach(s => {
+          byMethod[s.method] = (byMethod[s.method] || 0) + orderTotal(s);
+        });
+
+        // By day of week
+        const byDay = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => ({ day: d, rev: 0, orders: 0 }));
+        pSales.forEach(s => {
+          const dow = (new Date(s.date).getDay() + 6) % 7; // 0=Mon
+          byDay[dow].rev += orderTotal(s);
+          byDay[dow].orders += 1;
+        });
+        const maxDayRev = Math.max(...byDay.map(d => d.rev), 1);
+
+        // Delivery stats
+        const deliveries = pSales.filter(s => s.type === "Delivery");
+        const deliveryFees = deliveries.reduce((s,r) => s + (r.deliveryFee||0), 0);
+
+        const statCard = (label, value, sub, color) => (
+          <div key={label} style={{ background: T.surface, borderRadius: 8, padding: "10px 13px" }}>
+            <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: color || T.text }}>{value}</div>
+            {sub && <div style={{ fontSize: 10, color: T.textDim, marginTop: 2 }}>{sub}</div>}
+          </div>
+        );
+
+        return (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 14 }}>
+              {statCard("Total Orders", totalOrders, `${fmtDate(d.from)} – ${fmtDate(d.to)}`, T.accent)}
+              {statCard("Sales Revenue", fmtShort(totalSalesRev), "Restaurant & Delivery", T.success)}
+              {statCard("Avg Order Value", fmt(Math.round(avgOrderVal)), "per transaction", T.info)}
+              {statCard("Delivery Fees", fmt(deliveryFees), `${deliveries.length} deliveries`, T.warning)}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
+              <div style={S.card}>
+                <div style={S.cardTitle}>🏆 Top Selling Meals</div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                    <thead>
+                      <tr style={{ background: T.surface }}>
+                        {["#","Meal","Orders","Plates","Revenue","% of Sales"].map(h => (
+                          <th key={h} style={{ padding: "6px 8px", textAlign: h==="Revenue"||h==="% of Sales"?"right":"left", color: T.textMuted, fontSize: 9, letterSpacing: 0.5, textTransform: "uppercase", fontWeight: 700 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mealRanked.map(([meal, m], i) => (
+                        <tr key={meal} style={{ borderBottom: `1px solid ${T.border}20` }}>
+                          <td style={{ padding: "7px 8px", color: T.textDim, fontSize: 10 }}>{i+1}</td>
+                          <td style={{ padding: "7px 8px", fontWeight: 600, color: T.text }}>{meal}</td>
+                          <td style={{ padding: "7px 8px", color: T.textMuted }}>{m.orders}</td>
+                          <td style={{ padding: "7px 8px", color: T.textMuted }}>{m.plates}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", fontWeight: 700, color: T.accent }}>{fmt(m.revenue)}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: T.textMuted }}>
+                            {totalSalesRev > 0 ? ((m.revenue/totalSalesRev)*100).toFixed(1) : 0}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {mealRanked.length === 0 && <div style={{ padding: 16, color: T.textDim, fontSize: 11 }}>No sales in this period.</div>}
+                </div>
+              </div>
+              <div>
+                <div style={S.card}>
+                  <div style={S.cardTitle}>📊 Revenue by Order Type</div>
+                  {Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([type, rev]) => (
+                    <div key={type} style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                        <span style={{ fontSize: 11, color: T.text }}>{type}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700 }}>{fmt(rev)}</span>
+                      </div>
+                      <div style={{ height: 5, background: T.surface, borderRadius: 3 }}>
+                        <div style={{ height: 5, borderRadius: 3, background: T.accent, width: `${totalSalesRev > 0 ? (rev/totalSalesRev)*100 : 0}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(byType).length === 0 && <div style={{ color: T.textDim, fontSize: 11 }}>No data.</div>}
+                </div>
+                <div style={{ ...S.card, marginTop: 10 }}>
+                  <div style={S.cardTitle}>💳 Payment Methods</div>
+                  {Object.entries(byMethod).sort((a,b) => b[1]-a[1]).map(([method, rev]) => (
+                    <div key={method} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${T.border}20` }}>
+                      <span style={{ fontSize: 11, color: T.textMuted }}>{method}</span>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700 }}>{fmt(rev)}</div>
+                        <div style={{ fontSize: 9, color: T.textDim }}>{totalSalesRev > 0 ? ((rev/totalSalesRev)*100).toFixed(0) : 0}%</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ ...S.card, marginTop: 10 }}>
+                  <div style={S.cardTitle}>📅 Sales by Day of Week</div>
+                  {byDay.map(({ day, rev, orders }) => (
+                    <div key={day} style={{ marginBottom: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                        <span style={{ fontSize: 10, color: T.textMuted, width: 28 }}>{day}</span>
+                        <div style={{ flex: 1, margin: "0 6px", height: 8, background: T.surface, borderRadius: 3, alignSelf: "center" }}>
+                          <div style={{ height: 8, borderRadius: 3, background: rev > 0 ? T.accent : "transparent", width: `${(rev/maxDayRev)*100}%`, opacity: 0.8 }} />
+                        </div>
+                        <span style={{ fontSize: 10, color: T.text, fontWeight: rev > 0 ? 700 : 400, width: 70, textAlign: "right" }}>{rev > 0 ? fmt(rev) : "—"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── CATERING PERFORMANCE ── */}
+      {reportType === "catering" && (() => {
+        const allEvents = events;
+        const pEvents = d.pEvents;
+        const completedEvents = allEvents.filter(e => e.phase === "Event Completed");
+        const confirmedEvents = allEvents.filter(e => e.phase === "Confirmed");
+        const leads = allEvents.filter(e => e.phase === "Lead / Inquiry");
+        const totalCateringRev = allEvents.filter(e => e.revenue > 0).reduce((s,e) => s + e.revenue, 0);
+        const avgEventRev = completedEvents.length > 0
+          ? completedEvents.reduce((s,e) => s + e.revenue, 0) / completedEvents.length : 0;
+
+        // By event type
+        const byType = {};
+        allEvents.forEach(e => {
+          if (!byType[e.eventType]) byType[e.eventType] = { count: 0, rev: 0 };
+          byType[e.eventType].count++;
+          byType[e.eventType].rev += e.revenue || 0;
+        });
+
+        // Pipeline value (confirmed + leads)
+        const pipelineVal = [...confirmedEvents, ...leads].reduce((s,e) => s + (e.guests * e.pricePerHead || 0), 0);
+
+        // Proposal stats from period
+        const proposalStats = {
+          total: 0, approved: 0, sent: 0, draft: 0, declined: 0
+        };
+
+        const statCard = (label, value, sub, color) => (
+          <div key={label} style={{ background: T.surface, borderRadius: 8, padding: "10px 13px" }}>
+            <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: color || T.text }}>{value}</div>
+            {sub && <div style={{ fontSize: 10, color: T.textDim, marginTop: 2 }}>{sub}</div>}
+          </div>
+        );
+
+        return (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 14 }}>
+              {statCard("Completed Events", completedEvents.length, "all time", T.success)}
+              {statCard("Total Revenue", fmtShort(totalCateringRev), "from completed events", T.accent)}
+              {statCard("Avg Event Value", fmtShort(Math.round(avgEventRev)), "per completed event", T.info)}
+              {statCard("Pipeline Value", fmtShort(pipelineVal), `${confirmedEvents.length} confirmed · ${leads.length} leads`, T.catering)}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={S.card}>
+                <div style={S.cardTitle}>📋 All Events — Status Overview</div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ background: T.surface }}>
+                      {["Event","Type","Date","Guests","Revenue","Phase"].map(h => (
+                        <th key={h} style={{ padding: "5px 7px", textAlign: "left", color: T.textMuted, fontSize: 9, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...allEvents].sort((a,b) => new Date(b.eventDate) - new Date(a.eventDate)).map(e => {
+                      const phaseColor = {
+                        "Event Completed": T.success,
+                        "Confirmed": T.info,
+                        "Planning": T.accent,
+                        "Lead / Inquiry": T.textMuted,
+                        "Quotation Sent": T.warning,
+                        "Cancelled": T.danger,
+                      }[e.phase] || T.textMuted;
+                      return (
+                        <tr key={e.id} style={{ borderBottom: `1px solid ${T.border}20` }}>
+                          <td style={{ padding: "6px 7px", fontWeight: 600, fontSize: 11, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name}</td>
+                          <td style={{ padding: "6px 7px", color: T.textMuted, fontSize: 10 }}>{e.eventType}</td>
+                          <td style={{ padding: "6px 7px", color: T.textMuted, fontSize: 10 }}>{e.eventDate}</td>
+                          <td style={{ padding: "6px 7px", color: T.textMuted, fontSize: 10 }}>{e.guests}</td>
+                          <td style={{ padding: "6px 7px", fontWeight: 700, color: e.revenue > 0 ? T.accent : T.textDim, fontSize: 11 }}>{e.revenue > 0 ? fmtShort(e.revenue) : "—"}</td>
+                          <td style={{ padding: "6px 7px" }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: phaseColor, background: phaseColor + "18", padding: "2px 6px", borderRadius: 10 }}>{e.phase}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {allEvents.length === 0 && <div style={{ padding: 16, color: T.textDim, fontSize: 11 }}>No events recorded.</div>}
+              </div>
+              <div>
+                <div style={S.card}>
+                  <div style={S.cardTitle}>🎊 Revenue by Event Type</div>
+                  {Object.entries(byType).sort((a,b) => b[1].rev - a[1].rev).map(([type, data]) => (
+                    <div key={type} style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                        <span style={{ fontSize: 11, color: T.text, fontWeight: 600 }}>{type}</span>
+                        <span style={{ fontSize: 11 }}>{data.count} event{data.count !== 1 ? "s" : ""} · <strong>{fmtShort(data.rev)}</strong></span>
+                      </div>
+                      <div style={{ height: 6, background: T.surface, borderRadius: 3 }}>
+                        <div style={{ height: 6, borderRadius: 3, background: T.catering, width: `${totalCateringRev > 0 ? (data.rev/totalCateringRev)*100 : 0}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(byType).length === 0 && <div style={{ color: T.textDim, fontSize: 11 }}>No data.</div>}
+                </div>
+                <div style={{ ...S.card, marginTop: 10 }}>
+                  <div style={S.cardTitle}>📊 Phase Breakdown</div>
+                  {[
+                    ["✅ Completed", completedEvents.length, T.success],
+                    ["📆 Confirmed", confirmedEvents.length, T.info],
+                    ["🔍 Lead / Inquiry", leads.length, T.textMuted],
+                    ["❌ Cancelled", allEvents.filter(e=>e.phase==="Cancelled").length, T.danger],
+                  ].map(([label, count, color]) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${T.border}20` }}>
+                      <span style={{ fontSize: 11, color: T.textMuted }}>{label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color }}>{count}</span>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 10, padding: "8px 10px", background: T.surface, borderRadius: 6 }}>
+                    <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2 }}>Pipeline Value (Confirmed + Leads)</div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: T.catering }}>{fmt(pipelineVal)} XAF</div>
+                  </div>
+                </div>
+                <div style={{ ...S.card, marginTop: 10 }}>
+                  <div style={S.cardTitle}>💰 Invoice Collection Status</div>
+                  {invoices.length === 0
+                    ? <div style={{ color: T.textDim, fontSize: 11 }}>No invoices recorded.</div>
+                    : invoices.map(inv => {
+                        const bal = inv.total - inv.paid;
+                        const statusColor = bal <= 0 ? T.success : inv.paid > 0 ? T.warning : T.danger;
+                        return (
+                          <div key={inv.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${T.border}20`, alignItems: "center" }}>
+                            <div>
+                              <div style={{ fontSize: 11, fontWeight: 600 }}>{inv.client}</div>
+                              <div style={{ fontSize: 9, color: T.textDim }}>{inv.num} · Due {inv.due}</div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: statusColor }}>
+                                {bal <= 0 ? "✅ Paid" : bal === inv.total ? `❌ ${fmt(bal)}` : `⏳ ${fmt(bal)}`}
+                              </div>
+                              <div style={{ fontSize: 9, color: T.textDim }}>{fmt(inv.total)} total</div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── CUSTOMER REPORT ── */}
+      {reportType === "customers" && (() => {
+        const allCustomers = customers || [];
+        // Enrich each customer with their sales and event data
+        const enriched = allCustomers.map(c => {
+          const cSales = sales.filter(s => s.clientName && s.clientName.toLowerCase() === c.name.toLowerCase());
+          const cEvents = events.filter(e => e.clientName && e.clientName.toLowerCase() === c.name.toLowerCase());
+          const totalSpend = cSales.reduce((s,r) => s + orderTotal(r), 0) + cEvents.reduce((s,e) => s + (e.revenue||0), 0);
+          const lastActivity = [...cSales.map(s=>s.date), ...cEvents.map(e=>e.eventDate)].sort().pop() || c.createdAt;
+          return { ...c, totalSpend, orderCount: cSales.length, eventCount: cEvents.length, lastActivity };
+        }).sort((a,b) => b.totalSpend - a.totalSpend);
+
+        const totalCustomers = allCustomers.length;
+        const vipCount = allCustomers.filter(c => c.classification === "VIP").length;
+        const totalSpendAll = enriched.reduce((s,c) => s + c.totalSpend, 0);
+        const avgSpend = totalCustomers > 0 ? totalSpendAll / totalCustomers : 0;
+
+        return (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 14 }}>
+              {[
+                ["Total Customers", totalCustomers, "all time", T.accent],
+                ["VIP Clients", vipCount, "high-value accounts", T.warning],
+                ["Total Client Spend", fmtShort(totalSpendAll), "across all clients", T.success],
+                ["Avg Spend / Client", fmt(Math.round(avgSpend)), "lifetime value", T.info],
+              ].map(([label, val, sub, color]) => (
+                <div key={label} style={{ background: T.surface, borderRadius: 8, padding: "10px 13px" }}>
+                  <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color }}>{val}</div>
+                  <div style={{ fontSize: 10, color: T.textDim, marginTop: 2 }}>{sub}</div>
+                </div>
+              ))}
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>👥 Customer Ranking — by Lifetime Value</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr style={{ background: T.surface }}>
+                    {["#","Name","Classification","Orders","Events","Total Spend","Last Activity","Notes"].map(h => (
+                      <th key={h} style={{ padding: "6px 8px", textAlign: h==="Total Spend"?"right":"left", color: T.textMuted, fontSize: 9, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {enriched.map((c, i) => {
+                    const classColor = c.classification === "VIP" ? T.warning : c.classification === "New" ? T.info : T.textMuted;
+                    return (
+                      <tr key={c.id} style={{ borderBottom: `1px solid ${T.border}20`, background: c.classification === "VIP" ? T.warning + "08" : "transparent" }}>
+                        <td style={{ padding: "7px 8px", color: T.textDim, fontSize: 10 }}>{i+1}</td>
+                        <td style={{ padding: "7px 8px", fontWeight: 700, color: T.text }}>{c.name}</td>
+                        <td style={{ padding: "7px 8px" }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: classColor, background: classColor + "18", padding: "2px 7px", borderRadius: 10 }}>{c.classification}</span>
+                        </td>
+                        <td style={{ padding: "7px 8px", color: T.textMuted, textAlign: "center" }}>{c.orderCount}</td>
+                        <td style={{ padding: "7px 8px", color: T.textMuted, textAlign: "center" }}>{c.eventCount}</td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontWeight: 800, color: c.totalSpend > 0 ? T.accent : T.textDim }}>
+                          {c.totalSpend > 0 ? fmt(c.totalSpend) : "—"}
+                        </td>
+                        <td style={{ padding: "7px 8px", color: T.textDim, fontSize: 10 }}>{c.lastActivity || "—"}</td>
+                        <td style={{ padding: "7px 8px", color: T.textDim, fontSize: 10, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.notes || "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {allCustomers.length === 0 && <div style={{ padding: 16, color: T.textDim, fontSize: 11 }}>No customers recorded yet.</div>}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── EXPENSE LEDGER ── */}
+      {reportType === "expenses" && (() => {
+        const pOH = d.pOverheads;
+        const opex = pOH.filter(o => (o.entryType||"opex") === "opex");
+        const capexList = pOH.filter(o => (o.entryType||"opex") === "capex");
+        const liabList = pOH.filter(o => o.entryType === "liability_payment");
+
+        const totalOpex = opex.reduce((s,o) => s + Number(o.amount), 0);
+        const totalCapex = capexList.reduce((s,o) => s + Number(o.amount), 0);
+        const totalLiab = liabList.reduce((s,o) => s + Number(o.amount), 0);
+        const unpaidOpex = opex.filter(o => o.paymentStatus === "unpaid");
+        const totalUnpaid = unpaidOpex.reduce((s,o) => s + Number(o.amount), 0);
+
+        // By vendor
+        const byVendor = {};
+        pOH.forEach(o => {
+          const v = o.vendor || "Unspecified";
+          byVendor[v] = (byVendor[v] || 0) + Number(o.amount);
+        });
+        const topVendors = Object.entries(byVendor).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+        const entryTypeLabel = { opex: "Operating", capex: "Asset Purchase", liability_payment: "Liability Payment" };
+        const entryTypeColor = { opex: T.danger, capex: T.warning, liability_payment: T.info };
+
+        return (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 14 }}>
+              {[
+                ["Operating Expenses", fmt(totalOpex), `${opex.length} entries`, T.danger],
+                ["Asset Purchases", fmt(totalCapex), `${capexList.length} items`, T.warning],
+                ["Liability Payments", fmt(totalLiab), `${liabList.length} entries`, T.info],
+                ["Accounts Payable", fmt(totalUnpaid), `${unpaidOpex.length} unpaid`, T.danger],
+              ].map(([label, val, sub, color]) => (
+                <div key={label} style={{ background: T.surface, borderRadius: 8, padding: "10px 13px" }}>
+                  <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color }}>{val}</div>
+                  <div style={{ fontSize: 10, color: T.textDim, marginTop: 2 }}>{sub}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
+              <div style={S.card}>
+                <div style={S.cardTitle}>📋 Full Expense Ledger — {d.period.label}</div>
+                {unpaidOpex.length > 0 && (
+                  <div style={{ background: T.danger + "12", border: `1px solid ${T.danger}30`, borderRadius: 6, padding: "7px 10px", marginBottom: 10, fontSize: 11 }}>
+                    ⚠️ <strong>{unpaidOpex.length} unpaid expense{unpaidOpex.length > 1 ? "s" : ""}</strong> totalling <strong>{fmt(totalUnpaid)} XAF</strong> outstanding.
+                  </div>
+                )}
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ background: T.surface }}>
+                      {["Date","Category","Description","Vendor","Type","Amount","Status"].map(h => (
+                        <th key={h} style={{ padding: "5px 7px", textAlign: h==="Amount"?"right":"left", color: T.textMuted, fontSize: 9, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...pOH].sort((a,b) => new Date(b.date)-new Date(a.date)).map((o,i) => {
+                      const isPaid = o.paymentStatus !== "unpaid";
+                      return (
+                        <tr key={i} style={{ borderBottom: `1px solid ${T.border}20`, background: !isPaid ? T.danger + "06" : "transparent" }}>
+                          <td style={{ padding: "6px 7px", color: T.textMuted, fontSize: 10, whiteSpace: "nowrap" }}>{o.date}</td>
+                          <td style={{ padding: "6px 7px", fontSize: 10, color: T.text }}>{o.category}</td>
+                          <td style={{ padding: "6px 7px", fontSize: 10, color: T.textMuted, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={o.description}>{o.description}</td>
+                          <td style={{ padding: "6px 7px", fontSize: 10, color: T.textDim }}>{o.vendor || "—"}</td>
+                          <td style={{ padding: "6px 7px" }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: entryTypeColor[o.entryType||"opex"], background: (entryTypeColor[o.entryType||"opex"]) + "15", padding: "2px 5px", borderRadius: 8 }}>
+                              {entryTypeLabel[o.entryType||"opex"]}
+                            </span>
+                          </td>
+                          <td style={{ padding: "6px 7px", textAlign: "right", fontWeight: 700, color: T.text }}>{fmt(Number(o.amount))}</td>
+                          <td style={{ padding: "6px 7px" }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: isPaid ? T.success : T.danger }}>
+                              {isPaid ? "✅ Paid" : "⏳ Unpaid"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {pOH.length === 0 && <div style={{ padding: 16, color: T.textDim, fontSize: 11 }}>No expenses recorded for this period.</div>}
+              </div>
+              <div>
+                <div style={S.card}>
+                  <div style={S.cardTitle}>🏢 Top Vendors / Suppliers</div>
+                  {topVendors.map(([vendor, amt]) => (
+                    <div key={vendor} style={{ marginBottom: 9 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                        <span style={{ fontSize: 11, color: T.text }}>{vendor}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700 }}>{fmt(amt)}</span>
+                      </div>
+                      <div style={{ height: 5, background: T.surface, borderRadius: 3 }}>
+                        <div style={{ height: 5, borderRadius: 3, background: T.danger, width: `${(totalOpex+totalCapex) > 0 ? (amt/(totalOpex+totalCapex))*100 : 0}%`, opacity: 0.7 }} />
+                      </div>
+                    </div>
+                  ))}
+                  {topVendors.length === 0 && <div style={{ color: T.textDim, fontSize: 11 }}>No vendor data.</div>}
+                </div>
+                <div style={{ ...S.card, marginTop: 10 }}>
+                  <div style={S.cardTitle}>📊 Expense Breakdown</div>
+                  {[
+                    ["Operating (P&L)", totalOpex, T.danger],
+                    ["Asset Purchases", totalCapex, T.warning],
+                    ["Liability Payments", totalLiab, T.info],
+                  ].map(([label, val, color]) => (
+                    <div key={label} style={{ marginBottom: 9 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                        <span style={{ fontSize: 11, color: T.textMuted }}>{label}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color }}>{fmt(val)}</span>
+                      </div>
+                      <div style={{ height: 5, background: T.surface, borderRadius: 3 }}>
+                        <div style={{ height: 5, borderRadius: 3, background: color, width: `${(totalOpex+totalCapex+totalLiab)>0?(val/(totalOpex+totalCapex+totalLiab))*100:0}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ ...S.card, marginTop: 10 }}>
+                  <div style={S.cardTitle}>⚠️ Unpaid Expenses (AP)</div>
+                  {unpaidOpex.length === 0
+                    ? <div style={{ color: T.success, fontSize: 11, fontWeight: 700 }}>✅ All expenses paid</div>
+                    : unpaidOpex.map((o,i) => (
+                        <div key={i} style={{ padding: "6px 0", borderBottom: `1px solid ${T.border}20` }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: 11, color: T.text, fontWeight: 600 }}>{o.description}</span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: T.danger }}>{fmt(Number(o.amount))}</span>
+                          </div>
+                          <div style={{ fontSize: 9, color: T.textDim }}>{o.vendor} · {o.date}</div>
+                        </div>
+                      ))
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
@@ -15552,6 +16054,8 @@ export default function App() {
             biz={biz}
             inventory={inventory}
             meals={meals}
+            customers={customers}
+            batches={batches}
           />
         )}
         {tab === "studio" && isOwner && (
