@@ -1699,16 +1699,22 @@ function buildProposalHTML(prop, biz, logo) {
   const sub = prop.lines.reduce((s, l) => s + l.qty * l.price, 0);
   const total = sub - (prop.discount || 0);
   const deposit = total * 0.5;
+  // Check if any line has a photo
+  const hasPhotos = prop.lines.some(l => l.photo);
   const rows = prop.lines
     .map(
       (l) =>
-        `<tr><td class="bold">${l.name}</td><td class="tc">${
+        `<tr>${hasPhotos ? `<td class="tc" style="width:54px;padding:4px">${l.photo ? `<img src="${l.photo}" alt="${l.name}" style="width:48px;height:42px;object-fit:cover;border-radius:5px;display:block"/>` : `<div style="width:48px;height:42px;background:#f5f5f5;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:18px">🍽️</div>`}</td>` : ""}<td class="bold" style="vertical-align:middle">${l.name}${l.description ? `<div style="font-size:10px;color:#777;font-weight:400;margin-top:2px">${l.description}</div>` : ""}</td><td class="tc" style="vertical-align:middle">${
           l.unitType
-        }</td><td class="tc">${l.qty}</td><td class="tr">${fmt(
+        }</td><td class="tc" style="vertical-align:middle">${l.qty}</td><td class="tr" style="vertical-align:middle">${fmt(
           l.price
-        )}</td><td class="tr">${fmt(l.qty * l.price)}</td></tr>`
+        )}</td><td class="tr" style="vertical-align:middle">${fmt(l.qty * l.price)}</td></tr>`
     )
     .join("");
+  const photoHeader = hasPhotos ? `<th class="tc" style="width:54px"></th>` : "";
+  const effectivePaymentTerms = (prop.paymentTerms && prop.paymentTerms.trim())
+    ? prop.paymentTerms.trim()
+    : (biz.paymentTerms || "Cash · Mobile Money (MoMo) · Bank Transfer");
   return `${headerHTML(
     biz,
     logo,
@@ -1732,7 +1738,7 @@ function buildProposalHTML(prop, biz, logo) {
     }<br>${prop.eventType} · ${prop.plannedDate || "Date TBD"}<br>${
       prop.guests
     } guests · ${prop.location}</div>`
-  )}<div class="items-section"><div class="section-heading">Proposed Services</div><table><thead><tr><th>Service / Item</th><th class="tc">Unit</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Total (XAF)</th></tr></thead><tbody>${rows}</tbody></table></div><div class="totals-block"><div class="totals-inner"><div class="total-row"><span class="label">Subtotal</span><span class="value">${fmt(
+  )}<div class="items-section"><div class="section-heading">Proposed Services</div><table><thead><tr>${photoHeader}<th>Service / Item</th><th class="tc">Unit</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Total (XAF)</th></tr></thead><tbody>${rows}</tbody></table></div><div class="totals-block"><div class="totals-inner"><div class="total-row"><span class="label">Subtotal</span><span class="value">${fmt(
     sub
   )}</span></div>${
     prop.discount > 0
@@ -1746,9 +1752,7 @@ function buildProposalHTML(prop, biz, logo) {
     deposit
   )}</strong></div><div class="payment-row"><span>Balance Due (before event):</span><strong>${fmt(
     total - deposit
-  )}</strong></div><div class="payment-row"><span>Payment methods:</span><strong>${
-    biz.paymentTerms || "Cash · MoMo · Bank Transfer"
-  }</strong></div></div>${
+  )}</strong></div><div class="payment-row"><span>Payment methods:</span><strong>${effectivePaymentTerms}</strong></div></div>${
     prop.notes
       ? `<div class="notes-box"><strong>Notes</strong>${prop.notes}</div>`
       : ""
@@ -1851,7 +1855,7 @@ function buildCatalogHTML(items, categories, biz, logo) {
   const extraCSS = `<style>
     .cat-item-notes{font-size:10px;color:#a05000;font-style:italic;margin:3px 0 5px;line-height:1.4}
     .cat-tags{margin-top:5px;display:flex;flex-wrap:wrap;gap:3px}
-    .cat-item-photo{width:100%;height:130px;object-fit:cover;border-radius:0;display:block}
+    .cat-item-photo{width:100%;height:160px;object-fit:cover;border-radius:0;display:block}
     .cat-item-photo-placeholder{height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#f5f5f5}
     .cat-item{background:#fff;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden;break-inside:avoid}
     .cat-item-body{padding:9px 10px 10px}
@@ -4600,6 +4604,7 @@ function ProposalsPage({
     lines: [],
     inventoryLinks: [],
     eventId: null,
+    paymentTerms: "",
   });
   const [pickCat, setPickCat] = useState(null);
   const [doc, setDoc] = useState(null);
@@ -4621,7 +4626,7 @@ function ProposalsPage({
   const BLANK_DRAFT = {
     client: "", clientPhone: "", eventType: "", plannedDate: "",
     guests: "", location: "", discount: 0, notes: "", lines: [],
-    inventoryLinks: [], eventId: null,
+    inventoryLinks: [], eventId: null, paymentTerms: "",
   };
 
   const duplicateProposal = (i) => {
@@ -4675,6 +4680,8 @@ function ProposalsPage({
           qty: item.unitType === "Per head" ? d.guests : 1,
           price: item.price,
           unitType: item.unitType,
+          photo: item.photo || null,
+          description: item.description || "",
         },
       ],
     }));
@@ -4909,6 +4916,15 @@ function ProposalsPage({
                 style={S.input}
                 value={draft.notes}
                 onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              />
+            </div>
+            <div style={{ gridColumn: "span 3" }}>
+              <label style={S.label}>💳 Payment Terms <span style={{ color: T.textDim, fontWeight: 400 }}>(shown on proposal PDF)</span></label>
+              <textarea
+                style={{ ...S.input, minHeight: 54, resize: "vertical", fontFamily: "inherit", fontSize: 12 }}
+                value={draft.paymentTerms}
+                placeholder={biz.paymentTerms || "Cash · Mobile Money (MoMo) · Bank Transfer"}
+                onChange={(e) => setDraft({ ...draft, paymentTerms: e.target.value })}
               />
             </div>
             <div style={{ gridColumn: "span 2" }}>
@@ -5555,6 +5571,28 @@ function ProposalsPage({
                       )}
                     </div>
                   )}
+                </div>
+
+                {/* Payment Terms inline edit */}
+                <div style={{ marginBottom: 10, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 13px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
+                    💳 Payment Terms
+                  </div>
+                  <textarea
+                    style={{ ...S.input, minHeight: 52, resize: "vertical", fontFamily: "inherit", fontSize: 12, width: "100%" }}
+                    value={p.paymentTerms !== undefined ? p.paymentTerms : (biz.paymentTerms || "")}
+                    placeholder={biz.paymentTerms || "Cash · Mobile Money (MoMo) · Bank Transfer"}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      const u = [...proposals];
+                      u[i] = { ...p, paymentTerms: e.target.value };
+                      setProposals(u);
+                    }}
+                  />
+                  <div style={{ fontSize: 10, color: T.textDim, marginTop: 3 }}>
+                    Edits here are saved automatically and reflected on the printed proposal.
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
