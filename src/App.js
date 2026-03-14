@@ -2961,13 +2961,16 @@ function PeriodSelector({
 const PRINT_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px;font-size:13px;line-height:1.5}
-.doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #1a1a1a}
-.brand-block{display:flex;flex-direction:column;align-items:flex-start;margin-left:0;gap:0}
-.brand-block img{height:120px;max-width:240px;object-fit:contain;display:block;margin-bottom:6px;margin-left:0}
+body{font-family:'Inter',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:24px 40px 40px;font-size:13px;line-height:1.5}
+.doc-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:3px solid #1a1a1a;gap:16px;padding-top:0}
+.brand-block{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
+.brand-block img{height:150px;max-width:160px;object-fit:contain;display:block;margin:0 auto}
 .brand-name{font-size:26px;font-weight:900;letter-spacing:-1px;color:#1a1a1a;line-height:1}
+.biz-info{display:flex;flex-direction:column;justify-content:flex-start;align-self:flex-start}
+.biz-info .biz-name{font-size:16px;font-weight:900;color:#1a1a1a;line-height:1.2;margin-bottom:3px;letter-spacing:-0.3px}
+.biz-info .biz-detail{font-size:10px;color:#555;line-height:1.75}
 .brand-sub{font-size:11px;color:#666;margin-top:2px;line-height:1.7}
-.doc-ref-block{text-align:right}
+.doc-ref-block{text-align:right;align-self:flex-start}
 .doc-type{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#999;margin-bottom:4px}
 .doc-number{font-size:28px;font-weight:900;color:#1a1a1a;letter-spacing:-0.5px}
 .doc-meta{font-size:11px;color:#666;margin-top:4px;line-height:1.8}
@@ -3053,13 +3056,33 @@ function getBizHTML(biz, logo) {
   ]
     .filter(Boolean)
     .join("<br/>");
-  return { img, sub };
+  const detail = [
+    biz.tagline,
+    biz.address,
+    biz.city,
+    biz.phone,
+    biz.phone2,
+    biz.email,
+    biz.website,
+  ]
+    .filter(Boolean)
+    .join("<br/>");
+  return { img, sub, detail };
 }
 function headerHTML(biz, logo, docType, docNum, dateIssued, dateDue) {
-  const { img, sub } = getBizHTML(biz, logo);
-  return `<div class="doc-header"><div class="brand-block">${img}<div class="brand-sub">${sub}</div></div><div class="doc-ref-block"><div class="doc-type">${docType}</div><div class="doc-number">${docNum}</div><div class="doc-meta">Issued: ${dateIssued}${
-    dateDue ? `<br>Due: ${dateDue}` : ""
-  }</div></div></div>`;
+  const { img, detail } = getBizHTML(biz, logo);
+  return `<div class="doc-header">
+    <div class="biz-info">
+      <div class="biz-name">${biz.name}</div>
+      <div class="biz-detail">${detail}</div>
+    </div>
+    <div class="brand-block">${img}</div>
+    <div class="doc-ref-block">
+      <div class="doc-type">${docType}</div>
+      <div class="doc-number">${docNum}</div>
+      <div class="doc-meta">Issued: ${dateIssued}${dateDue ? `<br>Due: ${dateDue}` : ""}</div>
+    </div>
+  </div>`;
 }
 function partiesHTML(fl, fh, tl, th) {
   return `<div class="parties"><div class="party-box"><div class="party-label">${fl}</div>${fh}</div><div class="party-box"><div class="party-label">${tl}</div>${th}</div></div>`;
@@ -3291,7 +3314,7 @@ function buildContractHTML(prop, biz, logo, lang = "en", terms = {}) {
     ? new Date(prop.plannedDate).toLocaleDateString(EN ? "en-GB" : "fr-FR", { day:"2-digit", month:"long", year:"numeric" })
     : (EN ? "Date TBD" : "Date à confirmer");
 
-  const { img, sub: bizSub } = getBizHTML(biz, logo);
+  const { img } = getBizHTML(biz, logo);
 
   const L = {
     title:      EN ? "CATERING SERVICES CONTRACT"         : "CONTRAT DE SERVICES TRAITEUR",
@@ -3441,7 +3464,11 @@ table.scope td{padding:5px 7px;border-bottom:1px solid #f0f0f0;vertical-align:to
 </style></head><body>
 
 <div class="doc-header">
-  <div class="brand-block">${img}<div class="brand-sub">${bizSub}</div></div>
+  <div class="biz-info">
+    <div class="biz-name">${biz.name}</div>
+    <div class="biz-detail">${[biz.tagline,biz.address,biz.city,biz.phone,biz.email,biz.rccm?`RCCM: ${biz.rccm}`:"",biz.taxId?`Tax ID: ${biz.taxId}`:""].filter(Boolean).join("<br/>")}</div>
+  </div>
+  <div class="brand-block">${img}</div>
   <div class="doc-ref-block">
     <div class="doc-type">${L.title}</div>
     <div class="doc-number" style="font-size:19px">${L.contract} #${prop.num.replace("PROP","CTR")}</div>
@@ -3620,7 +3647,7 @@ function buildCatalogHTML(items, categories, biz, logo) {
   const byCat = {};
   items.forEach(i => { if (!byCat[i.catId]) byCat[i.catId] = []; byCat[i.catId].push(i); });
   const brandLogoSrc = logo?.src || LOGO_SRC;
-  const brandImg = `<img src="${brandLogoSrc}" alt="logo" style="height:120px;max-width:240px;object-fit:contain;display:block;margin-bottom:6px;margin-left:0"/>`;
+  const brandImg = `<img src="${brandLogoSrc}" alt="logo" style="height:150px;max-width:160px;object-fit:contain;display:block;margin:0 auto"/>`;
   const sections = Object.entries(byCat).map(([catId, its]) => {
     const cards = its.map(i => `
       <div class="cat-item">
@@ -3654,11 +3681,13 @@ function buildCatalogHTML(items, categories, biz, logo) {
     .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
     .cat-section{margin-bottom:32px}
     .cat-heading{font-size:16px;font-weight:800;color:#1a1a1a;padding:8px 0 6px;border-bottom:2px solid #1a1a1a;margin-bottom:4px}
-    .catalog-intro{margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #1a1a1a;background:#fff}
-    .catalog-intro h2{font-size:22px;font-weight:800;margin:10px 0 4px;color:#1a1a1a}
-    .catalog-intro p{font-size:11px;color:#666;margin:0;line-height:1.7}
+    .catalog-intro{margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #1a1a1a;background:#fff;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px}
+    .catalog-intro-left{display:flex;flex-direction:column;justify-content:flex-start}
+    .catalog-intro-left h2{font-size:22px;font-weight:800;margin:0 0 4px;color:#1a1a1a}
+    .catalog-intro-left p{font-size:11px;color:#666;margin:0;line-height:1.7}
+    .catalog-intro-right{text-align:right;font-size:10px;color:#999}
   </style>`;
-  return `${extraCSS}<div class="catalog-intro">${brandImg}<h2>Services Catalog</h2><p>${[biz.tagline,biz.city,biz.phone,biz.email].filter(Boolean).join(" · ")}<br>${items.length} items · Valid as of ${TODAY_LABEL}</p></div><p style="font-size:11px;color:#777;margin-bottom:24px;line-height:1.7">Prices subject to confirmation based on guest count, location and event specifics. Contact us for custom packages.</p>${sections}${footerHTML(biz)}`;
+  return `${extraCSS}<div class="catalog-intro"><div class="catalog-intro-left"><h2>Services Catalog</h2><p>${[biz.tagline,biz.city,biz.phone,biz.email].filter(Boolean).join(" · ")}<br>${items.length} items · Valid as of ${TODAY_LABEL}</p></div>${brandImg}<div class="catalog-intro-right">Prices subject to confirmation<br>based on event specifics</div></div><p style="font-size:11px;color:#777;margin-bottom:24px;line-height:1.7">Prices subject to confirmation based on guest count, location and event specifics. Contact us for custom packages.</p>${sections}${footerHTML(biz)}`;
 }
 function printDoc(title, html) {
   const w = window.open("", "_blank", "width=860,height=940");
