@@ -8100,6 +8100,36 @@ function ProposalsPage({
                     ✉️ Mark Sent
                   </button>
                   <button
+                    style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: "#25D366", color: "#25D366" }}
+                    title="Send via WhatsApp"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const total = propTotal(p.lines, p.discount);
+                      const deposit = Math.round(total * 0.5);
+                      const itemList = p.lines.map(l => `  • ${l.name} × ${l.qty} @ ${fmt(l.price)} XAF`).join("\n");
+                      const msg = `Hello ${p.client || "there"} 👋,\n\nThank you for your interest in *${biz.name}*!\n\nPlease find below your catering proposal:\n\n*${p.num} — ${p.eventType || "Event"}*\n📅 Date: ${p.plannedDate || "TBD"}\n📍 Venue: ${p.location || "TBD"}\n👥 Guests: ${p.guests || "TBD"}\n\n*Services Proposed:*\n${itemList}\n\n*Total: ${fmt(total)} XAF*\n💰 Deposit required (50%): ${fmt(deposit)} XAF\n\n${p.notes ? `Notes: ${p.notes}\n\n` : ""}To confirm your booking, please approve this proposal and pay the deposit.\n\nWe look forward to serving you! 🍽️\n\n— ${biz.name}${biz.phone ? `\n📞 ${biz.phone}` : ""}`;
+                      const phone = (p.clientPhone || "").replace(/\D/g, "");
+                      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+                      window.open(url, "_blank");
+                      const u = [...proposals]; u[i] = { ...p, status: p.status === "Draft" ? "Sent" : p.status }; setProposals(u);
+                    }}
+                  >
+                    💬 WhatsApp
+                  </button>
+                  <button
+                    style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: T.info, color: T.info }}
+                    title="Copy SMS message to clipboard"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const total = propTotal(p.lines, p.discount);
+                      const deposit = Math.round(total * 0.5);
+                      const msg = `Hi ${p.client || "there"}, this is ${biz.name}. Your catering proposal ${p.num} for ${p.eventType || "your event"} on ${p.plannedDate || "TBD"} is ready. Total: ${fmt(total)} XAF, deposit: ${fmt(deposit)} XAF. Please confirm to book. Call us: ${biz.phone || ""}`;
+                      navigator.clipboard.writeText(msg).then(() => alert("SMS message copied to clipboard! Paste it in your messaging app.")).catch(() => prompt("Copy this SMS:", msg));
+                    }}
+                  >
+                    📱 Copy SMS
+                  </button>
+                  <button
                     style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: T.success, color: T.success }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -8963,20 +8993,16 @@ function RestaurantPage({
             </div>
           </div>
           {lowStock.length > 0 && (
-            <div
-              style={{
-                background: `${T.warning}12`,
-                border: `1px solid ${T.warning}40`,
-                borderRadius: 6,
-                padding: 8,
-                marginBottom: 8,
-                fontSize: 11,
-              }}
-            >
+            <div style={{ background: `${T.warning}12`, border: `1px solid ${T.warning}40`, borderRadius: 6, padding: 8, marginBottom: 8, fontSize: 11 }}>
               <strong style={{ color: T.warning }}>⚠️ Low Stock:</strong>{" "}
-              {lowStock
-                .map((i) => `${i.name} (${i.stock} ${i.unit})`)
-                .join(" · ")}
+              {lowStock.map((i) => (
+                <span key={i.id} style={{ marginRight: 8 }}>
+                  {i.name}
+                  <span style={{ color: i.stock === 0 ? T.danger : T.warning, fontWeight: 700 }}>
+                    {" "}({i.stock === 0 ? "OUT" : `${i.stock} ${i.unit}`})
+                  </span>
+                </span>
+              ))}
             </div>
           )}
           <div style={{ ...S.row, marginBottom: 9, flexWrap: "wrap", gap: 5 }}>
@@ -11083,25 +11109,40 @@ function RestaurantPage({
             </div>
           )}
           {lowStock.length > 0 && (
-            <div
-              style={{
-                background: `${T.danger}12`,
-                border: `1px solid ${T.danger}40`,
-                borderRadius: 6,
-                padding: 9,
-                marginBottom: 10,
-                fontSize: 11,
-              }}
-            >
-              <strong style={{ color: T.danger }}>⚠️ Reorder Needed:</strong>{" "}
-              {lowStock
-                .map(
-                  (i) =>
-                    `${i.name} (${Math.round(i.stock * 10) / 10} ${
-                      i.unit
-                    } — min ${i.reorderAt})`
-                )
-                .join(" · ")}
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: T.danger, marginBottom: 6 }}>
+                ⚠️ {lowStock.length} item{lowStock.length > 1 ? "s" : ""} need restocking
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 6 }}>
+                {lowStock.map(item => {
+                  const pct = Number(item.reorderAt) > 0 ? Math.round((item.stock / item.reorderAt) * 100) : 0;
+                  const critical = item.stock === 0;
+                  return (
+                    <div key={item.id} style={{
+                      background: critical ? T.danger + "12" : T.warning + "10",
+                      border: `1px solid ${critical ? T.danger : T.warning}40`,
+                      borderLeft: `3px solid ${critical ? T.danger : T.warning}`,
+                      borderRadius: 6, padding: "8px 10px",
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{item.name}</div>
+                        {critical && <span style={{ fontSize: 9, fontWeight: 800, color: T.danger, background: T.danger + "15", padding: "1px 5px", borderRadius: 8 }}>OUT</span>}
+                      </div>
+                      <div style={{ fontSize: 10, color: T.textMuted, marginTop: 2 }}>
+                        {item.stock} {item.unit} left · min {item.reorderAt}
+                      </div>
+                      <div style={{ height: 3, background: T.surface, borderRadius: 2, marginTop: 5 }}>
+                        <div style={{ height: 3, borderRadius: 2, background: critical ? T.danger : T.warning, width: `${Math.min(pct, 100)}%` }} />
+                      </div>
+                      {item.costPerUnit > 0 && (
+                        <div style={{ fontSize: 9, color: T.textDim, marginTop: 3 }}>
+                          Cost: {fmt(item.costPerUnit)} / {item.unit}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
           <div className="tbl-wrap">
@@ -11240,6 +11281,7 @@ function RestaurantPage({
 // ─── INVOICES ─────────────────────────────────────────────────────
 function InvoicesPage({ invoices, setInvoices, events, logo, biz }) {
   const [doc, setDoc] = useState(null);
+  const [pmtPanel, setPmtPanel] = useState(null); // { idx, amount, method }
   const openDoc = (title, html) =>
     setDoc({ title, html, onPrint: () => printDoc(title, html) });
   const totalAR = invoices.reduce((s, i) => s + (i.total - i.paid), 0);
@@ -11266,6 +11308,103 @@ function InvoicesPage({ invoices, setInvoices, events, logo, biz }) {
   return (
     <div>
       <DocModal doc={doc} onClose={() => setDoc(null)} />
+
+      {/* ── Inline Payment Panel ─────────────────────────────────── */}
+      {pmtPanel !== null && (() => {
+        const inv = invoices[pmtPanel.idx];
+        const bal = inv.total - inv.paid;
+        return (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}
+            onClick={() => setPmtPanel(null)}>
+            <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, width:"100%", maxWidth:420, padding:24 }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:T.text }}>💳 Record Payment</div>
+                  <div style={{ fontSize:11, color:T.textMuted, marginTop:2 }}>{inv.num} · {inv.client}</div>
+                </div>
+                <button style={{ background:"none", border:"none", color:T.textDim, cursor:"pointer", fontSize:18 }} onClick={() => setPmtPanel(null)}>✕</button>
+              </div>
+
+              {/* Balance summary */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
+                {[["Invoice Total", fmt(inv.total), T.text], ["Already Paid", fmt(inv.paid), T.success], ["Balance Due", fmt(bal), T.danger]]
+                  .map(([l, v, c]) => (
+                    <div key={l} style={{ background:T.surface, borderRadius:8, padding:"8px 10px" }}>
+                      <div style={{ fontSize:9, color:T.textMuted, textTransform:"uppercase", letterSpacing:0.5, marginBottom:2 }}>{l}</div>
+                      <div style={{ fontSize:13, fontWeight:800, color:c }}>{v}</div>
+                    </div>
+                  ))}
+              </div>
+
+              {/* Amount input */}
+              <div style={{ marginBottom:12 }}>
+                <label style={S.label}>Amount Received (XAF)</label>
+                <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                  <input
+                    type="number"
+                    style={{ ...S.input, flex:1, fontSize:16, fontWeight:700 }}
+                    value={pmtPanel.amount}
+                    onChange={e => setPmtPanel(p => ({ ...p, amount: e.target.value }))}
+                    autoFocus
+                  />
+                  <button style={{ ...S.btn("ghost"), fontSize:11, padding:"5px 10px", whiteSpace:"nowrap" }}
+                    onClick={() => setPmtPanel(p => ({ ...p, amount: String(bal) }))}>
+                    Full Balance
+                  </button>
+                </div>
+              </div>
+
+              {/* Payment method */}
+              <div style={{ marginBottom:16 }}>
+                <label style={S.label}>Payment Method</label>
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {["Mobile Money", "Cash", "Bank Transfer", "Cheque"].map(m => (
+                    <button key={m}
+                      style={{ ...S.btn(pmtPanel.method === m ? "primary" : "ghost"), fontSize:11, padding:"4px 12px" }}
+                      onClick={() => setPmtPanel(p => ({ ...p, method: m }))}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick shortcuts */}
+              <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
+                {[50, 100].map(pct => (
+                  <button key={pct}
+                    style={{ ...S.btn("ghost"), fontSize:10, padding:"3px 10px" }}
+                    onClick={() => setPmtPanel(p => ({ ...p, amount: String(Math.round(bal * pct / 100)) }))}>
+                    {pct}% ({fmt(Math.round(bal * pct / 100))})
+                  </button>
+                ))}
+              </div>
+
+              {/* Actions */}
+              <div style={{ display:"flex", gap:8 }}>
+                <button
+                  style={{ ...S.btn("primary"), flex:1 }}
+                  onClick={() => {
+                    const amt = Number(pmtPanel.amount);
+                    if (!amt || isNaN(amt) || amt <= 0) return;
+                    recordPmt(pmtPanel.idx, amt);
+                    // also note the payment method on the invoice
+                    setInvoices(prev => prev.map((inv, j) => j === pmtPanel.idx
+                      ? { ...inv, lastPaymentMethod: pmtPanel.method, lastPaymentDate: new Date().toISOString().slice(0,10) }
+                      : inv
+                    ));
+                    setPmtPanel(null);
+                  }}
+                >
+                  ✅ Record {pmtPanel.amount ? fmt(Number(pmtPanel.amount)) : ""} via {pmtPanel.method}
+                </button>
+                <button style={{ ...S.btn("ghost"), padding:"6px 14px" }} onClick={() => setPmtPanel(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <div style={S.pageTitle}>🧾 Invoices & Payments</div>
       <div style={S.grid(4)}>
         <KpiCard
@@ -11406,22 +11545,14 @@ function InvoicesPage({ invoices, setInvoices, events, logo, biz }) {
                     <td style={S.td}>
                       {bal > 0 && (
                         <button
-                          style={{
-                            ...S.btn("primary"),
-                            padding: "3px 8px",
-                            fontSize: 11,
-                          }}
-                          onClick={() => {
-                            const a = prompt(
-                              `Record payment – ${inv.num}\nBalance: ${fmt(
-                                bal
-                              )}\n\nEnter amount (XAF):`
-                            );
-                            if (a && !isNaN(Number(a))) recordPmt(i, a);
-                          }}
+                          style={{ ...S.btn("primary"), padding: "3px 8px", fontSize: 11 }}
+                          onClick={() => setPmtPanel({ idx: i, amount: String(bal), method: "Mobile Money" })}
                         >
-                          + Pmt
+                          + Payment
                         </button>
+                      )}
+                      {bal <= 0 && inv.status === "Paid" && (
+                        <span style={{ fontSize: 10, color: T.success, fontWeight: 700 }}>✅ Paid</span>
                       )}
                     </td>
                   </tr>
