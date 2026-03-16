@@ -5373,6 +5373,7 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
   const [sel, setSel] = useState(null);
   const [filter, setFilter] = useState("All");
   const [doc, setDoc] = useState(null);
+  const [evtPmtPanel, setEvtPmtPanel] = useState(null); // { evtId, amount, method }
   const [addingEvent, setAddingEvent] = useState(false);
   const [mediaEventId, setMediaEventId] = useState(null);
   const [newEvt, setNewEvt] = useState({
@@ -5498,6 +5499,106 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
   return (
     <div>
       <DocModal doc={doc} onClose={() => setDoc(null)} />
+
+      {/* ── Event Payment Panel ─────────────────────────────────── */}
+      {evtPmtPanel !== null && (() => {
+        const evt = events.find(e => e.id === evtPmtPanel.evtId);
+        if (!evt) return null;
+        const linkedInv = invoices.find(i => i.eventId === evt.id)
+          || invoices.find(i => i.client?.toLowerCase() === evt.clientName?.toLowerCase() && i.total === evt.revenue);
+        const invTotal = linkedInv ? linkedInv.total : evt.revenue;
+        const invPaid  = linkedInv ? linkedInv.paid  : 0;
+        const bal = invTotal - invPaid;
+        const deposit = Math.round(invTotal * 0.5);
+
+        const recordEvtPmt = () => {
+          const amt = Number(evtPmtPanel.amount);
+          if (!amt || isNaN(amt) || amt <= 0) return;
+          const today = new Date().toISOString().slice(0, 10);
+          if (linkedInv) {
+            setInvoices(prev => prev.map(i => {
+              if (i.id !== linkedInv.id) return i;
+              const newPaid = Math.min(i.paid + amt, i.total);
+              return { ...i, paid: newPaid, status: newPaid >= i.total ? "Paid" : newPaid > 0 ? "Partially Paid" : "Unpaid", lastPaymentMethod: evtPmtPanel.method, lastPaymentDate: today };
+            }));
+          } else {
+            const invNum = `INV-${THIS_YEAR}-${String(evt.id).slice(-4).padStart(4, "0")}`;
+            const newPaid = Math.min(amt, invTotal);
+            setInvoices(prev => {
+              if (prev.some(i => i.num === invNum)) return prev;
+              return [...prev, { id: evt.id, num: invNum, client: evt.clientName, clientPhone: evt.clientPhone || "", issued: today, due: evt.eventDate || today, total: invTotal, paid: newPaid, status: newPaid >= invTotal ? "Paid" : newPaid > 0 ? "Partially Paid" : "Unpaid", eventId: evt.id, lastPaymentMethod: evtPmtPanel.method, lastPaymentDate: today, notes: `Payment recorded from event: ${evt.name}` }];
+            });
+          }
+          setEvtPmtPanel(null);
+        };
+
+        return (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.72)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}
+            onClick={() => setEvtPmtPanel(null)}>
+            <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, width:"100%", maxWidth:440, padding:24 }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700 }}>💳 Record Payment</div>
+                  <div style={{ fontSize:11, color:T.textMuted, marginTop:2 }}>{evt.name}</div>
+                  <div style={{ fontSize:10, color:T.textDim }}>{evt.clientName} · {evt.eventDate}</div>
+                </div>
+                <button style={{ background:"none", border:"none", color:T.textDim, cursor:"pointer", fontSize:18 }} onClick={() => setEvtPmtPanel(null)}>✕</button>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
+                {[["Event Total", fmt(invTotal), T.text], ["Paid to Date", fmt(invPaid), T.success], ["Balance Due", fmt(bal), bal > 0 ? T.danger : T.success]].map(([l,v,c]) => (
+                  <div key={l} style={{ background:T.surface, borderRadius:8, padding:"8px 10px" }}>
+                    <div style={{ fontSize:9, color:T.textMuted, textTransform:"uppercase", letterSpacing:0.5, marginBottom:2 }}>{l}</div>
+                    <div style={{ fontSize:13, fontWeight:800, color:c }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              {bal <= 0 ? (
+                <div style={{ textAlign:"center", padding:"16px 0", color:T.success, fontWeight:700, fontSize:14 }}>✅ This event is fully paid</div>
+              ) : (
+                <>
+                  <div style={{ marginBottom:10 }}>
+                    <div style={{ fontSize:10, color:T.textMuted, marginBottom:5, textTransform:"uppercase", letterSpacing:0.5 }}>Quick amounts</div>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                      {[["50% Deposit", deposit], ["Balance Due", bal], ["Full Total", invTotal]].map(([label, amt]) => (
+                        <button key={label} style={{ ...S.btn(Number(evtPmtPanel.amount) === amt ? "primary" : "ghost"), fontSize:10, padding:"3px 10px" }}
+                          onClick={() => setEvtPmtPanel(p => ({ ...p, amount: String(amt) }))}>
+                          {label} ({fmt(amt)})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom:12 }}>
+                    <label style={S.label}>Amount Received (XAF)</label>
+                    <input type="number" style={{ ...S.input, fontSize:16, fontWeight:700 }} value={evtPmtPanel.amount}
+                      onChange={e => setEvtPmtPanel(p => ({ ...p, amount: e.target.value }))} autoFocus />
+                  </div>
+                  <div style={{ marginBottom:16 }}>
+                    <label style={S.label}>Payment Method</label>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                      {["Mobile Money", "Cash", "Bank Transfer", "Cheque"].map(m => (
+                        <button key={m} style={{ ...S.btn(evtPmtPanel.method === m ? "primary" : "ghost"), fontSize:11, padding:"4px 12px" }}
+                          onClick={() => setEvtPmtPanel(p => ({ ...p, method: m }))}>{m}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {!linkedInv && (
+                    <div style={{ fontSize:10, color:T.textMuted, background:T.surface, borderRadius:6, padding:"6px 10px", marginBottom:12 }}>
+                      ℹ️ No invoice found — one will be created automatically with this payment.
+                    </div>
+                  )}
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button style={{ ...S.btn("primary"), flex:1 }} onClick={recordEvtPmt}>
+                      ✅ Record {evtPmtPanel.amount ? fmt(Number(evtPmtPanel.amount)) : ""} via {evtPmtPanel.method}
+                    </button>
+                    <button style={{ ...S.btn("ghost"), padding:"6px 14px" }} onClick={() => setEvtPmtPanel(null)}>Cancel</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Media lightbox modal */}
       {mediaEvt && (
@@ -6157,7 +6258,36 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
               );
             })()}
             <Divider />
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+              {/* Payment status badge */}
+              {(() => {
+                const linkedInv = invoices.find(i => i.eventId === evt.id);
+                if (!linkedInv && evt.revenue > 0) return (
+                  <span style={{ fontSize:10, color:T.danger, background:T.danger+"12", border:`1px solid ${T.danger}30`, padding:"3px 8px", borderRadius:10, fontWeight:700 }}>❌ Unpaid</span>
+                );
+                if (!linkedInv) return null;
+                const bal = linkedInv.total - linkedInv.paid;
+                if (bal <= 0) return <span style={{ fontSize:10, color:T.success, background:T.success+"12", border:`1px solid ${T.success}30`, padding:"3px 8px", borderRadius:10, fontWeight:700 }}>✅ Paid</span>;
+                if (linkedInv.paid > 0) return <span style={{ fontSize:10, color:T.warning, background:T.warning+"12", border:`1px solid ${T.warning}30`, padding:"3px 8px", borderRadius:10, fontWeight:700 }}>⏳ {fmt(bal)} outstanding</span>;
+                return <span style={{ fontSize:10, color:T.danger, background:T.danger+"12", border:`1px solid ${T.danger}30`, padding:"3px 8px", borderRadius:10, fontWeight:700 }}>❌ {fmt(linkedInv.total)} unpaid</span>;
+              })()}
+
+              {/* Record Payment button — shown when there's an outstanding balance */}
+              {evt.revenue > 0 && (() => {
+                const linkedInv = invoices.find(i => i.eventId === evt.id);
+                const paid = linkedInv ? linkedInv.paid : 0;
+                const total = linkedInv ? linkedInv.total : evt.revenue;
+                const bal = total - paid;
+                if (bal <= 0) return null;
+                return (
+                  <button
+                    style={{ ...S.btn("primary"), fontSize: 10, padding: "4px 9px", background: T.success, borderColor: T.success }}
+                    onClick={(e) => { e.stopPropagation(); setEvtPmtPanel({ evtId: evt.id, amount: String(Math.round(total * 0.5)), method: "Mobile Money" }); }}
+                  >
+                    💳 Record Payment
+                  </button>
+                );
+              })()}
               <button
                 style={{
                   ...S.btn("primary"),
