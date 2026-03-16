@@ -3297,7 +3297,15 @@ function buildProposalHTML(prop, biz, logo) {
     prop.notes
       ? `<div class="notes-box"><strong>Notes</strong>${prop.notes}</div>`
       : ""
-  }<div class="terms-box"><p><strong>Validity:</strong> This proposal is valid for 14 days from the issue date.</p><p><strong>Confirmation:</strong> A signed acceptance and deposit confirms your booking.</p><p><strong>Cancellation:</strong> Deposits are non-refundable within 7 days of the event date.</p></div>${footerHTML(
+  }<div class="terms-box">${(() => {
+    const DEFAULT_CLAUSES = [
+      { label: "Validity", text: "This proposal is valid for 14 days from the issue date." },
+      { label: "Confirmation", text: "A signed acceptance and deposit confirms your booking." },
+      { label: "Cancellation", text: "Deposits are non-refundable within 7 days of the event date." },
+    ];
+    const clauses = (prop.terms && prop.terms.length > 0) ? prop.terms : DEFAULT_CLAUSES;
+    return clauses.map(c => `<p><strong>${c.label}:</strong> ${c.text}</p>`).join("");
+  })()}</div>${footerHTML(
     biz
   )}`;
 }
@@ -7068,11 +7076,11 @@ function ProposalsPage({
       inventoryLinks: p.inventoryLinks || [],
       eventId: p.eventId || null,
       paymentTerms: p.paymentTerms || "",
+      terms: p.terms ? p.terms.map(t => ({ ...t })) : [],
     });
     setEditingPropIdx(idx);
     setBuilding(true);
     setSel(null);
-    // Scroll to top of form
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -8225,6 +8233,95 @@ function ProposalsPage({
                     Edits here are saved automatically and reflected on the printed proposal.
                   </div>
                 </div>
+
+                {/* Proposal Clauses editor */}
+                {(() => {
+                  const DEFAULT_CLAUSES = [
+                    { label: "Validity", text: "This proposal is valid for 14 days from the issue date." },
+                    { label: "Confirmation", text: "A signed acceptance and deposit confirms your booking." },
+                    { label: "Cancellation", text: "Deposits are non-refundable within 7 days of the event date." },
+                  ];
+                  const clauses = p.terms && p.terms.length > 0 ? p.terms : DEFAULT_CLAUSES;
+                  const setClauses = (newClauses) => {
+                    const u = [...proposals];
+                    u[i] = { ...p, terms: newClauses };
+                    setProposals(u);
+                  };
+                  return (
+                    <div style={{ marginBottom: 10, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 13px" }} onClick={e => e.stopPropagation()}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          📋 Proposal Clauses
+                        </div>
+                        <button
+                          style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 8px" }}
+                          onClick={() => setClauses([...clauses, { label: "New Clause", text: "" }])}
+                        >
+                          + Add Clause
+                        </button>
+                      </div>
+                      {clauses.map((clause, ci) => (
+                        <div key={ci} style={{ marginBottom: 8, border: `1px solid ${T.border}`, borderRadius: 6, overflow: "hidden" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", background: T.card, borderBottom: `1px solid ${T.border}` }}>
+                            <input
+                              style={{ ...S.input, flex: 1, padding: "3px 6px", fontSize: 11, fontWeight: 700 }}
+                              value={clause.label}
+                              placeholder="Clause label (e.g. Validity)"
+                              onChange={e => {
+                                const u = clauses.map((c, j) => j === ci ? { ...c, label: e.target.value } : c);
+                                setClauses(u);
+                              }}
+                            />
+                            <div style={{ display: "flex", gap: 3 }}>
+                              {ci > 0 && (
+                                <button
+                                  style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
+                                  title="Move up"
+                                  onClick={() => {
+                                    const u = [...clauses];
+                                    [u[ci - 1], u[ci]] = [u[ci], u[ci - 1]];
+                                    setClauses(u);
+                                  }}
+                                >↑</button>
+                              )}
+                              {ci < clauses.length - 1 && (
+                                <button
+                                  style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
+                                  title="Move down"
+                                  onClick={() => {
+                                    const u = [...clauses];
+                                    [u[ci], u[ci + 1]] = [u[ci + 1], u[ci]];
+                                    setClauses(u);
+                                  }}
+                                >↓</button>
+                              )}
+                              <button
+                                style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px", color: T.danger, borderColor: T.danger + "40" }}
+                                title="Delete clause"
+                                onClick={() => setClauses(clauses.filter((_, j) => j !== ci))}
+                              >✕</button>
+                            </div>
+                          </div>
+                          <textarea
+                            style={{ ...S.input, width: "100%", minHeight: 44, resize: "vertical", fontFamily: "inherit", fontSize: 11, borderRadius: 0, border: "none", borderTop: `1px solid ${T.border}` }}
+                            value={clause.text}
+                            placeholder="Clause text…"
+                            onChange={e => {
+                              const u = clauses.map((c, j) => j === ci ? { ...c, text: e.target.value } : c);
+                              setClauses(u);
+                            }}
+                          />
+                        </div>
+                      ))}
+                      {clauses.length === 0 && (
+                        <div style={{ fontSize: 11, color: T.textDim, padding: "4px 0" }}>No clauses — printed proposal will show none.</div>
+                      )}
+                      <div style={{ fontSize: 10, color: T.textDim, marginTop: 3 }}>
+                        Clauses appear at the bottom of the printed proposal. Edits are saved automatically.
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                   <button
