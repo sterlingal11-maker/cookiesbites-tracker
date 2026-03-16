@@ -5707,6 +5707,7 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
           items={catalogItems}
           setItems={setCatalogItems}
           meals={meals}
+          setMeals={setMeals}
           logo={logo}
           biz={biz}
           onCreateProposalFromCatalog={(lines) => {
@@ -6389,7 +6390,7 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
     </div>
   );
 }
-function CatalogPage({ categories, setCategories, items, setItems, meals, logo, biz, onCreateProposalFromCatalog }) {
+function CatalogPage({ categories, setCategories, items, setItems, meals, setMeals, logo, biz, onCreateProposalFromCatalog }) {
   const [selCat, setSelCat] = useState(null); // null = tile overview, number = category id
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -6408,8 +6409,18 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, logo, 
   const handlePhoto = async (e, forItem = null) => {
     const f = e.target.files[0]; if (!f) return;
     const src = await uploadFile(f, "catalog");
-    if (forItem != null) setItems(prev => prev.map(it => it.id === forItem ? { ...it, photo: src } : it));
-    else setNi(n => ({ ...n, photo: src }));
+    if (forItem != null) {
+      const updatedItem = items.find(it => it.id === forItem);
+      setItems(prev => prev.map(it => it.id === forItem ? { ...it, photo: src } : it));
+      // Sync to matching meal by name
+      if (updatedItem && setMeals) {
+        setMeals(prev => prev.map(m =>
+          m.name.toLowerCase() === updatedItem.name.toLowerCase() ? { ...m, photo: src } : m
+        ));
+      }
+    } else {
+      setNi(n => ({ ...n, photo: src }));
+    }
   };
 
   const pullFromMeal = (mealId) => {
@@ -6437,17 +6448,25 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, logo, 
     if (editId != null) {
       setItems(prev => prev.map(it => it.id === editId ? { ...item, id: editId } : it));
       setEditId(null);
-      // If category changed, navigate to the new category so item stays visible
       if (item.catId !== selCat) setSelCat(item.catId);
     } else {
       setItems(prev => [...prev, { ...item, id: Date.now() }]);
+    }
+    // Sync photo to matching meal by name
+    if (item.photo && setMeals) {
+      setMeals(prev => prev.map(m =>
+        m.name.toLowerCase() === item.name.toLowerCase() ? { ...m, photo: item.photo } : m
+      ));
     }
     setAdding(false);
     setNi({ ...EMPTY_NI, catId: selCat || (categories[0]?.id || 1) });
   };
 
   const startEdit = (item) => {
-    setNi({ ...item, price: String(item.price), costPerUnit: String(item.costPerUnit || ""), tags: Array.isArray(item.tags) ? item.tags.join(", ") : item.tags });
+    // Auto-fill photo from matching meal if catalog item has none
+    const mealMatch = meals.find(m => m.name.toLowerCase() === item.name.toLowerCase());
+    const photo = item.photo || mealMatch?.photo || null;
+    setNi({ ...item, photo, price: String(item.price), costPerUnit: String(item.costPerUnit || ""), tags: Array.isArray(item.tags) ? item.tags.join(", ") : item.tags });
     setEditId(item.id); setAdding(true);
   };
 
@@ -6684,7 +6703,12 @@ function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, o
         <div style={{ position: "absolute", bottom: 4, right: 4, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 8, padding: "2px 5px", borderRadius: 3 }}>📷</div>
       </div>
       <div style={{ padding: 9 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 1 }}>{item.name}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700 }}>{item.name}</div>
+          {meals.some(m => m.name.toLowerCase() === item.name.toLowerCase()) && (
+            <span title="Linked to a meal — photos sync automatically" style={{ fontSize: 8, color: T.success, background: T.success + "18", padding: "1px 5px", borderRadius: 8, fontWeight: 700, whiteSpace: "nowrap" }}>🔗 Meal</span>
+          )}
+        </div>
         <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 3 }}>{cat?.name}</div>
         {item.description && <div style={{ fontSize: 9, color: T.textDim, marginBottom: 4, lineHeight: 1.4 }}>{item.description}</div>}
         {item.notes && <div style={{ fontSize: 9, color: T.accent, marginBottom: 4, fontStyle: "italic" }}>📝 {item.notes}</div>}
@@ -8754,6 +8778,8 @@ function RestaurantPage({
   // Meals state
   const [addingMeal, setAddingMeal] = useState(false);
   const [editMealId, setEditMealId] = useState(null);
+  const [mealSearch, setMealSearch] = useState("");
+  const [mealCatFilter, setMealCatFilter] = useState("All");
   const EMPTY_MEAL = {
     name: "",
     description: "",
@@ -8973,12 +8999,18 @@ function RestaurantPage({
     } else {
       setMeals((prev) => [...prev, { ...meal, id: Date.now() }]);
     }
+    // Sync photo to matching catalog item
+    if (meal.photo) syncPhotoToCatalog(meal.name, meal.photo);
     setAddingMeal(false);
     setNm(EMPTY_MEAL);
   };
   const startEditMeal = (meal) => {
+    // Auto-fill photo from matching catalog item if meal has none
+    const catMatch = catalogItems.find(c => c.name.toLowerCase() === meal.name.toLowerCase());
+    const photo = meal.photo || catMatch?.photo || null;
     setNm({
       ...meal,
+      photo,
       price: String(meal.price),
       laborCost: String(meal.laborCost || ""),
       availablePortions: String(meal.availablePortions || ""),
@@ -8986,6 +9018,22 @@ function RestaurantPage({
     });
     setEditMealId(meal.id);
     setAddingMeal(true);
+  };
+
+  // Sync a photo to the matching catalog item by name
+  const syncPhotoToCatalog = (mealName, photoSrc) => {
+    if (!setCatalogItems || !photoSrc) return;
+    setCatalogItems(prev => prev.map(c =>
+      c.name.toLowerCase() === mealName.toLowerCase() ? { ...c, photo: photoSrc } : c
+    ));
+  };
+
+  // Sync a photo to the matching meal by name
+  const syncPhotoToMeal = (catName, photoSrc) => {
+    if (!photoSrc) return;
+    setMeals(prev => prev.map(m =>
+      m.name.toLowerCase() === catName.toLowerCase() ? { ...m, photo: photoSrc } : m
+    ));
   };
   const importMealFromCatalog = (catItem) => {
     const exists = meals.find((m) => m.name === catItem.name);
@@ -10560,15 +10608,62 @@ function RestaurantPage({
             </div>
           )}
 
+          {/* Search & filter bar */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              style={{ ...S.input, flex: 1, minWidth: 180 }}
+              placeholder="🔍 Search meals…"
+              value={mealSearch}
+              onChange={e => setMealSearch(e.target.value)}
+            />
+            <select
+              style={{ ...S.select, minWidth: 130 }}
+              value={mealCatFilter}
+              onChange={e => setMealCatFilter(e.target.value)}
+            >
+              <option value="All">All Categories</option>
+              {["Main", "Starter", "Side", "Dessert", "Drink", "Imported", "Other"].map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <select
+              style={{ ...S.select, minWidth: 120 }}
+              value={mealCatFilter === "active" ? "active" : mealCatFilter === "inactive" ? "inactive" : ""}
+              onChange={e => { if (e.target.value) setMealCatFilter(e.target.value); }}
+            >
+              <option value="">All Status</option>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+            </select>
+            {(mealSearch || mealCatFilter !== "All") && (
+              <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 10px", whiteSpace: "nowrap" }}
+                onClick={() => { setMealSearch(""); setMealCatFilter("All"); }}>
+                ✕ Clear
+              </button>
+            )}
+            <span style={{ fontSize: 11, color: T.textDim, whiteSpace: "nowrap" }}>
+              {meals.filter(m => {
+                const matchSearch = !mealSearch || m.name.toLowerCase().includes(mealSearch.toLowerCase()) || (m.description || "").toLowerCase().includes(mealSearch.toLowerCase());
+                const matchCat = mealCatFilter === "All" ? true : mealCatFilter === "active" ? m.active : mealCatFilter === "inactive" ? !m.active : m.category === mealCatFilter;
+                return matchSearch && matchCat;
+              }).length} of {meals.length}
+            </span>
+          </div>
+
           {/* Meals list */}
           <div style={isMobile ? S.gridMobile : S.grid(3)}>
-            {meals.map((meal) => {
+            {meals.filter(meal => {
+              const matchSearch = !mealSearch || meal.name.toLowerCase().includes(mealSearch.toLowerCase()) || (meal.description || "").toLowerCase().includes(mealSearch.toLowerCase());
+              const matchCat = mealCatFilter === "All" ? true : mealCatFilter === "active" ? meal.active : mealCatFilter === "inactive" ? !meal.active : meal.category === mealCatFilter;
+              return matchSearch && matchCat;
+            }).map((meal) => {
               const ingCost = getMealIngCost(meal);
               const totalCost = getMealTotalCost(meal);
               const portions = Number(meal.availablePortions || 0);
               const profit = meal.price - totalCost;
               const margin =
                 meal.price > 0 && totalCost > 0
+
                   ? (((meal.price - totalCost) / meal.price) * 100).toFixed(0)
                   : null;
               const totalValue = meal.price * portions;
@@ -10612,6 +10707,8 @@ function RestaurantPage({
                             m.id === meal.id ? { ...m, photo: src } : m
                           )
                         );
+                        // Sync photo to matching catalog item
+                        syncPhotoToCatalog(meal.name, src);
                       };
                       inp.click();
                     }}
@@ -10687,7 +10784,12 @@ function RestaurantPage({
                       <div style={{ fontSize: 12, fontWeight: 700 }}>
                         {meal.name}
                       </div>
-                      <Badge color={T.textMuted}>{meal.category}</Badge>
+                      <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
+                        {catalogItems && catalogItems.some(c => c.name.toLowerCase() === meal.name.toLowerCase()) && (
+                          <span title="Linked to catalog — photos sync automatically" style={{ fontSize: 8, color: T.accent, background: T.accent + "18", padding: "1px 5px", borderRadius: 8, fontWeight: 700 }}>🔗 Catalog</span>
+                        )}
+                        <Badge color={T.textMuted}>{meal.category}</Badge>
+                      </div>
                     </div>
                     {meal.description && (
                       <div
