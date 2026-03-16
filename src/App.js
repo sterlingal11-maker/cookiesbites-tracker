@@ -6721,6 +6721,7 @@ function ProposalsPage({
 }) {
   const [sel, setSel] = useState(null);
   const [building, setBuilding] = useState(false);
+  const [editingPropIdx, setEditingPropIdx] = useState(null); // index of proposal being edited
   const [draft, setDraft] = useState({
     client: "",
     clientPhone: "",
@@ -6873,16 +6874,59 @@ function ProposalsPage({
       ],
     }));
   const saveDraft = () => {
-    const newNum = proposals.length + 1;
-    const p = {
-      ...draft,
-      id: Date.now(),
-      num: `PROP-${THIS_YEAR}-${String(newNum).padStart(4, "0")}`,
-      status: "Draft",
-    };
-    setProposals((prev) => [...prev, p]);
+    if (editingPropIdx !== null) {
+      // ── Edit mode: update existing proposal in-place ──────────────
+      const existing = proposals[editingPropIdx];
+      const updated = { ...existing, ...draft };
+      const u = [...proposals];
+      u[editingPropIdx] = updated;
+      setProposals(u);
+      setBuilding(false);
+      setEditingPropIdx(null);
+      setDraft({ ...BLANK_DRAFT });
+    } else {
+      // ── Create mode: add new proposal ────────────────────────────
+      const newNum = proposals.length + 1;
+      const p = {
+        ...draft,
+        id: Date.now(),
+        num: `PROP-${THIS_YEAR}-${String(newNum).padStart(4, "0")}`,
+        status: "Draft",
+      };
+      setProposals((prev) => [...prev, p]);
+      setBuilding(false);
+      setDraft({ ...BLANK_DRAFT });
+    }
+  };
+
+  const startEditProposal = (idx) => {
+    const p = proposals[idx];
+    setDraft({
+      client: p.client || "",
+      clientPhone: p.clientPhone || "",
+      eventType: p.eventType || "",
+      plannedDate: p.plannedDate || "",
+      guests: p.guests || "",
+      location: p.location || "",
+      discount: p.discount || 0,
+      notes: p.notes || "",
+      lines: p.lines ? p.lines.map(l => ({ ...l })) : [],
+      inventoryLinks: p.inventoryLinks || [],
+      eventId: p.eventId || null,
+      paymentTerms: p.paymentTerms || "",
+    });
+    setEditingPropIdx(idx);
+    setBuilding(true);
+    setSel(null);
+    // Scroll to top of form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelBuilding = () => {
     setBuilding(false);
+    setEditingPropIdx(null);
     setDraft({ ...BLANK_DRAFT });
+    setShowTemplates(false);
   };
   const updateLine = (pi, li, field, value) => {
     const u = [...proposals];
@@ -7062,7 +7106,7 @@ function ProposalsPage({
             {templates.length > 0 && <span style={{ ...S.badge(T.accent), marginLeft: 6 }}>⭐ {templates.length} template{templates.length > 1 ? "s" : ""}</span>}
           </div>
         </div>
-        <button style={S.btn("primary")} onClick={() => { setBuilding(!building); setShowTemplates(false); }}>
+        <button style={S.btn("primary")} onClick={() => { if (building) { cancelBuilding(); } else { setBuilding(true); setShowTemplates(false); } }}>
           {building ? "✕ Cancel" : "+ New Proposal"}
         </button>
       </div>
@@ -7070,7 +7114,18 @@ function ProposalsPage({
       {building && (
         <div style={{ ...S.card, marginBottom: 14, borderColor: T.accent }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div style={S.sectionTitle}>Build Proposal</div>
+            <div>
+              <div style={S.sectionTitle}>
+                {editingPropIdx !== null
+                  ? `✏️ Editing ${proposals[editingPropIdx]?.num}`
+                  : "Build Proposal"}
+              </div>
+              {editingPropIdx !== null && (
+                <div style={{ fontSize: 10, color: T.textMuted, marginTop: 2 }}>
+                  Changes will update the existing proposal · status stays as {proposals[editingPropIdx]?.status}
+                </div>
+              )}
+            </div>
             {proposals.length > 0 && (
               <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 10px" }} onClick={() => setShowTemplates(!showTemplates)}>
                 {showTemplates ? "✕ Close" : "📋 Load from existing…"}
@@ -7606,11 +7661,11 @@ function ProposalsPage({
             </div>
           )}
           <div style={{ ...S.row, marginTop: 10, justifyContent: "flex-end" }}>
-            <button style={S.btn("ghost")} onClick={() => { setBuilding(false); setShowTemplates(false); }}>
+            <button style={S.btn("ghost")} onClick={cancelBuilding}>
               Cancel
             </button>
             <button style={S.btn("primary")} onClick={saveDraft}>
-              Save Proposal
+              {editingPropIdx !== null ? "💾 Save Changes" : "Save Proposal"}
             </button>
           </div>
         </div>
@@ -8024,6 +8079,14 @@ function ProposalsPage({
                   >
                     🖨️ Print Proposal
                   </button>
+                  {(p.status === "Draft" || p.status === "Sent") && (
+                    <button
+                      style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: T.accent, color: T.accent }}
+                      onClick={(e) => { e.stopPropagation(); startEditProposal(i); }}
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
                   <button
                     style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px", borderColor: "#6366f1", color: "#6366f1" }}
                     onClick={(e) => { e.stopPropagation(); setContractModal({ propIdx: i }); }}
