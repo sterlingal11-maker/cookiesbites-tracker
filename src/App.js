@@ -5376,7 +5376,7 @@ function EventCostLedger({ evt, inventory, onUpdate }) {
   );
 }
 
-function CateringPage({ events, setEvents, proposals, setProposals, inventory, logo, biz, customers, setCustomers, invoices, setInvoices, catalogItems, setCatalogItems, catalogCategories, setCatalogCategories, meals, proposalPrefillLines, clearProposalPrefill }) {
+function CateringPage({ events, setEvents, proposals, setProposals, inventory, logo, biz, customers, setCustomers, invoices, setInvoices, catalogItems, setCatalogItems, catalogCategories, setCatalogCategories, meals, setMeals, proposalPrefillLines, clearProposalPrefill }) {
   const [cateringSubTab, setCateringSubTab] = useState("events");
   const [sel, setSel] = useState(null);
   const [filter, setFilter] = useState("All");
@@ -16629,6 +16629,7 @@ export default function App() {
             catalogCategories={catalogCategories}
             setCatalogCategories={setCatalogCategories}
             meals={meals}
+            setMeals={setMeals}
             proposalPrefillLines={proposalPrefillLines}
             clearProposalPrefill={() => setProposalPrefillLines(null)}
           />
