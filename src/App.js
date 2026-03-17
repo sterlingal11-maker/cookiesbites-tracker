@@ -11129,6 +11129,21 @@ function RestaurantPage({
                       >
                         {meal.active ? "Deactivate" : "Activate"}
                       </button>
+                      <button
+                        style={{
+                          ...S.btn("ghost"),
+                          fontSize: 9,
+                          padding: "2px 6px",
+                          color: T.danger,
+                          borderColor: T.danger + "40",
+                        }}
+                        onClick={() => {
+                          if (window.confirm(`Delete "${meal.name}"?\n\nThis cannot be undone.`))
+                            setMeals((prev) => prev.filter((m) => m.id !== meal.id));
+                        }}
+                      >
+                        🗑 Delete
+                      </button>
                     </div>
                   </div>
                 </div>
