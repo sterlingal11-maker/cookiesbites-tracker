@@ -3664,8 +3664,7 @@ function buildCatalogHTML(items, categories, biz, logo) {
           ${i.description ? `<div class="cat-item-desc">${i.description}</div>` : ""}
           ${i.notes ? `<div class="cat-item-notes">📝 ${i.notes}</div>` : ""}
           <div class="cat-item-footer">
-            <div class="cat-item-price">${fmt(i.price)}</div>
-            <div class="cat-item-unit">XAF / ${i.unitType}</div>
+            <div class="cat-item-unit" style="font-size:11px;color:#555">${i.unitType}</div>
           </div>
           ${i.tags && i.tags.length ? `<div class="cat-tags">${i.tags.map(t => `<span class="cat-tag">${t}</span>`).join("")}</div>` : ""}
         </div>
@@ -3682,7 +3681,7 @@ function buildCatalogHTML(items, categories, biz, logo) {
     .cat-item-name{font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:3px}
     .cat-item-desc{font-size:10px;color:#666;margin-bottom:4px;line-height:1.5}
     .cat-item-footer{display:flex;align-items:baseline;gap:5px;margin-top:6px}
-    .cat-item-price{font-size:14px;font-weight:800;color:#B8860B}
+    
     .cat-item-unit{font-size:9px;color:#999}
     .cat-tag{font-size:9px;background:#f0f0f0;color:#555;padding:1px 5px;border-radius:10px}
     .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
@@ -6446,11 +6445,11 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
   };
 
   const save = () => {
-    if (!ni.name || !ni.price) return;
+    if (!ni.name) return;
     const item = {
       ...ni,
-      price: Number(ni.price),
-      costPerUnit: Number(ni.costPerUnit) || 0,
+      price: 0,
+      costPerUnit: 0,
       tags: typeof ni.tags === "string" ? ni.tags.split(",").map(t => t.trim()).filter(Boolean) : ni.tags,
     };
     if (editId != null) {
@@ -6639,14 +6638,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
                     {["Per head","Per tray","Per platter","Per item","Per hour","Per day","Flat fee"].map(u => <option key={u}>{u}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label style={S.label}>Sale Price (XAF) *</label>
-                  <input style={S.input} type="number" value={ni.price} onChange={e => setNi({ ...ni, price: e.target.value })} />
-                </div>
-                <div>
-                  <label style={S.label}>Cost / Unit (XAF)</label>
-                  <input style={S.input} type="number" value={ni.costPerUnit} onChange={e => setNi({ ...ni, costPerUnit: e.target.value })} />
-                </div>
+
                 <div>
                   <label style={S.label}>Photo</label>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -6696,7 +6688,6 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
 // ─── CATALOG ITEM CARD ────────────────────────────────────────────
 function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, onDelete, meals }) {
   const cat = categories.find(c => c.id === item.catId);
-  const margin = item.costPerUnit && item.price ? (((item.price - item.costPerUnit) / item.price) * 100).toFixed(0) : null;
   return (
     <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
       <div style={{ height: 120, background: T.surface, position: "relative", cursor: "pointer" }}
@@ -6720,17 +6711,9 @@ function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, o
         <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 3 }}>{cat?.name}</div>
         {item.description && <div style={{ fontSize: 9, color: T.textDim, marginBottom: 4, lineHeight: 1.4 }}>{item.description}</div>}
         {item.notes && <div style={{ fontSize: 9, color: T.accent, marginBottom: 4, fontStyle: "italic" }}>📝 {item.notes}</div>}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-          <input type="number" value={item.price}
-            onChange={e => setItems(prev => prev.map(it => it.id === item.id ? { ...it, price: Number(e.target.value) } : it))}
-            style={{ ...S.input, width: 90, padding: "3px 5px", fontSize: 12, fontWeight: 800, color: T.accent }} />
-          <span style={{ fontSize: 9, color: T.textMuted }}>XAF / {item.unitType}</span>
+        <div style={{ fontSize: 10, color: T.textDim, marginBottom: 3 }}>
+          {item.unitType}
         </div>
-        {item.costPerUnit > 0 && (
-          <div style={{ fontSize: 9, color: T.textMuted, marginBottom: 4 }}>
-            Cost: {fmt(item.costPerUnit)} {margin && <span style={{ color: T.success }}>· Margin: {margin}%</span>}
-          </div>
-        )}
         <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
           {(Array.isArray(item.tags) ? item.tags : []).map(t => <span key={t} style={S.tag}>{t}</span>)}
           <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
@@ -6939,7 +6922,7 @@ function ProposalsPage({
   };
 
   const saveCatalogItem = () => {
-    if (!ni.name.trim() || !ni.price) return;
+    if (!ni.name.trim()) return;
     const item = {
       ...ni,
       id: Date.now(),
@@ -7501,16 +7484,6 @@ function ProposalsPage({
                     <div style={{ fontSize: 10, color: T.textMuted }}>
                       {item.unitType}
                     </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: T.accent,
-                        marginTop: 2,
-                      }}
-                    >
-                      {fmt(item.price)}
-                    </div>
                   </div>
                 </div>
               ))}
@@ -7591,18 +7564,6 @@ function ProposalsPage({
                   </select>
                 </div>
 
-                {/* Price */}
-                <div>
-                  <label style={S.label}>Sale Price (XAF) *</label>
-                  <input style={S.input} type="number" value={ni.price} onChange={e => setNi({ ...ni, price: e.target.value })} placeholder="0" />
-                </div>
-
-                {/* Cost */}
-                <div>
-                  <label style={S.label}>Cost / Unit (XAF)</label>
-                  <input style={S.input} type="number" value={ni.costPerUnit} onChange={e => setNi({ ...ni, costPerUnit: e.target.value })} placeholder="0" />
-                </div>
-
                 {/* Photo */}
                 <div>
                   <label style={S.label}>Photo</label>
@@ -7633,7 +7594,7 @@ function ProposalsPage({
               <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
                 <button
                   style={{ ...S.btn("primary"), fontSize: 12 }}
-                  disabled={!ni.name.trim() || !ni.price}
+                  disabled={!ni.name.trim()}
                   onClick={saveCatalogItem}
                 >
                   ✓ Save & Add to Proposal
