@@ -6527,7 +6527,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
             <div>
               <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 10 }}>{filtered.length} results for "{search}"</div>
               <div style={S.grid(3)}>
-                {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} />)}
+                {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} meals={meals} />)}
               </div>
             </div>
           ) : (
@@ -6678,7 +6678,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
 
           {/* Items grid */}
           <div style={S.grid(3)}>
-            {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} onDelete={() => setItems(prev => prev.filter(i => i.id !== item.id))} />)}
+            {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} onDelete={() => setItems(prev => prev.filter(i => i.id !== item.id))} meals={meals} />)}
           </div>
           {filtered.length === 0 && !adding && (
             <div style={{ color: T.textMuted, padding: 40, textAlign: "center", fontSize: 13 }}>
@@ -6694,7 +6694,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
 }
 
 // ─── CATALOG ITEM CARD ────────────────────────────────────────────
-function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, onDelete }) {
+function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, onDelete, meals }) {
   const cat = categories.find(c => c.id === item.catId);
   const margin = item.costPerUnit && item.price ? (((item.price - item.costPerUnit) / item.price) * 100).toFixed(0) : null;
   return (
