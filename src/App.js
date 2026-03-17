@@ -8877,6 +8877,7 @@ function RestaurantPage({
   const [editMealId, setEditMealId] = useState(null);
   const [mealSearch, setMealSearch] = useState("");
   const [mealCatFilter, setMealCatFilter] = useState("All");
+  const [ingSearch, setIngSearch] = useState(""); // search inside ingredient list when costing
   const EMPTY_MEAL = {
     name: "",
     description: "",
@@ -10272,136 +10273,97 @@ function RestaurantPage({
                   marginBottom: 10,
                 }}
               >
-                {inventory.map((inv) => {
-                  const link = (nm.ingredientLinks || []).find(
-                    (l) => l.inventoryId === inv.id
+                {/* Search bar */}
+                <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
+                  <input
+                    style={{ ...S.input, flex: 1, padding: "4px 8px", fontSize: 11 }}
+                    placeholder="🔍 Search ingredients…"
+                    value={ingSearch}
+                    onChange={e => setIngSearch(e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                  />
+                  {ingSearch && (
+                    <button style={{ ...S.btn("ghost"), fontSize: 10, padding: "3px 8px", flexShrink: 0 }}
+                      onClick={() => setIngSearch("")}>✕ Clear</button>
+                  )}
+                  {(nm.ingredientLinks || []).length > 0 && (
+                    <span style={{ fontSize: 10, color: T.accent, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+                      {(nm.ingredientLinks || []).length} linked
+                    </span>
+                  )}
+                </div>
+
+                {/* Linked ingredients — always shown at top, highlighted */}
+                {(nm.ingredientLinks || []).filter(link => {
+                  const inv = inventory.find(i => i.id === link.inventoryId);
+                  return inv && (!ingSearch || inv.name.toLowerCase().includes(ingSearch.toLowerCase()));
+                }).length > 0 && (
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: T.accent, marginBottom: 4 }}>✅ Linked</div>
+                    {(nm.ingredientLinks || []).map(link => {
+                      const inv = inventory.find(i => i.id === link.inventoryId);
+                      if (!inv) return null;
+                      if (ingSearch && !inv.name.toLowerCase().includes(ingSearch.toLowerCase())) return null;
+                      return (
+                        <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, fontSize: 11, background: T.accent + "08", borderRadius: 5, padding: "3px 6px" }}>
+                          <input type="checkbox" checked={true}
+                            onChange={() => setNm({ ...nm, ingredientLinks: (nm.ingredientLinks || []).filter(l => l.inventoryId !== inv.id) })} />
+                          <span style={{ flex: 1, color: T.text, fontWeight: 600 }}>{inv.name}</span>
+                          <span style={{ fontSize: 10, color: T.textDim, minWidth: 55 }}>{fmt(inv.costPerUnit)}/{inv.unit}</span>
+                          <input type="number" step="0.01" min="0"
+                            style={{ ...S.input, width: 65, padding: "3px 5px", fontSize: 11 }}
+                            value={link.qty}
+                            onChange={e => setNm({ ...nm, ingredientLinks: nm.ingredientLinks.map(l => l.inventoryId === inv.id ? { ...l, qty: Number(e.target.value) } : l) })}
+                          />
+                          <span style={{ fontSize: 10, color: T.textDim, minWidth: 28 }}>{inv.unit}</span>
+                          <span style={{ fontSize: 11, color: T.danger, fontWeight: 700, minWidth: 68, textAlign: "right" }}>
+                            {fmt((inv.costPerUnit || 0) * (link.qty || 0))}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    <div style={{ height: 1, background: T.border + "60", margin: "6px 0" }} />
+                  </div>
+                )}
+
+                {/* Unlinked ingredients */}
+                {(() => {
+                  const linkedIds = new Set((nm.ingredientLinks || []).map(l => l.inventoryId));
+                  const unlinked = inventory.filter(inv => {
+                    if (linkedIds.has(inv.id)) return false;
+                    if (ingSearch) return inv.name.toLowerCase().includes(ingSearch.toLowerCase()) || (inv.category || "").toLowerCase().includes(ingSearch.toLowerCase());
+                    return true;
+                  });
+                  if (unlinked.length === 0 && ingSearch) return (
+                    <div style={{ fontSize: 11, color: T.textDim, padding: "4px 0", textAlign: "center" }}>No ingredients match "{ingSearch}"</div>
                   );
                   return (
-                    <div
-                      key={inv.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 5,
-                        fontSize: 11,
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!link}
-                        onChange={() => {
-                          const links = nm.ingredientLinks || [];
-                          const has = links.some(
-                            (l) => l.inventoryId === inv.id
-                          );
-                          setNm({
-                            ...nm,
-                            ingredientLinks: has
-                              ? links.filter((l) => l.inventoryId !== inv.id)
-                              : [
-                                  ...links,
-                                  {
-                                    inventoryId: inv.id,
-                                    qty: inv.usedPerPlate || 0.1,
-                                  },
-                                ],
-                          });
-                        }}
-                      />
-                      <span style={{ flex: 1, color: T.textMuted }}>
-                        {inv.name}
-                      </span>
-                      <span
-                        style={{ fontSize: 10, color: T.textDim, minWidth: 60 }}
-                      >
-                        {fmt(inv.costPerUnit)}/{inv.unit}
-                      </span>
-                      {link && (
-                        <>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            style={{
-                              ...S.input,
-                              width: 65,
-                              padding: "3px 5px",
-                              fontSize: 11,
-                            }}
-                            value={link.qty}
-                            onChange={(e) =>
-                              setNm({
-                                ...nm,
-                                ingredientLinks: nm.ingredientLinks.map((l) =>
-                                  l.inventoryId === inv.id
-                                    ? { ...l, qty: Number(e.target.value) }
-                                    : l
-                                ),
-                              })
-                            }
-                          />
-                          <span
-                            style={{
-                              fontSize: 10,
-                              color: T.textDim,
-                              minWidth: 30,
-                            }}
-                          >
-                            {inv.unit}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: T.danger,
-                              fontWeight: 700,
-                              minWidth: 70,
-                              textAlign: "right",
-                            }}
-                          >
-                            {fmt(inv.costPerUnit * link.qty)}
-                          </span>
-                        </>
+                    <>
+                      {(nm.ingredientLinks || []).length > 0 && unlinked.length > 0 && !ingSearch && (
+                        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Available</div>
                       )}
-                      {!link && (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: T.textDim,
-                            minWidth: 185,
-                            textAlign: "right",
-                          }}
-                        >
-                          —
-                        </span>
-                      )}
-                    </div>
+                      {unlinked.map(inv => (
+                        <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, fontSize: 11 }}>
+                          <input type="checkbox" checked={false}
+                            onChange={() => setNm({ ...nm, ingredientLinks: [...(nm.ingredientLinks || []), { inventoryId: inv.id, qty: inv.usedPerPlate || 0.1 }] })} />
+                          <span style={{ flex: 1, color: T.textMuted }}>{inv.name}</span>
+                          <span style={{ fontSize: 10, color: T.textDim, minWidth: 55 }}>{fmt(inv.costPerUnit)}/{inv.unit}</span>
+                          <span style={{ fontSize: 10, color: T.textDim, minWidth: 55, textAlign: "right" }}>stock: {inv.stock}</span>
+                        </div>
+                      ))}
+                    </>
                   );
-                })}
+                })()}
+
+                {/* Ingredient subtotal */}
                 {(nm.ingredientLinks || []).length > 0 && (
-                  <div
-                    style={{
-                      borderTop: `1px solid ${T.border}`,
-                      marginTop: 6,
-                      paddingTop: 6,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 11,
-                      fontWeight: 700,
-                    }}
-                  >
-                    <span style={{ color: T.textMuted }}>
-                      Ingredient subtotal:
-                    </span>
+                  <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 6, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700 }}>
+                    <span style={{ color: T.textMuted }}>Ingredient subtotal:</span>
                     <span style={{ color: T.danger }}>
-                      {fmt(
-                        (nm.ingredientLinks || []).reduce((s, l) => {
-                          const inv = inventory.find(
-                            (i) => i.id === l.inventoryId
-                          );
-                          return s + (inv ? inv.costPerUnit * l.qty : 0);
-                        }, 0)
-                      )}
+                      {fmt((nm.ingredientLinks || []).reduce((s, l) => {
+                        const inv = inventory.find(i => i.id === l.inventoryId);
+                        return s + (inv ? inv.costPerUnit * l.qty : 0);
+                      }, 0))}
                     </span>
                   </div>
                 )}
