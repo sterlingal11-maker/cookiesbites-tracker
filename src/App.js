@@ -2989,7 +2989,7 @@ body{font-family:'Inter',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:
 .section-heading{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#aaa;margin-bottom:10px}
 table{width:100%;border-collapse:collapse}
 thead tr{background:#1a1a1a;color:#fff}
-thead th{padding:10px 12px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.3px}
+thead th{padding:10px 12px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.3px;color:#fff}
 thead th.tr{text-align:right}thead th.tc{text-align:center}
 tbody tr:nth-child(even){background:#fafafa}
 tbody td{padding:10px 12px;font-size:12px;color:#333;border-bottom:1px solid #ebebeb}
@@ -2998,9 +2998,9 @@ tbody td.tr{text-align:right;font-weight:600}tbody td.tc{text-align:center}tbody
 .totals-inner{width:320px;border-radius:8px;overflow:hidden;border:1px solid #e5e5e5}
 .total-row{display:flex;justify-content:space-between;padding:9px 14px;font-size:12px;border-bottom:1px solid #ebebeb}
 .total-row:last-child{border-bottom:none}
-.total-row.grand{background:#1a1a1a;color:#fff;padding:12px 14px}
-.total-row.grand .label{font-size:13px;font-weight:700}
-.total-row.grand .value{font-size:16px;font-weight:900}
+.total-row.grand{background:#1a1a1a;color:#fff!important;padding:12px 14px}
+.total-row.grand .label{font-size:13px;font-weight:700;color:#fff!important}
+.total-row.grand .value{font-size:16px;font-weight:900;color:#fff!important}
 .total-row .label{color:#555}.total-row .value{font-weight:700;color:#1a1a1a}
 .total-row.highlight .value{color:#16a34a;font-size:14px}
 .total-row.danger .value{color:#dc2626}
@@ -3163,11 +3163,7 @@ function buildInvoiceHTML(inv, evt, biz, logo) {
     inv.total
   )}</span></div><div class="total-row highlight"><span class="label">Amount Paid</span><span class="value">${fmt(
     inv.paid
-  )}</span></div><div class="total-row ${
-    bal > 0 ? "danger" : "highlight"
-  } grand"><span class="label">Balance Due</span><span class="value">${fmt(
-    bal
-  )}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Accepted methods:</span><strong>${
+  )}</span></div><div class="total-row grand" style="background:${bal>0?'#dc2626':'#16a34a'}"><span class="label" style="color:#fff!important;font-size:13px;font-weight:700">Balance Due</span><span class="value" style="color:#fff!important;font-size:16px;font-weight:900">${fmt(bal)}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Accepted methods:</span><strong>${
     biz.paymentTerms || "Cash · Mobile Money (MoMo) · Bank Transfer"
   }</strong></div><div class="payment-row"><span>Payment due:</span><strong>${
     inv.due
@@ -3450,8 +3446,8 @@ table.scope{width:100%;border-collapse:collapse;font-size:11.5px}
 table.scope th{background:#f3f3f3;padding:5px 7px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555}
 table.scope td{padding:5px 7px;border-bottom:1px solid #f0f0f0;vertical-align:top}
 .total-band{background:#1a1a1a;color:#fff;padding:7px 11px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;margin-top:7px}
-.total-band span{font-size:9px;letter-spacing:1px;text-transform:uppercase}
-.total-band strong{font-size:15px;font-weight:900}
+.total-band span{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#fff}
+.total-band strong{font-size:15px;font-weight:900;color:#fff}
 .pmt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:7px}
 .pmt-cell{background:#f8f8f8;border-radius:5px;padding:8px 10px}
 .pmt-cell .lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
@@ -3609,7 +3605,7 @@ function buildOrderReceiptHTML(sale, biz, logo) {
     sale.deliveryFee > 0
       ? `<tr><td>Delivery Fee</td><td class="tc">—</td><td class="tr">${fmt(sale.deliveryFee)}</td><td class="tr">${fmt(sale.deliveryFee)}</td></tr>`
       : ""
-  }</tbody></table></div><div class="totals-block"><div class="totals-inner"><div class="total-row"><span class="label">Order Total</span><span class="value">${fmt(total)}</span></div><div class="total-row highlight"><span class="label">${amountLabel}</span><span class="value">${fmt(paid)}</span></div>${isPartial ? `<div class="total-row" style="color:#e53e3e;font-weight:700"><span class="label">Balance Due</span><span class="value">${fmt(balance)}</span></div>` : `<div class="total-row grand"><span class="label">TOTAL PAID</span><span class="value">${fmt(paid)}</span></div>`}</div></div>${sale.notes ? `<div class="notes-box"><strong>Order Notes:</strong> ${sale.notes}</div>` : ""}<div class="notes-box"><strong>${isPartial ? "Partial payment received. Please settle the remaining balance." : "Thank you!"}</strong>${isPartial ? "" : " We appreciate your order. Come back soon!"}</div>${footerHTML(biz)}`;
+  }</tbody></table></div><div class="totals-block"><div class="totals-inner"><div class="total-row"><span class="label">Order Total</span><span class="value">${fmt(total)}</span></div><div class="total-row highlight"><span class="label">${amountLabel}</span><span class="value">${fmt(paid)}</span></div>${isPartial ? `<div class="total-row"><span class="label" style="color:#dc2626">Balance Due</span><span class="value" style="color:#dc2626;font-weight:800">${fmt(balance)}</span></div>` : `<div class="total-row grand"><span class="label">TOTAL PAID</span><span class="value">${fmt(paid)}</span></div>`}</div></div>${sale.notes ? `<div class="notes-box"><strong>Order Notes:</strong> ${sale.notes}</div>` : ""}<div class="notes-box"><strong>${isPartial ? "Partial payment received. Please settle the remaining balance." : "Thank you!"}</strong>${isPartial ? "" : " We appreciate your order. Come back soon!"}</div>${footerHTML(biz)}`;
 }
 
 function buildOrderInvoiceHTML(sale, biz, logo) {
@@ -3646,7 +3642,7 @@ function buildOrderInvoiceHTML(sale, biz, logo) {
     `<div class="party-name">${biz.name}</div><div class="party-detail">${[biz.address, biz.city, biz.phone, biz.email].filter(Boolean).join("<br/>")}</div>`,
     "Bill To",
     `<div class="party-name">${clientName}</div><div class="party-detail">${clientDetail}</div>`
-  )}${statusBanner}<div class="items-section"><div class="section-heading">Order Line Items</div><table><thead><tr><th>Description</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Total (XAF)</th></tr></thead><tbody>${rows}</tbody></table></div><div class="totals-block"><div class="totals-inner"><div class="total-row"><span class="label">Subtotal</span><span class="value">${fmt(sale.plates * sale.pricePerPlate)}</span></div>${sale.deliveryFee > 0 ? `<div class="total-row"><span class="label">Delivery Fee</span><span class="value">${fmt(sale.deliveryFee)}</span></div>` : ""}<div class="total-row grand"><span class="label">ORDER TOTAL</span><span class="value">${fmt(total)}</span></div><div class="total-row highlight"><span class="label">Amount Paid</span><span class="value">${fmt(paid)}</span></div><div class="total-row ${balance > 0 ? "highlight" : ""}" style="${balance > 0 ? "color:#e53e3e;font-weight:800" : ""}"><span class="label">Balance Due</span><span class="value">${fmt(balance)}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Method:</span><strong>${sale.method}</strong></div><div class="payment-row"><span>Date:</span><strong>${sale.date}</strong></div><div class="payment-row"><span>Order type:</span><strong>${sale.type}</strong></div>${sale.notes ? `<div class="payment-row"><span>Notes:</span><strong>${sale.notes}</strong></div>` : ""}</div><div class="terms-box"><p>${balance > 0 ? `A balance of <strong>${fmt(balance)}</strong> remains outstanding. Please settle at your earliest convenience.` : "This invoice confirms a completed and paid order. Please retain for your records."}</p></div>${footerHTML(biz)}`;
+  )}${statusBanner}<div class="items-section"><div class="section-heading">Order Line Items</div><table><thead><tr><th>Description</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Total (XAF)</th></tr></thead><tbody>${rows}</tbody></table></div><div class="totals-block"><div class="totals-inner"><div class="total-row"><span class="label">Subtotal</span><span class="value">${fmt(sale.plates * sale.pricePerPlate)}</span></div>${sale.deliveryFee > 0 ? `<div class="total-row"><span class="label">Delivery Fee</span><span class="value">${fmt(sale.deliveryFee)}</span></div>` : ""}<div class="total-row grand"><span class="label">ORDER TOTAL</span><span class="value">${fmt(total)}</span></div><div class="total-row highlight"><span class="label">Amount Paid</span><span class="value">${fmt(paid)}</span></div><div class="total-row"><span class="label" style="${balance>0?'color:#dc2626':'color:#16a34a'}">Balance Due</span><span class="value" style="${balance>0?'color:#dc2626;font-weight:800':'color:#16a34a;font-weight:800'}">${fmt(balance)}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Method:</span><strong>${sale.method}</strong></div><div class="payment-row"><span>Date:</span><strong>${sale.date}</strong></div><div class="payment-row"><span>Order type:</span><strong>${sale.type}</strong></div>${sale.notes ? `<div class="payment-row"><span>Notes:</span><strong>${sale.notes}</strong></div>` : ""}</div><div class="terms-box"><p>${balance > 0 ? `A balance of <strong>${fmt(balance)}</strong> remains outstanding. Please settle at your earliest convenience.` : "This invoice confirms a completed and paid order. Please retain for your records."}</p></div>${footerHTML(biz)}`;
 }
 function buildCatalogHTML(items, categories, biz, logo) {
   const catMap = {};
