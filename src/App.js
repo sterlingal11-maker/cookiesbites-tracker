@@ -16112,17 +16112,17 @@ export default function App() {
   const syncTimers = useRef({});
 
   // ── All app state — initialised from localStorage cache first ─────
-  const [events, setEvents] = useState(() => ls_get("cb_events", INIT_EVENTS));
-  const [sales, setSales] = useState(() => ls_get("cb_sales", INIT_SALES));
-  const [invoices, setInvoices] = useState(() => ls_get("cb_invoices", INIT_INVOICES));
-  const [proposals, setProposals] = useState(() => ls_get("cb_proposals", INIT_PROPOSALS));
+  const [events, setEvents] = useState(() => ls_get("cb_events", []));
+  const [sales, setSales] = useState(() => ls_get("cb_sales", []));
+  const [invoices, setInvoices] = useState(() => ls_get("cb_invoices", []));
+  const [proposals, setProposals] = useState(() => ls_get("cb_proposals", []));
   const [proposalPrefillLines, setProposalPrefillLines] = useState(null);
   const [catalogItems, setCatalogItems] = useState(() => ls_get("cb_catalog", CAT_ITEMS));
   const [catalogCategories, setCatalogCategories] = useState(() => ls_get("cb_catalog_cats", CAT_CATS));
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
   const [meals, setMeals] = useState(() => ls_get("cb_meals", INIT_MEALS));
   const [batches, setBatches] = useState(() => ls_get("cb_batches", []));
-  const [overheads, setOverheads] = useState(() => ls_get("cb_overheads", INIT_OVERHEADS));
+  const [overheads, setOverheads] = useState(() => ls_get("cb_overheads", []));
   const [logo, setLogo] = useState(() => ls_get("cb_logo", { src: LOGO_SRC }));
   const [biz, setBiz] = useState(() => ls_get("cb_biz", INIT_BIZ));
   const [customers, setCustomers] = useState(() => ls_get("cb_customers", []));
@@ -16152,23 +16152,19 @@ export default function App() {
       };
       if (cloud["cb_events"] !== undefined && cloud["cb_events"] !== null) {
         const _v = cloud["cb_events"];
-        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_EVENTS : _v;
-        setEvents(_d); ls_set("cb_events", _d);
+        setEvents(_v); ls_set("cb_events", _v);
       }
       if (cloud["cb_sales"] !== undefined && cloud["cb_sales"] !== null) {
         const _v = cloud["cb_sales"];
-        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_SALES : _v;
-        setSales(_d); ls_set("cb_sales", _d);
+        setSales(_v); ls_set("cb_sales", _v);
       }
       if (cloud["cb_invoices"] !== undefined && cloud["cb_invoices"] !== null) {
         const _v = cloud["cb_invoices"];
-        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_INVOICES : _v;
-        setInvoices(_d); ls_set("cb_invoices", _d);
+        setInvoices(_v); ls_set("cb_invoices", _v);
       }
       if (cloud["cb_proposals"] !== undefined && cloud["cb_proposals"] !== null) {
         const _v = cloud["cb_proposals"];
-        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_PROPOSALS : _v;
-        setProposals(_d); ls_set("cb_proposals", _d);
+        setProposals(_v); ls_set("cb_proposals", _v);
       }
       apply("cb_catalog",      setCatalogItems);
       apply("cb_catalog_cats", setCatalogCategories);
@@ -16177,20 +16173,17 @@ export default function App() {
       apply("cb_meals",        setMeals);
       if (cloud["cb_batches"] !== undefined && cloud["cb_batches"] !== null) {
         const _v = cloud["cb_batches"];
-        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_BATCHES : _v;
-        setBatches(_d); ls_set("cb_batches", _d);
+        setBatches(_v); ls_set("cb_batches", _v);
       }
       if (cloud["cb_overheads"] !== undefined && cloud["cb_overheads"] !== null) {
         const _v = cloud["cb_overheads"];
-        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_OVERHEADS : _v;
-        setOverheads(_d); ls_set("cb_overheads", _d);
+        setOverheads(_v); ls_set("cb_overheads", _v);
       }
       apply("cb_logo",         setLogo);
       apply("cb_biz",          setBiz);
       if (cloud["cb_customers"] !== undefined && cloud["cb_customers"] !== null) {
         const _v = cloud["cb_customers"];
-        const _d = Array.isArray(_v) && _v.length === 0 ? INIT_CUSTOMERS : _v;
-        setCustomers(_d); ls_set("cb_customers", _d);
+        setCustomers(_v); ls_set("cb_customers", _v);
       }
       apply("cb_vendors",      setVendors);
       apply("cb_social",       setSocialLinks);
