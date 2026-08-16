@@ -6399,6 +6399,8 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
   const [editId, setEditId] = useState(null);
   const [addingCat, setAddingCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [editingCatId, setEditingCatId] = useState(null);
+  const [editingCatName, setEditingCatName] = useState("");
   const [search, setSearch] = useState("");
   const EMPTY_NI = { catId: categories[0]?.id || 1, name: "", unitType: "Per head", price: "", costPerUnit: "", tags: "", description: "", notes: "", photo: null };
   const [ni, setNi] = useState(EMPTY_NI);
@@ -6504,10 +6506,23 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
     setNewCatName(""); setAddingCat(false);
   };
 
+  const renameCategory = (id, newName) => {
+    const trimmed = newName.trim(); if (!trimmed) return;
+    const old = categories.find(c => c.id === id);
+    if (!old || old.name === trimmed) return;
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, name: trimmed } : c));
+    // Sync meals that used the old category name
+    if (setMeals) setMeals(prev => prev.map(m => m.category === old.name ? { ...m, category: trimmed } : m));
+  };
+
   const deleteCategory = (id) => {
     if (items.some(i => i.catId === id)) { alert("Remove all items in this category first."); return; }
+    const deleted = categories.find(c => c.id === id);
+    const fallback = categories.find(c => c.id !== id)?.name || "";
     setCategories(prev => prev.filter(c => c.id !== id));
     if (selCat === id) setSelCat(null);
+    // Clear category on meals that used the deleted category
+    if (setMeals && deleted) setMeals(prev => prev.map(m => m.category === deleted.name ? { ...m, category: fallback } : m));
   };
 
   const openDoc = (title, html) => setDoc({ title, html, onPrint: () => printDoc(title, html) });
@@ -6574,7 +6589,25 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
                     </div>
                     {/* Tile label */}
                     <div style={{ padding: "8px 10px 6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>{cat.name}</div>
+                      {editingCatId === cat.id
+                        ? <input
+                            autoFocus
+                            style={{ ...S.input, fontSize: 11, padding: "2px 6px", marginBottom: 0, flex: 1, marginRight: 4 }}
+                            value={editingCatName}
+                            onChange={e => setEditingCatName(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") { renameCategory(cat.id, editingCatName); setEditingCatId(null); }
+                              if (e.key === "Escape") setEditingCatId(null);
+                            }}
+                            onBlur={() => { renameCategory(cat.id, editingCatName); setEditingCatId(null); }}
+                            onClick={e => e.stopPropagation()}
+                          />
+                        : <div
+                            title="Double-click to rename"
+                            style={{ fontSize: 11, fontWeight: 700, color: T.text, lineHeight: 1.3, flex: 1, cursor: "text" }}
+                            onDoubleClick={e => { e.stopPropagation(); setEditingCatId(cat.id); setEditingCatName(cat.name); }}
+                          >{cat.name}</div>
+                      }
                       <button style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 13, padding: 2, lineHeight: 1 }}
                         onClick={e => { e.stopPropagation(); deleteCategory(cat.id); }}>🗑</button>
                     </div>
