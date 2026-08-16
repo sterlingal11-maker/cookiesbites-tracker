@@ -16050,7 +16050,6 @@ function ImportModal({ onClose, onImport }) {
           "Inventory": data.inventory.length,
           "Catering Events": data.events.length,
           "Restaurant Sales": data.sales.length,
-          "Invoices": data.invoices.length,
           "Overheads": data.overheads.length,
         });
         setStage("preview");
@@ -16442,10 +16441,10 @@ export default function App() {
 
   const handleImport = (data) => {
     // Catalog, Meals, Proposals are NEVER overridden — import only adds/replaces transactional data
+    // Invoices are not imported — restaurant sales generate their own invoices/receipts on the sale card
     if (data.inventory.length)  setInventory(data.inventory);
     if (data.events.length)     setEvents(data.events);
     if (data.sales.length)      setSales(data.sales);
-    if (data.invoices.length)   setInvoices(data.invoices);
     if (data.overheads.length)  setOverheads(data.overheads);
   };
 
