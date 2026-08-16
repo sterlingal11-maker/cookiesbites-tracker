@@ -9032,13 +9032,24 @@ function RestaurantPage({
       setCustomers(prev => {
         const idx = prev.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
         if (idx >= 0) {
-          // Update phone if blank
           const updated = [...prev];
           updated[idx] = { ...updated[idx], phone: updated[idx].phone || phone };
           return updated;
         }
         return [...prev, { id: Date.now(), name, phone, email: "", classification: "Regular", notes: "", createdAt: TODAY_ISO }];
       });
+    }
+
+    // Auto-show receipt for new sales (not edits)
+    if (!editSaleId) {
+      const saleIndex = sales.length + 1;
+      const completeSale = { ...sale, saleIndex };
+      setTimeout(() => {
+        openDoc(
+          `Receipt – Order #${saleIndex}`,
+          buildOrderReceiptHTML(completeSale, biz, logo)
+        );
+      }, 100);
     }
   };
 
@@ -15987,7 +15998,7 @@ function parseWorkbook(wb) {
     method: String(r["Payment\nMethod * \u25bc"] || r["Payment Method *"] || r["Payment Method"] || "Cash").trim(),
     type: String(r["Order Type *\n\u25bc"] || r["Order Type *"] || r["Order Type"] || "Dine-in").trim(),
     deliveryFee: Number(r["Delivery Fee\n(XAF)"] || r["Delivery Fee (XAF)"] || r["Delivery Fee"] || 0),
-    clientName: String(r["Client Name\n(delivery only)"] || r["Client Name"] || "").trim(),
+    clientName: String(r["Client Name"] || r["Client Name\n(delivery only)"] || "").trim(),
     deliveryAddress: "",
   })).filter(r => r.meal);
 
