@@ -9040,17 +9040,7 @@ function RestaurantPage({
       });
     }
 
-    // Auto-show receipt for new sales (not edits)
-    if (!editSaleId) {
-      const saleIndex = sales.length + 1;
-      const completeSale = { ...sale, saleIndex };
-      setTimeout(() => {
-        openDoc(
-          `Receipt – Order #${saleIndex}`,
-          buildOrderReceiptHTML(completeSale, biz, logo)
-        );
-      }, 100);
-    }
+    // Invoice and Receipt are available on the sale card — no auto-popup
   };
 
   const deleteSale = (id) => {
