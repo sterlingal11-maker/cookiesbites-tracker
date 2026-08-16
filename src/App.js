@@ -6421,7 +6421,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
       name: item.name,
       description: item.description || "",
       price: 0,
-      category: "Main",
+      category: item.catId ? (categories.find(c => c.id === item.catId)?.name || categories[0]?.name || "Main") : (categories[0]?.name || "Main"),
       photo: item.photo || null,
       active: true,
       ingredientLinks: [],
@@ -8814,6 +8814,7 @@ function RestaurantPage({
   inventory,
   setInventory,
   catalogItems,
+  catalogCategories,
   meals,
   setMeals,
   batches,
@@ -8872,7 +8873,7 @@ function RestaurantPage({
     name: "",
     description: "",
     price: "",
-    category: "Main",
+    category: catalogCategories?.[0]?.name || "Main",
     photo: null,
     active: true,
     ingredientLinks: [],
@@ -10125,16 +10126,8 @@ function RestaurantPage({
                     value={nm.category}
                     onChange={(e) => setNm({ ...nm, category: e.target.value })}
                   >
-                    {[
-                      "Main",
-                      "Starter",
-                      "Side",
-                      "Dessert",
-                      "Drink",
-                      "Imported",
-                      "Other",
-                    ].map((c) => (
-                      <option key={c}>{c}</option>
+                    {(catalogCategories || []).map((c) => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -10674,8 +10667,8 @@ function RestaurantPage({
               onChange={e => setMealCatFilter(e.target.value)}
             >
               <option value="All">All Categories</option>
-              {["Main", "Starter", "Side", "Dessert", "Drink", "Imported", "Other"].map(c => (
-                <option key={c} value={c}>{c}</option>
+              {(catalogCategories || []).map(c => (
+                <option key={c.id} value={c.name}>{c.name}</option>
               ))}
             </select>
             <select
@@ -16631,6 +16624,7 @@ export default function App() {
             inventory={inventory}
             setInventory={setInventory}
             catalogItems={catalogItems}
+            catalogCategories={catalogCategories}
             meals={meals}
             setMeals={setMeals}
             batches={batches}
