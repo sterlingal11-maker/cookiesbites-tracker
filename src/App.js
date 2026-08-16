@@ -6409,6 +6409,29 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
     ? items.filter(i => i.catId === selCat && (!search || i.name.toLowerCase().includes(search.toLowerCase())))
     : items.filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()));
 
+  const copyToMeals = (item) => {
+    if (!setMeals) return;
+    const alreadyExists = meals.some(m => m.name.toLowerCase() === item.name.toLowerCase());
+    if (alreadyExists) {
+      alert(`"${item.name}" already exists in Meals.`);
+      return;
+    }
+    setMeals(prev => [...prev, {
+      id: Date.now(),
+      name: item.name,
+      description: item.description || "",
+      price: 0,
+      category: "Main",
+      photo: item.photo || null,
+      active: true,
+      ingredientLinks: [],
+      laborCost: "",
+      otherCosts: [],
+      availablePortions: "",
+    }]);
+    alert(`✅ "${item.name}" copied to Meals. Open the Meals tab to set the price and details.`);
+  };
+
   const handlePhoto = async (e, forItem = null) => {
     const f = e.target.files[0]; if (!f) return;
     const src = await uploadFile(f, "catalog");
@@ -6523,7 +6546,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
             <div>
               <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 10 }}>{filtered.length} results for "{search}"</div>
               <div style={S.grid(3)}>
-                {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} meals={meals} />)}
+                {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} meals={meals} onCopyToMeals={copyToMeals} />)}
               </div>
             </div>
           ) : (
@@ -6667,7 +6690,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
 
           {/* Items grid */}
           <div style={S.grid(3)}>
-            {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} onDelete={() => setItems(prev => prev.filter(i => i.id !== item.id))} meals={meals} />)}
+            {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} onDelete={() => setItems(prev => prev.filter(i => i.id !== item.id))} meals={meals} onCopyToMeals={copyToMeals} />)}
           </div>
           {filtered.length === 0 && !adding && (
             <div style={{ color: T.textMuted, padding: 40, textAlign: "center", fontSize: 13 }}>
@@ -6683,8 +6706,9 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
 }
 
 // ─── CATALOG ITEM CARD ────────────────────────────────────────────
-function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, onDelete, meals }) {
+function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, onDelete, meals, onCopyToMeals }) {
   const cat = categories.find(c => c.id === item.catId);
+  const linkedToMeal = meals.some(m => m.name.toLowerCase() === item.name.toLowerCase());
   return (
     <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
       <div style={{ height: 120, background: T.surface, position: "relative", cursor: "pointer" }}
@@ -6701,7 +6725,7 @@ function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, o
       <div style={{ padding: 9 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 1 }}>
           <div style={{ fontSize: 11, fontWeight: 700 }}>{item.name}</div>
-          {meals.some(m => m.name.toLowerCase() === item.name.toLowerCase()) && (
+          {linkedToMeal && (
             <span title="Linked to a meal — photos sync automatically" style={{ fontSize: 8, color: T.success, background: T.success + "18", padding: "1px 5px", borderRadius: 8, fontWeight: 700, whiteSpace: "nowrap" }}>🔗 Meal</span>
           )}
         </div>
@@ -6715,6 +6739,13 @@ function CatalogItemCard({ item, categories, setItems, startEdit, handlePhoto, o
           {(Array.isArray(item.tags) ? item.tags : []).map(t => <span key={t} style={S.tag}>{t}</span>)}
           <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
             <button style={{ ...S.btn("ghost"), fontSize: 9, padding: "1px 6px" }} onClick={() => startEdit(item)}>✏️ Edit</button>
+            {!linkedToMeal && onCopyToMeals && (
+              <button
+                title="Copy this item to Meals"
+                style={{ ...S.btn("ghost"), fontSize: 9, padding: "1px 6px", color: T.accent, borderColor: T.accent + "40" }}
+                onClick={() => onCopyToMeals(item)}
+              >→ Meals</button>
+            )}
             {onDelete && <button style={{ ...S.btn("ghost"), fontSize: 9, padding: "1px 6px", color: T.danger, borderColor: T.danger + "40" }} onClick={onDelete}>✕</button>}
           </div>
         </div>
