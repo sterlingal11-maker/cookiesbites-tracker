@@ -9109,7 +9109,7 @@ function RestaurantPage({
 
   // Meals
   const saveMeal = () => {
-    if (!nm.name || nm.price === "" || nm.price === null || nm.price === undefined) return;
+    if (!nm.name) return;
     const meal = {
       ...nm,
       price: Number(nm.price),
