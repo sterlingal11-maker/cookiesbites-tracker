@@ -6412,6 +6412,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
   const handlePhoto = async (e, forItem = null) => {
     const f = e.target.files[0]; if (!f) return;
     const src = await uploadFile(f, "catalog");
+    if (!src) { alert("❌ Photo upload failed. Please check your internet connection and try again."); return; }
     if (forItem != null) {
       const updatedItem = items.find(it => it.id === forItem);
       setItems(prev => prev.map(it => it.id === forItem ? { ...it, photo: src } : it));
@@ -6900,6 +6901,7 @@ function ProposalsPage({
   const handleCatalogPhoto = async (e) => {
     const f = e.target.files[0]; if (!f) return;
     const src = await uploadFile(f, "catalog");
+    if (!src) { alert("❌ Photo upload failed. Please check your internet connection and try again."); return; }
     setNi(prev => ({ ...prev, photo: src }));
   };
 
@@ -10152,6 +10154,7 @@ function RestaurantPage({
                         const f = e.target.files[0];
                         if (!f) return;
                         const src = await uploadFile(f, "meals");
+                        if (!src) { alert("❌ Photo upload failed. Please check your internet connection and try again."); return; }
                         setNm((n) => ({ ...n, photo: src }));
                       }}
                     />
@@ -10718,6 +10721,7 @@ function RestaurantPage({
                         const f = e.target.files[0];
                         if (!f) return;
                         const src = await uploadFile(f, "meals");
+                        if (!src) { alert("❌ Photo upload failed. Please check your internet connection and try again."); return; }
                         setMeals((prev) =>
                           prev.map((m) =>
                             m.id === meal.id ? { ...m, photo: src } : m

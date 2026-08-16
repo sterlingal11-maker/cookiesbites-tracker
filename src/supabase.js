@@ -19,25 +19,62 @@ export const isSupabaseConfigured = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 const BUCKET = "cb-media";
 
 /**
+ * Compress an image File to a JPEG at max 800px wide, quality 80.
+ * Returns a new File object. Falls back to original on any error.
+ */
+export function compressImage(file, maxW = 800, quality = 0.8) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxW / img.naturalWidth);
+      const w = Math.round(img.naturalWidth * scale);
+      const h = Math.round(img.naturalHeight * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width  = w;
+      canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+/**
  * Upload a File object to Supabase Storage.
+ * Compresses the image first, then uploads.
  * Returns the public URL on success, or null on failure.
- * Falls back to base64 data URL if Supabase is not configured.
+ * Falls back to compressed base64 if Supabase is not configured.
  */
 export async function uploadFile(file, folder = "misc") {
-  // No Supabase → fall back to base64 (offline / unconfigured)
-  if (!supabase) return readAsDataURL(file);
+  // Compress image before doing anything
+  const compressed = file.type.startsWith("image/") ? await compressImage(file) : file;
 
-  const ext  = file.name.split(".").pop() || "bin";
+  // No Supabase → fall back to base64 (offline / unconfigured)
+  if (!supabase) {
+    console.warn("[uploadFile] Supabase not configured — storing as base64 (not persistent across devices)");
+    return readAsDataURL(compressed);
+  }
+
+  const ext  = "jpg";
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, file, { upsert: false, contentType: file.type });
+    .upload(path, compressed, { upsert: false, contentType: "image/jpeg" });
 
   if (error) {
-    console.error("[uploadFile]", error.message);
-    // Fall back to base64 so the UI still works
-    return readAsDataURL(file);
+    console.error("[uploadFile] Storage upload failed:", error.message);
+    return null; // Signal failure — don't silently store base64 in JSONB
   }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
