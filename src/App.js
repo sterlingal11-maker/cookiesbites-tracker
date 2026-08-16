@@ -16226,6 +16226,29 @@ export default function App() {
     });
   };
 
+  // Map old hardcoded category strings to the closest catalog category name.
+  // If the meal's category already matches a catalog category exactly, leave it.
+  // Otherwise assign the first catalog category as fallback.
+  const migrateMealCategories = (meals, catCats) => {
+    if (!Array.isArray(meals) || !Array.isArray(catCats) || catCats.length === 0) return meals;
+    const validNames = new Set(catCats.map(c => c.name));
+    const fallback = catCats[0].name;
+    // Best-effort fuzzy map for old strings
+    const legacyMap = {
+      "Main":     catCats.find(c => /rice|main|chicken|beef|fish|stew/i.test(c.name))?.name || fallback,
+      "Starter":  catCats.find(c => /start|snack|small|chop/i.test(c.name))?.name || fallback,
+      "Side":     catCats.find(c => /side|veg|salad|fruit|platter/i.test(c.name))?.name || fallback,
+      "Dessert":  catCats.find(c => /dessert|pastry|pastries/i.test(c.name))?.name || fallback,
+      "Drink":    catCats.find(c => /drink|beverage|smoothie/i.test(c.name))?.name || fallback,
+      "Imported": catCats.find(c => /import|corp|seasonal/i.test(c.name))?.name || fallback,
+      "Other":    fallback,
+    };
+    return meals.map(m => {
+      if (!m.category || validNames.has(m.category)) return m;
+      return { ...m, category: legacyMap[m.category] || fallback };
+    });
+  };
+
   useEffect(() => {
     if (!isSupabaseConfigured()) { setCloudLoaded(true); return; }
     cloudGetAll(CLOUD_KEYS).then(cloud => {
@@ -16261,7 +16284,8 @@ export default function App() {
       // Inventory: if cloud is empty array, seed with INIT_INVENTORY
       apply("cb_inventory",    setInventory);
       if (cloud["cb_meals"] !== undefined && cloud["cb_meals"] !== null) {
-        const clean = stripBase64Photos(cloud["cb_meals"]);
+        const catCats = cloud["cb_catalog_cats"] || catalogCategories;
+        const clean = migrateMealCategories(stripBase64Photos(cloud["cb_meals"]), catCats);
         setMeals(clean); ls_set("cb_meals", clean);
       }
       if (cloud["cb_batches"] !== undefined && cloud["cb_batches"] !== null) {
