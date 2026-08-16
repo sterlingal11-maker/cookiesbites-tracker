@@ -9053,6 +9053,7 @@ function RestaurantPage({
         prev.map((m) => (m.id === editMealId ? { ...meal, id: editMealId } : m))
       );
       setEditMealId(null);
+      setExpandedMeal(null); // collapse costing panel on the card
     } else {
       setMeals((prev) => [...prev, { ...meal, id: Date.now() }]);
     }
@@ -9074,6 +9075,7 @@ function RestaurantPage({
       otherCosts: meal.otherCosts || [],
     });
     setEditMealId(meal.id);
+    setExpandedMeal(null); // collapse costing panel while editing
     setAddingMeal(true);
   };
 
