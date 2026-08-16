@@ -8878,12 +8878,41 @@ function RestaurantPage({
     deliveryAddress: "",
     clientName: "",
     clientPhone: "",
+    clientEmail: "",
+    clientCategory: "Regular",
     notes: "",
     partialPaid: "",
   };
   const [ns, setNs] = useState(EMPTY);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCust, setNewCust] = useState({ name: "", phone: "", email: "", notes: "" });
+
+  // On mount: sweep all existing sales and extract customers not yet on the list
+  React.useEffect(() => {
+    const named = sales.filter(s => s.clientName && s.clientName.trim());
+    if (!named.length) return;
+    setCustomers(prev => {
+      let updated = [...prev];
+      named.forEach(s => {
+        const name = s.clientName.trim();
+        const phone = (s.clientPhone || "").trim();
+        const email = (s.clientEmail || "").trim();
+        const classification = s.clientCategory || "Regular";
+        const idx = updated.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+        if (idx >= 0) {
+          updated[idx] = {
+            ...updated[idx],
+            phone: phone || updated[idx].phone,
+            email: email || updated[idx].email,
+          };
+        } else {
+          updated.push({ id: Date.now() + Math.random(), name, phone, email, classification, notes: "", createdAt: TODAY_ISO });
+        }
+      });
+      return updated;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [addingInv, setAddingInv] = useState(false);
   const [editInvId, setEditInvId] = useState(null);
   const [invSearch, setInvSearch] = useState("");
@@ -9025,18 +9054,25 @@ function RestaurantPage({
     setShowNewCustomer(false);
     setNewCust({ name: "", phone: "", email: "", notes: "" });
 
-    // Auto-upsert customer from order
+    // Auto-upsert customer from order — merge in any new info
     if (ns.clientName && ns.clientName.trim()) {
       const name = ns.clientName.trim();
       const phone = (ns.clientPhone || "").trim();
+      const email = (ns.clientEmail || "").trim();
+      const classification = ns.clientCategory || "Regular";
       setCustomers(prev => {
         const idx = prev.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
         if (idx >= 0) {
           const updated = [...prev];
-          updated[idx] = { ...updated[idx], phone: updated[idx].phone || phone };
+          updated[idx] = {
+            ...updated[idx],
+            phone: phone || updated[idx].phone,
+            email: email || updated[idx].email,
+            classification: classification !== "Regular" ? classification : updated[idx].classification,
+          };
           return updated;
         }
-        return [...prev, { id: Date.now(), name, phone, email: "", classification: "Regular", notes: "", createdAt: TODAY_ISO }];
+        return [...prev, { id: Date.now(), name, phone, email, classification, notes: "", createdAt: TODAY_ISO }];
       });
     }
 
@@ -9520,6 +9556,7 @@ function RestaurantPage({
                     <option>Dine-in</option>
                     <option>Takeaway</option>
                     <option>Delivery</option>
+                    <option>Catering</option>
                   </select>
                 </div>
                 <div>
@@ -9549,7 +9586,7 @@ function RestaurantPage({
                     value={ns.method}
                     onChange={(e) => setNs({ ...ns, method: e.target.value })}
                   >
-                    {["Cash", "Mobile Money", "Bank Transfer", "Card"].map(
+                    {["Cash", "Mobile Money", "Bank Transfer", "Card", "Credit"].map(
                       (m) => (
                         <option key={m}>{m}</option>
                       )
@@ -9566,12 +9603,15 @@ function RestaurantPage({
                     onChange={(e) => {
                       const val = e.target.value;
                       const match = customers.find(c => c.name === val);
-                      setNs({ ...ns, clientName: val, clientPhone: match ? match.phone : ns.clientPhone });
-                      // If typed name is non-empty and doesn't match any customer, offer to add
-                      if (val.trim() && !match) {
-                        setNewCust(prev => ({ ...prev, name: val.trim() }));
+                      if (match) {
+                        setNs({ ...ns, clientName: val, clientPhone: match.phone || ns.clientPhone, clientEmail: match.email || ns.clientEmail, clientCategory: match.classification || ns.clientCategory });
                       } else {
-                        setShowNewCustomer(false);
+                        setNs({ ...ns, clientName: val });
+                        if (val.trim() && !match) {
+                          setNewCust(prev => ({ ...prev, name: val.trim() }));
+                        } else {
+                          setShowNewCustomer(false);
+                        }
                       }
                     }}
                   />
@@ -9677,6 +9717,28 @@ function RestaurantPage({
                     value={ns.clientPhone}
                     onChange={(e) => setNs({ ...ns, clientPhone: e.target.value })}
                   />
+                </div>
+                <div>
+                  <label style={S.label}>Client Email <span style={{ color: T.textDim, fontWeight: 400 }}>(optional)</span></label>
+                  <input
+                    style={S.input}
+                    type="email"
+                    placeholder="client@email.com"
+                    value={ns.clientEmail || ""}
+                    onChange={(e) => setNs({ ...ns, clientEmail: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label style={S.label}>Client Category</label>
+                  <select
+                    style={S.select}
+                    value={ns.clientCategory || "Regular"}
+                    onChange={(e) => setNs({ ...ns, clientCategory: e.target.value })}
+                  >
+                    {["Regular", "VIP", "Wholesale", "Corporate", "Walk-in", "Blacklisted"].map(c => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label style={S.label}>Amount Paid Now (XAF) <span style={{ color: T.textDim, fontWeight: 400 }}>— leave blank = fully paid</span></label>
