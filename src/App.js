@@ -8886,6 +8886,8 @@ function RestaurantPage({
   const [newCust, setNewCust] = useState({ name: "", phone: "", email: "", notes: "" });
   const [addingInv, setAddingInv] = useState(false);
   const [editInvId, setEditInvId] = useState(null);
+  const [invSearch, setInvSearch] = useState("");
+  const [invCatFilter, setInvCatFilter] = useState("All");
   const [ni, setNi] = useState({
     name: "",
     category: "Ingredient",
@@ -11475,6 +11477,27 @@ function RestaurantPage({
               </div>
             </div>
           )}
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <input
+              style={{ ...S.input, flex: 1, minWidth: 180, marginBottom: 0 }}
+              placeholder="🔍 Search items…"
+              value={invSearch}
+              onChange={e => setInvSearch(e.target.value)}
+            />
+            <select
+              style={{ ...S.select, minWidth: 150 }}
+              value={invCatFilter}
+              onChange={e => setInvCatFilter(e.target.value)}
+            >
+              <option value="All">All Categories</option>
+              {[...new Set(inventory.map(i => i.category).filter(Boolean))].sort().map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            {(invSearch || invCatFilter !== "All") && (
+              <button style={{ ...S.btn("ghost"), fontSize: 11 }} onClick={() => { setInvSearch(""); setInvCatFilter("All"); }}>✕ Clear</button>
+            )}
+          </div>
           <div className="tbl-wrap">
             <table style={S.table}>
               <thead>
@@ -11498,7 +11521,12 @@ function RestaurantPage({
                 </tr>
               </thead>
               <tbody>
-                {inventory.map((item) => {
+                {inventory.filter(item => {
+                  const q = invSearch.toLowerCase();
+                  const matchSearch = !invSearch || item.name.toLowerCase().includes(q) || (item.category || "").toLowerCase().includes(q) || (item.unit || "").toLowerCase().includes(q);
+                  const matchCat = invCatFilter === "All" || item.category === invCatFilter;
+                  return matchSearch && matchCat;
+                }).map((item) => {
                   const low = item.stock <= item.reorderAt;
 
                   return (
