@@ -6602,14 +6602,18 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
                             onBlur={() => { renameCategory(cat.id, editingCatName); setEditingCatId(null); }}
                             onClick={e => e.stopPropagation()}
                           />
-                        : <div
-                            title="Double-click to rename"
-                            style={{ fontSize: 11, fontWeight: 700, color: T.text, lineHeight: 1.3, flex: 1, cursor: "text" }}
-                            onDoubleClick={e => { e.stopPropagation(); setEditingCatId(cat.id); setEditingCatName(cat.name); }}
-                          >{cat.name}</div>
+                        : <div style={{ fontSize: 11, fontWeight: 700, color: T.text, lineHeight: 1.3, flex: 1 }}>{cat.name}</div>
                       }
-                      <button style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 13, padding: 2, lineHeight: 1 }}
-                        onClick={e => { e.stopPropagation(); deleteCategory(cat.id); }}>🗑</button>
+                      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                        {editingCatId !== cat.id && (
+                          <button
+                            title="Rename category"
+                            style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 11, padding: 2, lineHeight: 1 }}
+                            onClick={e => { e.stopPropagation(); setEditingCatId(cat.id); setEditingCatName(cat.name); }}>✏️</button>
+                        )}
+                        <button style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 13, padding: 2, lineHeight: 1 }}
+                          onClick={e => { e.stopPropagation(); deleteCategory(cat.id); }}>🗑</button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -9105,7 +9109,7 @@ function RestaurantPage({
 
   // Meals
   const saveMeal = () => {
-    if (!nm.name || !nm.price) return;
+    if (!nm.name || nm.price === "" || nm.price === null || nm.price === undefined) return;
     const meal = {
       ...nm,
       price: Number(nm.price),
@@ -9987,7 +9991,7 @@ function RestaurantPage({
               <div style={S.cardTitle}>Avg. Price</div>
               <div style={{ ...S.kpi, fontSize: 18 }}>
                 {meals.length
-                  ? fmt(meals.reduce((s, m) => s + m.price, 0) / meals.length)
+                  ? fmt(meals.reduce((s, m) => s + Number(m.price || 0), 0) / meals.length)
                   : "—"}
               </div>
             </div>
