@@ -16121,10 +16121,16 @@ export default function App() {
   const [invoices, setInvoices] = useState(() => ls_get("cb_invoices", []));
   const [proposals, setProposals] = useState(() => ls_get("cb_proposals", []));
   const [proposalPrefillLines, setProposalPrefillLines] = useState(null);
-  const [catalogItems, setCatalogItems] = useState(() => ls_get("cb_catalog", CAT_ITEMS));
+  const [catalogItems, setCatalogItems] = useState(() => {
+    const raw = ls_get("cb_catalog", CAT_ITEMS);
+    return Array.isArray(raw) ? raw.map(i => i?.photo?.startsWith("data:") ? { ...i, photo: null } : i) : raw;
+  });
   const [catalogCategories, setCatalogCategories] = useState(() => ls_get("cb_catalog_cats", CAT_CATS));
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
-  const [meals, setMeals] = useState(() => ls_get("cb_meals", INIT_MEALS));
+  const [meals, setMeals] = useState(() => {
+    const raw = ls_get("cb_meals", INIT_MEALS);
+    return Array.isArray(raw) ? raw.map(m => m?.photo?.startsWith("data:") ? { ...m, photo: null } : m) : raw;
+  });
   const [batches, setBatches] = useState(() => ls_get("cb_batches", []));
   const [overheads, setOverheads] = useState(() => ls_get("cb_overheads", []));
   const [logo, setLogo] = useState(() => ls_get("cb_logo", { src: LOGO_SRC }));
@@ -16143,6 +16149,19 @@ export default function App() {
     "cb_batches","cb_overheads","cb_logo","cb_biz",
     "cb_customers","cb_vendors","cb_social",
   ];
+
+  // Strip base64 photo blobs from items — replace with null so they
+  // don't bloat JSONB rows and cause silent write failures.
+  // Legitimate photos are Supabase Storage public URLs (https://...).
+  const stripBase64Photos = (items) => {
+    if (!Array.isArray(items)) return items;
+    return items.map(item => {
+      if (item && item.photo && item.photo.startsWith("data:")) {
+        return { ...item, photo: null };
+      }
+      return item;
+    });
+  };
 
   useEffect(() => {
     if (!isSupabaseConfigured()) { setCloudLoaded(true); return; }
@@ -16170,11 +16189,18 @@ export default function App() {
         const _v = cloud["cb_proposals"];
         setProposals(_v); ls_set("cb_proposals", _v);
       }
-      apply("cb_catalog",      setCatalogItems);
+      // Strip base64 blobs before loading catalog/meals — they bloat JSONB and break sync
+      if (cloud["cb_catalog"] !== undefined && cloud["cb_catalog"] !== null) {
+        const clean = stripBase64Photos(cloud["cb_catalog"]);
+        setCatalogItems(clean); ls_set("cb_catalog", clean);
+      }
       apply("cb_catalog_cats", setCatalogCategories);
       // Inventory: if cloud is empty array, seed with INIT_INVENTORY
       apply("cb_inventory",    setInventory);
-      apply("cb_meals",        setMeals);
+      if (cloud["cb_meals"] !== undefined && cloud["cb_meals"] !== null) {
+        const clean = stripBase64Photos(cloud["cb_meals"]);
+        setMeals(clean); ls_set("cb_meals", clean);
+      }
       if (cloud["cb_batches"] !== undefined && cloud["cb_batches"] !== null) {
         const _v = cloud["cb_batches"];
         setBatches(_v); ls_set("cb_batches", _v);
