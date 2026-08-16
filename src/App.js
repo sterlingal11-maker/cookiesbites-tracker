@@ -16102,8 +16102,8 @@ function ImportModal({ onClose, onImport }) {
               {err && <div style={{ background:`${T.danger}15`, border:`1px solid ${T.danger}40`, borderRadius:7, padding:"9px 12px", fontSize:12, color:T.danger, marginBottom:10 }}>⚠️ {err}</div>}
               <div style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:"10px 13px", fontSize:11, color:T.textMuted, lineHeight:1.75 }}>
                 <div style={{ fontWeight:700, color:T.text, marginBottom:3 }}>⚠️ Before importing</div>
-                This will <strong style={{ color:T.danger }}>replace all existing data</strong> for each sheet that has rows.
-                Sheets with 0 rows will not be changed. Make sure you are using the official template.
+                <strong style={{ color:T.success }}>Safe:</strong> Catalog, Meals and Proposals are <strong>never overwritten</strong>.<br />
+                <strong style={{ color:T.warning }}>Replaced:</strong> Sales and Expenses will be replaced by sheets that have rows. Inventory and Events will also be replaced if present. Sheets with 0 rows are left unchanged.
               </div>
             </>
           )}
@@ -16133,7 +16133,7 @@ function ImportModal({ onClose, onImport }) {
                 ))}
               </div>
               <div style={{ background:`${T.warning}12`, border:`1px solid ${T.warning}40`, borderRadius:8, padding:"9px 13px", fontSize:11, color:T.textMuted, lineHeight:1.7 }}>
-                ⚠️ Clicking <strong style={{ color:T.text }}>Import Now</strong> will overwrite existing records in each populated sheet. Sheets with 0 rows will be left unchanged.
+                ⚠️ Clicking <strong style={{ color:T.text }}>Import Now</strong> will replace Sales and Expenses (and Inventory/Events if present). <strong style={{ color:T.success }}>Catalog, Meals and Proposals will NOT be changed.</strong>
               </div>
             </>
           )}
@@ -16440,8 +16440,7 @@ export default function App() {
   };
 
   const handleImport = (data) => {
-    if (data.catalog.length)    setCatalogItems(data.catalog);
-    if (data.meals.length)      setMeals(data.meals);
+    // Catalog, Meals, Proposals are NEVER overridden — import only adds/replaces transactional data
     if (data.inventory.length)  setInventory(data.inventory);
     if (data.events.length)     setEvents(data.events);
     if (data.sales.length)      setSales(data.sales);
