@@ -15801,17 +15801,15 @@ function loadAuth() {
 }
 function saveOwnerAuth(email, pw) {
   const existing = loadAuth() || {};
-  localStorage.setItem(AUTH_KEY, JSON.stringify({
-    ...existing,
-    owner: { email: email.trim().toLowerCase(), hash: hashPassword(pw) }
-  }));
+  const updated = { ...existing, owner: { email: email.trim().toLowerCase(), hash: hashPassword(pw) } };
+  localStorage.setItem(AUTH_KEY, JSON.stringify(updated));
+  if (isSupabaseConfigured()) cloudSet("cb_auth", updated);
 }
 function saveStaffAuth(email, pw) {
   const existing = loadAuth() || {};
-  localStorage.setItem(AUTH_KEY, JSON.stringify({
-    ...existing,
-    staff: pw ? { email: email.trim().toLowerCase(), hash: hashPassword(pw) } : null
-  }));
+  const updated = { ...existing, staff: pw ? { email: email.trim().toLowerCase(), hash: hashPassword(pw) } : null };
+  localStorage.setItem(AUTH_KEY, JSON.stringify(updated));
+  if (isSupabaseConfigured()) cloudSet("cb_auth", updated);
 }
 function loadSession() {
   try {
@@ -15830,7 +15828,9 @@ function clearSession() {
 
 // ─── LOGIN SCREEN ─────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const auth = loadAuth();
+  const localAuth = loadAuth();
+  const [auth, setAuth] = useState(localAuth);
+  const [syncing, setSyncing] = useState(!localAuth?.owner);
   const isFirstTime = !auth?.owner;
   const [email, setEmail] = useState(isFirstTime ? "cookiesbites@email.cm" : "");
   const [pw, setPw] = useState("");
@@ -15839,16 +15839,35 @@ function LoginScreen({ onLogin }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // If no local credentials, try fetching from Supabase (handles new devices / cleared cache)
+  useEffect(() => {
+    if (localAuth?.owner) { setSyncing(false); return; }
+    if (!isSupabaseConfigured()) { setSyncing(false); return; }
+    cloudGet("cb_auth").then(data => {
+      if (data?.owner) {
+        localStorage.setItem(AUTH_KEY, JSON.stringify(data));
+        setAuth(data);
+      }
+      setSyncing(false);
+    }).catch(() => setSyncing(false));
+  }, []); // eslint-disable-line
+
+  const persistAuth = (authObj) => {
+    localStorage.setItem(AUTH_KEY, JSON.stringify(authObj));
+    if (isSupabaseConfigured()) cloudSet("cb_auth", authObj);
+  };
+
   const handleSubmit = () => {
     setError("");
     if (!email.trim()) { setError("Email is required."); return; }
     if (!pw) { setError("Password is required."); return; }
 
-    if (isFirstTime) {
+    if (!auth?.owner) {
       // First-time owner setup
       if (pw.length < 6) { setError("Password must be at least 6 characters."); return; }
       if (pw !== pw2) { setError("Passwords do not match."); return; }
-      saveOwnerAuth(email, pw);
+      const newAuth = { owner: { email: email.trim().toLowerCase(), hash: hashPassword(pw) } };
+      persistAuth(newAuth);
       saveSession("owner");
       setLoading(true);
       setTimeout(() => onLogin("owner"), 400);
@@ -15874,6 +15893,15 @@ function LoginScreen({ onLogin }) {
 
     setError("Incorrect email or password.");
   };
+
+  if (syncing) {
+    return (
+      <div style={{ background: T.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+        <img src={LOGO_SRC} alt="Cookie's Bites" style={{ width: 120, objectFit: "contain" }} />
+        <div style={{ color: T.textMuted, fontSize: 13 }}>Checking credentials…</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
