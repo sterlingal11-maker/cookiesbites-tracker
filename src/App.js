@@ -8656,20 +8656,17 @@ function BatchesTab({ batches, setBatches, meals, setMeals, inventory, setInvent
                 }}
               >
                 <option value="">— Select a meal —</option>
-                {(() => {
-                  const cats = [...new Set(meals.map(m => m.category || "Other"))].sort();
-                  return cats.map(cat => {
-                    const catMeals = meals.filter(m => (m.category || "Other") === cat && m.active !== false);
-                    if (!catMeals.length) return null;
-                    return (
-                      <optgroup key={cat} label={cat}>
-                        {catMeals.map(m => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                      </optgroup>
-                    );
-                  });
-                })()}
+                {[...new Set(meals.map(m => m.category || "Other"))].sort().map(cat => {
+                  const catMeals = meals.filter(m => (m.category || "Other") === cat && m.active !== false);
+                  if (!catMeals.length) return null;
+                  return (
+                    <optgroup key={cat} label={cat}>
+                      {catMeals.map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
               </select>
               {!nb.mealId && (
                 <input
