@@ -8656,17 +8656,13 @@ function BatchesTab({ batches, setBatches, meals, setMeals, inventory, setInvent
                 }}
               >
                 <option value="">— Select a meal —</option>
-                {[...new Set(meals.map(m => m.category || "Other"))].sort().map(cat => {
-                  const catMeals = meals.filter(m => (m.category || "Other") === cat && m.active !== false);
-                  if (!catMeals.length) return null;
-                  return (
-                    <optgroup key={cat} label={cat}>
-                      {catMeals.map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
+                {[...new Set(meals.filter(m => m.active !== false).map(m => m.category || "Other"))].sort().map(cat => (
+                  <optgroup key={cat} label={cat}>
+                    {meals.filter(m => m.active !== false && (m.category || "Other") === cat).map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
               {!nb.mealId && (
                 <input
@@ -8690,7 +8686,6 @@ function BatchesTab({ batches, setBatches, meals, setMeals, inventory, setInvent
                   setNb((n) => ({
                     ...n,
                     portions,
-                    // Auto-recalculate cost for new batches when meal has costing data
                     totalCost: !editBatchId && newCost > 0 ? String(Math.round(newCost)) : n.totalCost,
                   }));
                 }}
@@ -8700,18 +8695,15 @@ function BatchesTab({ batches, setBatches, meals, setMeals, inventory, setInvent
               <label style={S.label}>
                 Total Production Cost (XAF)
                 {suggestedCost > 0 && (
-                  <span style={{ color: T.textMuted, marginLeft: 6, fontWeight: 400, fontSize: 10 }}>
-                    {!editBatchId ? "auto-calculated from meal costing" : ""}
-                    <span
-                      style={{ color: T.accent, marginLeft: 6, cursor: "pointer" }}
-                      onClick={() => setNb((n) => ({ ...n, totalCost: String(Math.round(suggestedCost)) }))}
-                    >↺ Recalculate</span>
-                  </span>
+                  <span
+                    style={{ color: T.accent, marginLeft: 8, cursor: "pointer", fontWeight: 400, fontSize: 10 }}
+                    onClick={() => setNb((n) => ({ ...n, totalCost: String(Math.round(suggestedCost)) }))}
+                  >↺ Recalculate ({fmt(suggestedCost)})</span>
                 )}
               </label>
               <input
                 type="number"
-                style={{ ...S.input, borderColor: !editBatchId && suggestedCost > 0 && nb.totalCost === String(Math.round(suggestedCost)) ? T.accent + "60" : undefined }}
+                style={S.input}
                 placeholder={suggestedCost > 0 ? `Suggested: ${Math.round(suggestedCost)}` : "e.g. 47500"}
                 value={nb.totalCost}
                 onChange={(e) => setNb((n) => ({ ...n, totalCost: e.target.value }))}
@@ -8935,7 +8927,7 @@ function RestaurantPage({
       });
       return updated;
     });
-  }, []); // runs once on mount to backfill customers from existing sales
+  }, []);
   const [addingInv, setAddingInv] = useState(false);
   const [editInvId, setEditInvId] = useState(null);
   const [invSearch, setInvSearch] = useState("");
