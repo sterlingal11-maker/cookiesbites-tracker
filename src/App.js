@@ -8651,15 +8651,25 @@ function BatchesTab({ batches, setBatches, meals, setMeals, inventory, setInvent
                     ...n,
                     mealId: e.target.value,
                     mealName: meal ? meal.name : "",
-                    // Auto-fill cost for new batches; don't clobber edits
                     totalCost: !editBatchId && newCost > 0 ? String(Math.round(newCost)) : n.totalCost,
                   }));
                 }}
               >
-                <option value="">— Select a meal or type below —</option>
-                {meals.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
+                <option value="">— Select a meal —</option>
+                {(() => {
+                  const cats = [...new Set(meals.map(m => m.category || "Other"))].sort();
+                  return cats.map(cat => {
+                    const catMeals = meals.filter(m => (m.category || "Other") === cat && m.active !== false);
+                    if (!catMeals.length) return null;
+                    return (
+                      <optgroup key={cat} label={cat}>
+                        {catMeals.map(m => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </optgroup>
+                    );
+                  });
+                })()}
               </select>
               {!nb.mealId && (
                 <input
@@ -8928,8 +8938,7 @@ function RestaurantPage({
       });
       return updated;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // runs once on mount to backfill customers from existing sales
   const [addingInv, setAddingInv] = useState(false);
   const [editInvId, setEditInvId] = useState(null);
   const [invSearch, setInvSearch] = useState("");
