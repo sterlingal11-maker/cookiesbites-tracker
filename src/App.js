@@ -9762,6 +9762,37 @@ function RestaurantPage({
                     onChange={(e) => setNs({ ...ns, partialPaid: e.target.value })}
                   />
                 </div>
+                {/* Order total summary */}
+                {ns.plates && ns.pricePerPlate && (
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    {(() => {
+                      const total = Number(ns.plates) * Number(ns.pricePerPlate) + Number(ns.deliveryFee || 0);
+                      const paid = ns.partialPaid !== "" ? Number(ns.partialPaid) : total;
+                      const balance = total - paid;
+                      return (
+                        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", display: "flex", gap: 24, flexWrap: "wrap" }}>
+                          <div>
+                            <div style={{ fontSize: 9, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Order Total</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{fmt(total)} XAF</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 9, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Amount Paid</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: T.success }}>{fmt(paid)} XAF</div>
+                          </div>
+                          {balance > 0 && (
+                            <div>
+                              <div style={{ fontSize: 9, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Balance Due</div>
+                              <div style={{ fontSize: 15, fontWeight: 700, color: T.danger }}>{fmt(balance)} XAF</div>
+                            </div>
+                          )}
+                          {balance === 0 && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 5, color: T.success, fontSize: 12, fontWeight: 700 }}>✅ Fully Paid</div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
                 <div>
                   <label style={S.label}>Notes</label>
                   <input
