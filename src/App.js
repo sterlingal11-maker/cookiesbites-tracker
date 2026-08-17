@@ -8947,7 +8947,7 @@ function RestaurantPage({
   const isMobile = useIsMobile();
 
   // On mount: sweep all existing sales and extract named clients into Customers
-  React.useEffect(() => {
+  useEffect(() => {
     const named = sales.filter(s => s.clientName && s.clientName.trim());
     if (!named.length) return;
     setCustomers(prev => {
