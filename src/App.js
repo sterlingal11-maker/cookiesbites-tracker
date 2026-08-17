@@ -8646,7 +8646,14 @@ function BatchesTab({ batches, setBatches, meals, setMeals, inventory, setInvent
                 value={nb.mealId}
                 onChange={(e) => {
                   const meal = meals.find((m) => m.id === Number(e.target.value));
-                  setNb((n) => ({ ...n, mealId: e.target.value, mealName: meal ? meal.name : "" }));
+                  const newCost = meal ? getMealTotalCost(meal) * Number(nb.portions || 0) : 0;
+                  setNb((n) => ({
+                    ...n,
+                    mealId: e.target.value,
+                    mealName: meal ? meal.name : "",
+                    // Auto-fill cost for new batches; don't clobber edits
+                    totalCost: !editBatchId && newCost > 0 ? String(Math.round(newCost)) : n.totalCost,
+                  }));
                 }}
               >
                 <option value="">— Select a meal or type below —</option>
@@ -8670,24 +8677,34 @@ function BatchesTab({ batches, setBatches, meals, setMeals, inventory, setInvent
                 style={S.input}
                 placeholder="e.g. 25"
                 value={nb.portions}
-                onChange={(e) => setNb((n) => ({ ...n, portions: e.target.value }))}
+                onChange={(e) => {
+                  const portions = e.target.value;
+                  const newCost = selectedMeal ? getMealTotalCost(selectedMeal) * Number(portions || 0) : 0;
+                  setNb((n) => ({
+                    ...n,
+                    portions,
+                    // Auto-recalculate cost for new batches when meal has costing data
+                    totalCost: !editBatchId && newCost > 0 ? String(Math.round(newCost)) : n.totalCost,
+                  }));
+                }}
               />
             </div>
             <div>
               <label style={S.label}>
                 Total Production Cost (XAF)
                 {suggestedCost > 0 && (
-                  <span
-                    style={{ color: T.accent, marginLeft: 6, cursor: "pointer", fontWeight: 400 }}
-                    onClick={() => setNb((n) => ({ ...n, totalCost: String(Math.round(suggestedCost)) }))}
-                  >
-                    ← Use suggested: {fmt(suggestedCost)}
+                  <span style={{ color: T.textMuted, marginLeft: 6, fontWeight: 400, fontSize: 10 }}>
+                    {!editBatchId ? "auto-calculated from meal costing" : ""}
+                    <span
+                      style={{ color: T.accent, marginLeft: 6, cursor: "pointer" }}
+                      onClick={() => setNb((n) => ({ ...n, totalCost: String(Math.round(suggestedCost)) }))}
+                    >↺ Recalculate</span>
                   </span>
                 )}
               </label>
               <input
                 type="number"
-                style={S.input}
+                style={{ ...S.input, borderColor: !editBatchId && suggestedCost > 0 && nb.totalCost === String(Math.round(suggestedCost)) ? T.accent + "60" : undefined }}
                 placeholder={suggestedCost > 0 ? `Suggested: ${Math.round(suggestedCost)}` : "e.g. 47500"}
                 value={nb.totalCost}
                 onChange={(e) => setNb((n) => ({ ...n, totalCost: e.target.value }))}
