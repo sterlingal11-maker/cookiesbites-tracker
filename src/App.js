@@ -8903,31 +8903,6 @@ function RestaurantPage({
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCust, setNewCust] = useState({ name: "", phone: "", email: "", notes: "" });
 
-  // On mount: sweep all existing sales and extract customers not yet on the list
-  React.useEffect(() => {
-    const named = sales.filter(s => s.clientName && s.clientName.trim());
-    if (!named.length) return;
-    setCustomers(prev => {
-      let updated = [...prev];
-      named.forEach(s => {
-        const name = s.clientName.trim();
-        const phone = (s.clientPhone || "").trim();
-        const email = (s.clientEmail || "").trim();
-        const classification = s.clientCategory || "Regular";
-        const idx = updated.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
-        if (idx >= 0) {
-          updated[idx] = {
-            ...updated[idx],
-            phone: phone || updated[idx].phone,
-            email: email || updated[idx].email,
-          };
-        } else {
-          updated.push({ id: Date.now() + Math.random(), name, phone, email, classification, notes: "", createdAt: TODAY_ISO });
-        }
-      });
-      return updated;
-    });
-  }, []);
   const [addingInv, setAddingInv] = useState(false);
   const [editInvId, setEditInvId] = useState(null);
   const [invSearch, setInvSearch] = useState("");
@@ -8970,6 +8945,28 @@ function RestaurantPage({
   const [expandedMeal, setExpandedMeal] = useState(null); // meal id for costing panel
   const mealPhotoRef = useRef();
   const isMobile = useIsMobile();
+
+  // On mount: sweep all existing sales and extract named clients into Customers
+  React.useEffect(() => {
+    const named = sales.filter(s => s.clientName && s.clientName.trim());
+    if (!named.length) return;
+    setCustomers(prev => {
+      let updated = [...prev];
+      named.forEach(s => {
+        const name = s.clientName.trim();
+        const phone = (s.clientPhone || "").trim();
+        const email = (s.clientEmail || "").trim();
+        const classification = s.clientCategory || "Regular";
+        const idx = updated.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+        if (idx >= 0) {
+          updated[idx] = { ...updated[idx], phone: phone || updated[idx].phone, email: email || updated[idx].email };
+        } else {
+          updated.push({ id: Date.now() + Math.random(), name, phone, email, classification, notes: "", createdAt: TODAY_ISO });
+        }
+      });
+      return updated;
+    });
+  }, []); // intentional: runs once on mount to backfill
 
   const openDoc = (title, html) =>
     setDoc({ title, html, onPrint: () => printDoc(title, html) });
