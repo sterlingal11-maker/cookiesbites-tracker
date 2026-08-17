@@ -8898,6 +8898,8 @@ function RestaurantPage({
     clientCategory: "Regular",
     notes: "",
     partialPaid: "",
+    _pickerMode: "batch",
+    _catalogItemId: null,
   };
   const [ns, setNs] = useState(EMPTY);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -9041,7 +9043,18 @@ function RestaurantPage({
       );
     }
 
-    // Legacy inventory deduction by meal name match (kept for backward compat, new saves only)
+    // Deduct inventory stock for catalog item sales (beverages, sodas, direct items)
+    if (!editSaleId && ns._catalogItemId) {
+      setInventory((prev) =>
+        prev.map((item) => {
+          if (item.name.toLowerCase() === ns.meal.toLowerCase()) {
+            return { ...item, stock: Math.max(0, Number(item.stock) - plates) };
+          }
+          return item;
+        })
+      );
+    }
+    // Legacy inventory deduction by meal name match
     if (!editSaleId) {
       setInventory((prev) =>
         prev.map((item) => {
@@ -9059,7 +9072,6 @@ function RestaurantPage({
         })
       );
     }
-
     setAddSale(false);
     setEditSaleId(null);
     setNs(EMPTY);
@@ -9425,14 +9437,18 @@ function RestaurantPage({
                   />
                 </div>
                 <div style={{ gridColumn: "span 2" }}>
-                  <label style={S.label}>
-                    Select from Batch
-                    <span style={{ color: T.textDim, fontWeight: 400, marginLeft: 6 }}>
-                      — only meals with available portions shown
-                    </span>
-                  </label>
-                  {(() => {
-                    // Compute live remaining portions per meal from batches minus sales (authoritative)
+                  {/* Picker mode toggle */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                    {[["batch", "🍳 From Batch"], ["catalog", "🛒 From Catalog"]].map(([mode, label]) => (
+                      <button key={mode}
+                        style={{ ...S.btn((!ns._pickerMode && mode === "batch") || ns._pickerMode === mode ? "primary" : "ghost"), fontSize: 11, padding: "4px 12px" }}
+                        onClick={() => setNs({ ...ns, _pickerMode: mode, meal: "", mealId: null, _catalogItemId: null, pricePerPlate: "" })}
+                      >{label}</button>
+                    ))}
+                  </div>
+
+                  {/* BATCH PICKER */}
+                  {(!ns._pickerMode || ns._pickerMode === "batch") && (() => {
                     const mealPortions = {};
                     batches.forEach((b) => {
                       if (!b.mealId) return;
@@ -9444,32 +9460,18 @@ function RestaurantPage({
                     });
                     const available = meals
                       .filter((m) => (mealPortions[m.id] || 0) > 0)
-                      .map((m) => ({
-                        meal: m,
-                        portions: mealPortions[m.id],
-                        costPerPortion: (() => {
-                          const recentBatch = [...batches]
-                            .filter((b) => Number(b.mealId) === m.id)
-                            .sort((a, b) => b.id - a.id)[0];
-                          return recentBatch ? recentBatch.costPerPortion : 0;
-                        })(),
-                      }));
+                      .map((m) => ({ meal: m, portions: mealPortions[m.id] }));
 
                     if (available.length === 0) {
                       return (
                         <div style={{ background: `${T.warning}15`, border: `1px solid ${T.warning}40`, borderRadius: 8, padding: "10px 13px", fontSize: 11, color: T.warning }}>
                           ⚠️ No batches with available portions. Log a production batch in the{" "}
-                          <button
-                            style={{ background: "none", border: "none", color: T.accent, cursor: "pointer", fontSize: 11, fontWeight: 700, padding: 0 }}
-                            onClick={() => setTab("batches")}
-                          >
+                          <button style={{ background: "none", border: "none", color: T.accent, cursor: "pointer", fontSize: 11, fontWeight: 700, padding: 0 }} onClick={() => setTab("batches")}>
                             🍳 Batches tab
-                          </button>{" "}
-                          first, or select a meal manually below.
+                          </button>{" "}first, or use <strong>From Catalog</strong> for beverages & direct items.
                         </div>
                       );
                     }
-
                     return (
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 6 }}>
@@ -9478,33 +9480,13 @@ function RestaurantPage({
                             const platesNum = Number(ns.plates) || 0;
                             const wouldOversell = isSelected && platesNum > portions;
                             return (
-                              <button
-                                key={m.id}
-                                onClick={() => setNs({
-                                  ...ns,
-                                  meal: m.name,
-                                  mealId: m.id,
-                                  pricePerPlate: m.price || ns.pricePerPlate,
-                                })}
-                                style={{
-                                  background: isSelected ? T.accentSoft : T.surface,
-                                  border: `1.5px solid ${isSelected ? T.accent : wouldOversell ? T.danger : T.border}`,
-                                  borderRadius: 8,
-                                  padding: "8px 11px",
-                                  cursor: "pointer",
-                                  textAlign: "left",
-                                  transition: "all 0.12s",
-                                }}
+                              <button key={m.id}
+                                onClick={() => setNs({ ...ns, meal: m.name, mealId: m.id, _catalogItemId: null, pricePerPlate: m.price || ns.pricePerPlate })}
+                                style={{ background: isSelected ? T.accentSoft : T.surface, border: `1.5px solid ${isSelected ? T.accent : wouldOversell ? T.danger : T.border}`, borderRadius: 8, padding: "8px 11px", cursor: "pointer", textAlign: "left", transition: "all 0.12s" }}
                               >
-                                <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? T.accent : T.text, marginBottom: 2 }}>
-                                  {m.name}
-                                </div>
-                                <div style={{ fontSize: 10, color: portions <= 5 ? T.danger : T.success, fontWeight: 600 }}>
-                                  {portions} portion{portions !== 1 ? "s" : ""} available
-                                </div>
-                                <div style={{ fontSize: 10, color: T.textDim, marginTop: 1 }}>
-                                  {fmt(m.price)} / plate
-                                </div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? T.accent : T.text, marginBottom: 2 }}>{m.name}</div>
+                                <div style={{ fontSize: 10, color: portions <= 5 ? T.danger : T.success, fontWeight: 600 }}>{portions} portion{portions !== 1 ? "s" : ""} available</div>
+                                <div style={{ fontSize: 10, color: T.textDim, marginTop: 1 }}>{fmt(m.price)} / plate</div>
                               </button>
                             );
                           })}
@@ -9513,40 +9495,73 @@ function RestaurantPage({
                           const sel = meals.find((m) => m.id === ns.mealId);
                           const avail = sel ? Number(sel.availablePortions) : 0;
                           const platesNum = Number(ns.plates) || 0;
-                          if (platesNum > avail) {
-                            return (
-                              <div style={{ fontSize: 11, color: T.danger, background: `${T.danger}12`, borderRadius: 6, padding: "5px 10px" }}>
-                                ⚠️ {platesNum} plates requested but only {avail} available in batches.
-                              </div>
-                            );
-                          }
-                          if (platesNum > 0) {
-                            return (
-                              <div style={{ fontSize: 11, color: T.success, background: `${T.success}12`, borderRadius: 6, padding: "5px 10px" }}>
-                                ✓ {avail - platesNum} portions will remain after this order.
-                              </div>
-                            );
-                          }
+                          if (platesNum > avail) return <div style={{ fontSize: 11, color: T.danger, background: `${T.danger}12`, borderRadius: 6, padding: "5px 10px" }}>⚠️ {platesNum} plates requested but only {avail} available.</div>;
+                          if (platesNum > 0) return <div style={{ fontSize: 11, color: T.success, background: `${T.success}12`, borderRadius: 6, padding: "5px 10px" }}>✓ {avail - platesNum} portions will remain after this order.</div>;
                           return null;
                         })()}
                       </div>
                     );
                   })()}
-                  {/* Manual fallback — always available */}
+
+                  {/* CATALOG PICKER — beverages, sodas, direct items */}
+                  {ns._pickerMode === "catalog" && (() => {
+                    const cats = [...new Set(catalogItems.map(i => i.catId))];
+                    return (
+                      <div>
+                        <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 8 }}>
+                          Select any catalog item to sell directly. Inventory stock will be deducted by the quantity sold.
+                        </div>
+                        {cats.map(catId => {
+                          const cat = (catalogCategories || []).find(c => c.id === catId);
+                          const items = catalogItems.filter(i => i.catId === catId);
+                          if (!items.length) return null;
+                          return (
+                            <div key={catId} style={{ marginBottom: 10 }}>
+                              <div style={{ fontSize: 9, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 5 }}>{cat?.name || "Other"}</div>
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 5 }}>
+                                {items.map(item => {
+                                  const isSelected = ns._catalogItemId === item.id;
+                                  const invItem = inventory.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
+                                  const stock = invItem ? Number(invItem.stock) : null;
+                                  return (
+                                    <button key={item.id}
+                                      onClick={() => setNs({ ...ns, meal: item.name, mealId: null, _catalogItemId: item.id, pricePerPlate: ns.pricePerPlate || "" })}
+                                      style={{ background: isSelected ? T.accentSoft : T.surface, border: `1.5px solid ${isSelected ? T.accent : T.border}`, borderRadius: 8, padding: "8px 10px", cursor: "pointer", textAlign: "left" }}
+                                    >
+                                      {item.photo && <img src={item.photo} alt={item.name} style={{ width: "100%", height: 44, objectFit: "cover", borderRadius: 5, marginBottom: 4 }} />}
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: isSelected ? T.accent : T.text, marginBottom: 2 }}>{item.name}</div>
+                                      {stock !== null && <div style={{ fontSize: 10, color: stock < 3 ? T.danger : T.success, fontWeight: 600 }}>Stock: {stock} {invItem?.unit || ""}</div>}
+                                      {!invItem && <div style={{ fontSize: 9, color: T.textDim }}>Not in inventory</div>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {ns._catalogItemId && (
+                          <button style={{ fontSize: 10, color: T.textMuted, background: "none", border: "none", cursor: "pointer", marginTop: 4, padding: 0 }}
+                            onClick={() => setNs({ ...ns, meal: "", mealId: null, _catalogItemId: null, pricePerPlate: "" })}>
+                            ✕ Clear selection
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Manual fallback */}
                   <div style={{ marginTop: 8 }}>
-                    <label style={{ ...S.label, color: T.textDim }}>Or type meal name manually</label>
+                    <label style={{ ...S.label, color: T.textDim }}>Or type item name manually</label>
                     <input
                       style={{ ...S.input, fontSize: 11 }}
-                      placeholder="Type a meal name if not in batches above"
-                      value={ns.mealId ? "" : ns.meal}
-                      disabled={!!ns.mealId}
-                      onChange={(e) => setNs({ ...ns, meal: e.target.value, mealId: null })}
+                      placeholder="Type any item or meal name"
+                      value={(ns.mealId || ns._catalogItemId) ? "" : ns.meal}
+                      disabled={!!ns.mealId || !!ns._catalogItemId}
+                      onChange={(e) => setNs({ ...ns, meal: e.target.value, mealId: null, _catalogItemId: null })}
                     />
-                    {ns.mealId && (
-                      <button
-                        style={{ fontSize: 10, color: T.textMuted, background: "none", border: "none", cursor: "pointer", marginTop: 3, padding: 0 }}
-                        onClick={() => setNs({ ...ns, meal: "", mealId: null, pricePerPlate: "" })}
-                      >
+                    {(ns.mealId || ns._catalogItemId) && (
+                      <button style={{ fontSize: 10, color: T.textMuted, background: "none", border: "none", cursor: "pointer", marginTop: 3, padding: 0 }}
+                        onClick={() => setNs({ ...ns, meal: "", mealId: null, _catalogItemId: null, pricePerPlate: "" })}>
                         ✕ Clear selection to type manually
                       </button>
                     )}
