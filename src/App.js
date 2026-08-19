@@ -6432,7 +6432,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
       <div style={{ ...S.row, marginBottom: 4 }}>
         <div>
           <div style={S.pageTitle}>📦 Catering Catalog</div>
-          <div style={S.subtitle}>{items.length} items across {categories.length} categories</div>
+          <div style={S.subtitle}>{items.length} items across {categories.length} categories · <span style={{ color: T.accent }}>Driven by Meals — add or edit meals to update</span></div>
         </div>
         <button style={S.btn("primary")} onClick={() => openDoc("Services Catalog", buildCatalogHTML(items, categories, biz, logo))}>
           🖨️ Print Catalog
@@ -6444,14 +6444,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
         <div>
           <div style={{ ...S.row, marginBottom: 14, gap: 8, flexWrap: "wrap" }}>
             <input style={{ ...S.input, flex: 1, minWidth: 160 }} placeholder="Search all items…" value={search} onChange={e => setSearch(e.target.value)} />
-            {!addingCat
-              ? <button style={{ ...S.btn("ghost"), fontSize: 12 }} onClick={() => setAddingCat(true)}>＋ New Category</button>
-              : <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <input style={{ ...S.input, width: 180, marginBottom: 0 }} placeholder="e.g. 🧆 Mezze" value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => e.key === "Enter" && addCategory()} autoFocus />
-                  <button style={S.btn("primary")} onClick={addCategory}>Add</button>
-                  <button style={S.btn("ghost")} onClick={() => { setAddingCat(false); setNewCatName(""); }}>✕</button>
-                </div>
-            }
+
           </div>
 
           {search ? (
@@ -6551,26 +6544,15 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
                 🎉 Create Proposal from this Category
               </button>
             )}
-            <button style={S.btn("primary")} onClick={() => { setAdding(!adding); setEditId(null); setNi({ ...EMPTY_NI, catId: selCat }); }}>
-              {adding && editId == null ? "✕ Cancel" : "+ Add Item"}
-            </button>
+
           </div>
 
-          {/* Add / Edit form */}
-          {adding && (
+          {/* Edit form — only for existing items synced from Meals */}
+          {adding && editId != null && (
             <div style={{ ...S.card, marginBottom: 14, borderColor: T.accent }}>
-              <div style={S.sectionTitle}>{editId != null ? "✏️ Edit Item" : "➕ New Item"}</div>
+              <div style={S.sectionTitle}>✏️ Edit Catalog Item</div>
 
-              {/* Pull from meals */}
-              {!editId && meals && meals.length > 0 && (
-                <div style={{ background: T.accentSoft, borderRadius: 8, padding: "8px 12px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 11, color: T.accent, fontWeight: 700, whiteSpace: "nowrap" }}>⚡ Pull from Meals:</span>
-                  <select style={{ ...S.select, flex: 1, marginBottom: 0 }} onChange={e => pullFromMeal(e.target.value)} defaultValue="">
-                    <option value="">— Select a meal to pre-fill —</option>
-                    {meals.map(m => <option key={m.id} value={m.id}>{m.name}{m.price ? ` · ${fmt(m.price)} XAF` : ""}</option>)}
-                  </select>
-                </div>
-              )}
+
 
               <div style={S.grid(3)}>
                 <div>
@@ -6618,7 +6600,7 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
               </div>
               <div style={{ ...S.row, marginTop: 10, justifyContent: "flex-end" }}>
                 <button style={S.btn("ghost")} onClick={() => { setAdding(false); setEditId(null); }}>Cancel</button>
-                <button style={S.btn("primary")} onClick={save}>{editId != null ? "Update" : "Save Item"}</button>
+                <button style={S.btn("primary")} onClick={save}>Update Item</button>
               </div>
             </div>
           )}
@@ -6627,11 +6609,11 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
           <div style={S.grid(3)}>
             {filtered.map(item => <CatalogItemCard key={item.id} item={item} categories={categories} setItems={setItems} startEdit={startEdit} handlePhoto={handlePhoto} onDelete={() => setItems(prev => prev.filter(i => i.id !== item.id))} meals={meals} onCopyToMeals={copyToMeals} />)}
           </div>
-          {filtered.length === 0 && !adding && (
+          {filtered.length === 0 && (
             <div style={{ color: T.textMuted, padding: 40, textAlign: "center", fontSize: 13 }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>🍽️</div>
               No items in this category yet.<br />
-              <span style={{ color: T.accent, cursor: "pointer" }} onClick={() => { setAdding(true); setNi({ ...EMPTY_NI, catId: selCat }); }}>+ Add the first item</span>
+              <span style={{ color: T.textDim, fontSize: 11 }}>Add meals in the Meals tab — they appear here automatically.</span>
             </div>
           )}
         </div>
@@ -16120,8 +16102,6 @@ export default function App() {
     return Array.isArray(raw) ? raw.map(i => i?.photo?.startsWith("data:") ? { ...i, photo: null } : i) : raw;
   });
   const [catalogCategories, setCatalogCategories] = useState(() => ls_get("cb_catalog_cats", CAT_CATS));
-  const catalogCategoriesRef = useRef(catalogCategories);
-  useEffect(() => { catalogCategoriesRef.current = catalogCategories; }, [catalogCategories]);
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
   const [meals, setMeals] = useState(() => {
     const raw = ls_get("cb_meals", INIT_MEALS);
@@ -16277,33 +16257,33 @@ export default function App() {
   useEffect(() => { if (cloudLoaded) syncKey("cb_social",       socialLinks);  }, [socialLinks,  cloudLoaded, syncKey]);
 
   // ── Auto-sync Meals → Catalog ──────────────────────────────────────
+  // Meals are the single source of truth for catalog content and categories.
   useEffect(() => {
     if (!cloudLoaded) return;
 
+    // Build a deterministic category list from unique meal categories
     const mealCatNames = [...new Set(meals.map(m => m.category).filter(Boolean))];
+    // Assign stable IDs by alphabetical sort so the same name always gets the same ID
+    const sortedNames = [...mealCatNames].sort();
+    const newCats = sortedNames.map((name, i) => ({ id: i + 1, name }));
 
-    // Build updated category list from current (via ref) + any new meal categories
-    const currentCats = [...catalogCategoriesRef.current];
-    mealCatNames.forEach(name => {
-      if (!currentCats.find(c => c.name === name)) {
-        const maxId = currentCats.reduce((m, c) => Math.max(m, c.id), 0);
-        currentCats.push({ id: maxId + 1, name });
-      }
-    });
-    setCatalogCategories(currentCats);
+    // Build a name→id lookup from newCats
+    const catByName = {};
+    newCats.forEach(c => { catByName[c.name.toLowerCase()] = c.id; });
 
-    // Now build catalog items using the up-to-date currentCats
+    setCatalogCategories(newCats);
+
     setCatalogItems(prev => {
+      // Preserve existing unitType / tags / notes per item (keyed by lowercase name)
       const existingMap = {};
       prev.forEach(c => { existingMap[c.name.toLowerCase()] = c; });
 
-      return meals.map(meal => {
+      return meals.map((meal, idx) => {
         const existing = existingMap[meal.name.toLowerCase()];
-        const cat = currentCats.find(c => c.name === meal.category)
-                 || currentCats.find(c => c.name.toLowerCase() === (meal.category || "").toLowerCase());
+        const catId = catByName[(meal.category || "").toLowerCase()] || 1;
         return {
-          id: existing?.id || (Date.now() + Math.random()),
-          catId: cat?.id || currentCats[0]?.id || 1,
+          id: existing?.id || (Date.now() + idx),
+          catId,
           name: meal.name,
           description: meal.description || existing?.description || "",
           unitType: existing?.unitType || "Per head",
@@ -16315,8 +16295,7 @@ export default function App() {
         };
       });
     });
-  // eslint-disable-next-line
-  }, [meals, cloudLoaded]);
+  }, [meals, cloudLoaded]); // eslint-disable-line
 
   // Backfill/merge customers from all sources: sales, catering events & invoices
   useEffect(() => {
