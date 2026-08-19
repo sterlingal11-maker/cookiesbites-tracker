@@ -5264,7 +5264,7 @@ function EventCostLedger({ evt, inventory, onUpdate }) {
   );
 }
 
-function CateringPage({ events, setEvents, proposals, setProposals, inventory, logo, biz, customers, setCustomers, invoices, setInvoices, catalogItems, setCatalogItems, catalogCategories, setCatalogCategories, meals, setMeals, proposalPrefillLines, clearProposalPrefill }) {
+function CateringPage({ events, setEvents, proposals, setProposals, inventory, logo, biz, customers, setCustomers, invoices, setInvoices, catalogItems, setCatalogItems, catalogCategories, setCatalogCategories, catalogMeta, setCatalogMeta, meals, setMeals, proposalPrefillLines, clearProposalPrefill }) {
   const [cateringSubTab, setCateringSubTab] = useState("events");
   const [sel, setSel] = useState(null);
   const [filter, setFilter] = useState("All");
@@ -5606,6 +5606,8 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
           setMeals={setMeals}
           logo={logo}
           biz={biz}
+          catalogMeta={catalogMeta}
+          setCatalogMeta={setCatalogMeta}
           onCreateProposalFromCatalog={(lines) => {
             if (clearProposalPrefill) clearProposalPrefill();
             setCateringSubTab("proposals");
@@ -6286,7 +6288,7 @@ function CateringPage({ events, setEvents, proposals, setProposals, inventory, l
     </div>
   );
 }
-function CatalogPage({ categories, setCategories, items, setItems, meals, setMeals, logo, biz, onCreateProposalFromCatalog }) {
+function CatalogPage({ categories, setCategories, items, setItems, meals, setMeals, logo, biz, onCreateProposalFromCatalog, catalogMeta, setCatalogMeta }) {
   const [selCat, setSelCat] = useState(null); // null = tile overview, number = category id
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -6361,16 +6363,17 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
 
   const save = () => {
     if (!ni.name) return;
-    const item = {
-      ...ni,
-      price: 0,
-      costPerUnit: 0,
-      tags: typeof ni.tags === "string" ? ni.tags.split(",").map(t => t.trim()).filter(Boolean) : ni.tags,
-    };
+    const tags = typeof ni.tags === "string" ? ni.tags.split(",").map(t => t.trim()).filter(Boolean) : ni.tags;
+    const item = { ...ni, price: 0, costPerUnit: 0, tags };
     if (editId != null) {
       setItems(prev => prev.map(it => it.id === editId ? { ...item, id: editId } : it));
       setEditId(null);
       if (item.catId !== selCat) setSelCat(item.catId);
+      // Persist unitType / tags / notes so they survive catalog rebuilds
+      if (setCatalogMeta) {
+        const key = ni.name.toLowerCase();
+        setCatalogMeta(prev => ({ ...prev, [key]: { unitType: item.unitType, tags, notes: item.notes || "" } }));
+      }
     } else {
       setItems(prev => [...prev, { ...item, id: Date.now() }]);
     }
@@ -16162,6 +16165,8 @@ export default function App() {
     return Array.isArray(raw) ? raw.map(i => i?.photo?.startsWith("data:") ? { ...i, photo: null } : i) : raw;
   });
   const [catalogCategories, setCatalogCategories] = useState(() => ls_get("cb_catalog_cats", CAT_CATS));
+  // catalogMeta: { [nameLower]: { unitType, tags, notes } } — persists user edits independently of sync
+  const [catalogMeta, setCatalogMeta] = useState(() => ls_get("cb_catalog_meta", {}));
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
   const [meals, setMeals] = useState(() => {
     const raw = ls_get("cb_meals", INIT_MEALS);
@@ -16181,7 +16186,7 @@ export default function App() {
   // ── On mount: pull latest data from Supabase (cloud-first load) ───
   const CLOUD_KEYS = [
     "cb_events","cb_sales","cb_invoices","cb_proposals",
-    "cb_catalog","cb_catalog_cats","cb_inventory","cb_meals",
+    "cb_catalog","cb_catalog_cats","cb_catalog_meta","cb_inventory","cb_meals",
     "cb_batches","cb_overheads","cb_logo","cb_biz",
     "cb_customers","cb_vendors","cb_social",
   ];
@@ -16248,14 +16253,16 @@ export default function App() {
         const _v = cloud["cb_proposals"];
         setProposals(_v); ls_set("cb_proposals", _v);
       }
-      // Strip base64 blobs before loading catalog/meals — they bloat JSONB and break sync
-      // Catalog is now derived entirely from Meals — clear any stale cloud data
-      // The meal→catalog sync effect will repopulate it immediately after cloudLoaded
+      // Catalog is derived from Meals — clear items/cats so sync rebuilds them fresh
       setCatalogItems([]);
       ls_set("cb_catalog", []);
       setCatalogCategories([]);
       ls_set("cb_catalog_cats", []);
-      // (catalog categories are rebuilt from meals by the sync effect)
+      // Load catalogMeta (user-edited unitType/tags/notes) — this persists across syncs
+      if (cloud["cb_catalog_meta"] !== undefined && cloud["cb_catalog_meta"] !== null) {
+        setCatalogMeta(cloud["cb_catalog_meta"]);
+        ls_set("cb_catalog_meta", cloud["cb_catalog_meta"]);
+      }
       // Inventory: if cloud is empty array, seed with INIT_INVENTORY
       apply("cb_inventory",    setInventory);
       if (cloud["cb_meals"] !== undefined && cloud["cb_meals"] !== null) {
@@ -16306,6 +16313,7 @@ export default function App() {
   useEffect(() => { if (cloudLoaded) syncKey("cb_proposals",    proposals);    }, [proposals,    cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_catalog",      catalogItems); }, [catalogItems, cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_catalog_cats", catalogCategories); }, [catalogCategories, cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_catalog_meta", catalogMeta); }, [catalogMeta, cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_inventory",    inventory);    }, [inventory,    cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_meals",        meals);        }, [meals,        cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_batches",      batches);      }, [batches,      cloudLoaded, syncKey]);
@@ -16317,45 +16325,42 @@ export default function App() {
   useEffect(() => { if (cloudLoaded) syncKey("cb_social",       socialLinks);  }, [socialLinks,  cloudLoaded, syncKey]);
 
   // ── Auto-sync Meals → Catalog ──────────────────────────────────────
-  // Meals are the single source of truth for catalog content and categories.
   useEffect(() => {
     if (!cloudLoaded) return;
 
-    // Build a deterministic category list from unique meal categories
     const mealCatNames = [...new Set(meals.map(m => m.category).filter(Boolean))];
-    // Assign stable IDs by alphabetical sort so the same name always gets the same ID
     const sortedNames = [...mealCatNames].sort();
     const newCats = sortedNames.map((name, i) => ({ id: i + 1, name }));
-
-    // Build a name→id lookup from newCats
     const catByName = {};
     newCats.forEach(c => { catByName[c.name.toLowerCase()] = c.id; });
 
     setCatalogCategories(newCats);
 
     setCatalogItems(prev => {
-      // Preserve existing unitType / tags / notes per item (keyed by lowercase name)
       const existingMap = {};
       prev.forEach(c => { existingMap[c.name.toLowerCase()] = c; });
 
       return meals.map((meal, idx) => {
-        const existing = existingMap[meal.name.toLowerCase()];
-        const catId = catByName[(meal.category || "").toLowerCase()] || 1;
+        const key = meal.name.toLowerCase();
+        const existing = existingMap[key];
+        const meta = catalogMeta[key] || {};
+        const catId = catByName[key] || catByName[(meal.category || "").toLowerCase()] || 1;
         return {
           id: existing?.id || (Date.now() + idx),
           catId,
           name: meal.name,
           description: meal.description || existing?.description || "",
-          unitType: existing?.unitType || "Per head",
+          // meta takes priority — preserves user edits to unitType/tags/notes
+          unitType: meta.unitType || existing?.unitType || "Per head",
           price: existing?.price || 0,
           costPerUnit: existing?.costPerUnit || 0,
           photo: meal.photo || existing?.photo || null,
-          tags: existing?.tags || [],
-          notes: existing?.notes || "",
+          tags: meta.tags !== undefined ? meta.tags : (existing?.tags || []),
+          notes: meta.notes !== undefined ? meta.notes : (existing?.notes || ""),
         };
       });
     });
-  }, [meals, cloudLoaded]); // eslint-disable-line
+  }, [meals, cloudLoaded, catalogMeta]); // eslint-disable-line
 
   // Backfill/merge customers from all sources: sales, catering events & invoices
   useEffect(() => {
@@ -16687,6 +16692,8 @@ export default function App() {
             setCatalogItems={setCatalogItems}
             catalogCategories={catalogCategories}
             setCatalogCategories={setCatalogCategories}
+            catalogMeta={catalogMeta}
+            setCatalogMeta={setCatalogMeta}
             meals={meals}
             setMeals={setMeals}
             proposalPrefillLines={proposalPrefillLines}
