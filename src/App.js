@@ -6396,6 +6396,11 @@ function CatalogPage({ categories, setCategories, items, setItems, meals, setMea
     const name = newCatName.trim(); if (!name) return;
     const newId = Math.max(0, ...categories.map(c => c.id)) + 1;
     setCategories(prev => [...prev, { id: newId, name }]);
+    // Also add to meals so new category is immediately usable in Meal form
+    if (setMeals) {
+      // No need to add a meal — just adding the category is enough
+      // The sync effect preserves categories that have meals under them
+    }
     setNewCatName(""); setAddingCat(false);
   };
 
@@ -8837,7 +8842,6 @@ function RestaurantPage({
     availablePortions: "",
   };
   const [nm, setNm] = useState(EMPTY_MEAL);
-  const [importFromCatalog, setImportFromCatalog] = useState(false);
   const [editIngLinks, setEditIngLinks] = useState(null); // meal id
   const [expandedMeal, setExpandedMeal] = useState(null); // meal id for costing panel
   const mealPhotoRef = useRef();
@@ -10050,12 +10054,6 @@ function RestaurantPage({
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button
-                style={S.btn("ghost")}
-                onClick={() => setImportFromCatalog(!importFromCatalog)}
-              >
-                ⬇ Import from Catalog
-              </button>
-              <button
                 style={S.btn("primary")}
                 onClick={() => {
                   setAddingMeal(!addingMeal);
@@ -10069,116 +10067,11 @@ function RestaurantPage({
           </div>
 
           {/* Import from catalog panel */}
-          {importFromCatalog && (
-            <div
-              style={{ ...S.card, marginBottom: 12, borderColor: T.delivery }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 8,
-                }}
-              >
-                <div style={S.sectionTitle}>⬇ Import from Catalog</div>
-                <button
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: T.textMuted,
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setImportFromCatalog(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <div
-                style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}
-              >
-                Click any catalog item to add it to your meal menu.
-                Already-imported items are greyed out.
-              </div>
-              <div style={S.grid(4)}>
-                {catalogItems.map((ci) => {
-                  const already = meals.some((m) => m.name === ci.name);
-                  return (
-                    <div
-                      key={ci.id}
-                      onClick={() => !already && importMealFromCatalog(ci)}
-                      style={{
-                        ...S.card,
-                        padding: 0,
-                        overflow: "hidden",
-                        cursor: already ? "default" : "pointer",
-                        opacity: already ? 0.5 : 1,
-                        border: `1px solid ${already ? T.border : T.delivery}`,
-                      }}
-                    >
-                      {ci.photo ? (
-                        <img
-                          src={ci.photo}
-                          alt=""
-                          style={{
-                            width: "100%",
-                            height: 70,
-                            objectFit: "cover",
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            height: 50,
-                            background: T.surface,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 20,
-                            color: T.textDim,
-                          }}
-                        >
-                          🍽️
-                        </div>
-                      )}
-                      <div style={{ padding: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700 }}>
-                          {ci.name}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: T.accent,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {fmt(ci.price)}
-                        </div>
-                        {already && (
-                          <div style={{ fontSize: 9, color: T.success }}>
-                            ✓ Already imported
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Add / edit meal form */}
           {addingMeal && (
             <div style={{ ...S.card, marginBottom: 12, borderColor: T.accent }}>
               <div style={S.sectionTitle}>
                 {editMealId ? "✏️ Edit Meal" : "➕ New Meal"}
-              </div>
-
-              {/* Basic Info */}
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
                   color: T.textMuted,
                   textTransform: "uppercase",
                   letterSpacing: 0.6,
@@ -16227,6 +16120,8 @@ export default function App() {
     return Array.isArray(raw) ? raw.map(i => i?.photo?.startsWith("data:") ? { ...i, photo: null } : i) : raw;
   });
   const [catalogCategories, setCatalogCategories] = useState(() => ls_get("cb_catalog_cats", CAT_CATS));
+  const catalogCategoriesRef = useRef(catalogCategories);
+  useEffect(() => { catalogCategoriesRef.current = catalogCategories; }, [catalogCategories]);
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
   const [meals, setMeals] = useState(() => {
     const raw = ls_get("cb_meals", INIT_MEALS);
@@ -16382,26 +16277,33 @@ export default function App() {
   useEffect(() => { if (cloudLoaded) syncKey("cb_social",       socialLinks);  }, [socialLinks,  cloudLoaded, syncKey]);
 
   // ── Auto-sync Meals → Catalog ──────────────────────────────────────
-  // Meals are the source of truth. Recomputes catalog synchronously from meals.
   useEffect(() => {
     if (!cloudLoaded) return;
 
-    // Build categories synchronously from meal categories
     const mealCatNames = [...new Set(meals.map(m => m.category).filter(Boolean))];
-    const newCats = mealCatNames.map((name, i) => ({ id: i + 1, name }));
 
-    // Build catalog items synchronously — preserve existing unitType/tags/notes per item
+    // Build updated category list from current (via ref) + any new meal categories
+    const currentCats = [...catalogCategoriesRef.current];
+    mealCatNames.forEach(name => {
+      if (!currentCats.find(c => c.name === name)) {
+        const maxId = currentCats.reduce((m, c) => Math.max(m, c.id), 0);
+        currentCats.push({ id: maxId + 1, name });
+      }
+    });
+    setCatalogCategories(currentCats);
+
+    // Now build catalog items using the up-to-date currentCats
     setCatalogItems(prev => {
       const existingMap = {};
       prev.forEach(c => { existingMap[c.name.toLowerCase()] = c; });
 
-      const items = meals.map(meal => {
+      return meals.map(meal => {
         const existing = existingMap[meal.name.toLowerCase()];
-        const cat = newCats.find(c => c.name === meal.category)
-                 || newCats.find(c => c.name.toLowerCase() === (meal.category || "").toLowerCase());
+        const cat = currentCats.find(c => c.name === meal.category)
+                 || currentCats.find(c => c.name.toLowerCase() === (meal.category || "").toLowerCase());
         return {
           id: existing?.id || (Date.now() + Math.random()),
-          catId: cat?.id || 1,
+          catId: cat?.id || currentCats[0]?.id || 1,
           name: meal.name,
           description: meal.description || existing?.description || "",
           unitType: existing?.unitType || "Per head",
@@ -16412,10 +16314,7 @@ export default function App() {
           notes: existing?.notes || "",
         };
       });
-      return items;
     });
-
-    setCatalogCategories(newCats);
   // eslint-disable-next-line
   }, [meals, cloudLoaded]);
 
