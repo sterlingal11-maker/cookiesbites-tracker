@@ -147,116 +147,9 @@ const INIT_BIZ = {
     "Thank you for choosing Cookies Bites — we look forward to serving you!",
 };
 
-const CAT_CATS = [
-  { id: 1,  name: "🍚 Rice Dishes" },
-  { id: 2,  name: "🍗 Chicken" },
-  { id: 3,  name: "🥩 Beef & Goat" },
-  { id: 4,  name: "🐟 Fish & Seafood" },
-  { id: 5,  name: "🫙 Stews & Sauces" },
-  { id: 6,  name: "🌿 Vegetarian" },
-  { id: 7,  name: "🍟 Small Chops & Snacks" },
-  { id: 8,  name: "🍰 Desserts & Pastries" },
-  { id: 9,  name: "🍹 Drinks & Smoothies" },
-  { id: 10, name: "🥗 Fruit Platters & Yogurts" },
-  { id: 11, name: "🔥 Grills & Brochettes" },
-  { id: 12, name: "🎉 Add-ons" },
-  { id: 13, name: "🚗 Logistics" },
-  { id: 14, name: "👨‍🍳 Staffing" },
-  { id: 15, name: "🏢 Corporate" },
-  { id: 16, name: "🎊 Seasonal" },
-  { id: 17, name: "🍽️ Starters" },
-  { id: 18, name: "🥂 Service Styles" },
-  { id: 19, name: "🏕️ Equipment" },
-];
+const CAT_CATS = [];
 
-const CAT_ITEMS = [
-  // ── 🍟 Small Chops & Snacks (cat 7) ──────────────────────────────
-  { id: 101, catId: 7, name: "Hamburger",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Classic beef patty burger with lettuce, tomato and sauce in a soft bun.", photo: null, tags: ["snack","small chops"] },
-  { id: 102, catId: 7, name: "Spring Roll",                 unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crispy fried roll filled with seasoned vegetables and/or meat.", photo: null, tags: ["snack","small chops"] },
-  { id: 103, catId: 7, name: "Samosa",                      unitType: "Per item",   price: 0, costPerUnit: 0, description: "Golden deep-fried pastry stuffed with spiced meat or vegetables.", photo: null, tags: ["snack","small chops"] },
-  { id: 104, catId: 7, name: "Meat Pie & Meat Balls",       unitType: "Per item",   price: 0, costPerUnit: 0, description: "Flaky shortcrust meat pie served with seasoned meat balls.", photo: null, tags: ["snack","small chops"] },
-  { id: 105, catId: 7, name: "Doughnuts",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Soft, fluffy deep-fried doughnuts lightly dusted with sugar.", photo: null, tags: ["snack","small chops"] },
-  { id: 106, catId: 7, name: "Sausage",                     unitType: "Per item",   price: 0, costPerUnit: 0, description: "Grilled or fried pork/chicken sausages, served as a finger snack.", photo: null, tags: ["snack","small chops"] },
-  { id: 107, catId: 7, name: "American Doughnuts (Bombonis)", unitType: "Per item", price: 0, costPerUnit: 0, description: "Light airy fried dough balls — the local favourite, known as Bombonis.", photo: null, tags: ["snack","small chops"] },
-  { id: 108, catId: 7, name: "Corn Dogs",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Sausage on a stick dipped in cornmeal batter and deep-fried to golden.", photo: null, tags: ["snack","small chops"] },
-  { id: 109, catId: 7, name: "Sandwich",                    unitType: "Per item",   price: 0, costPerUnit: 0, description: "Freshly prepared sandwich with choice of filling — chicken, tuna or beef.", photo: null, tags: ["snack","small chops"] },
-  { id: 110, catId: 7, name: "Chin Chin",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crunchy deep-fried dough bites, mildly sweet — a West African classic snack.", photo: null, tags: ["snack","small chops"] },
-  { id: 111, catId: 7, name: "Scotch Egg",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Hard-boiled egg wrapped in seasoned minced meat, crumbed and deep-fried.", photo: null, tags: ["snack","small chops"] },
-  { id: 112, catId: 7, name: "Puff Puff",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Soft, pillowy deep-fried dough balls — a beloved West/Central African snack.", photo: null, tags: ["snack","small chops"] },
-  { id: 113, catId: 7, name: "Accra Beans",                 unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crispy fried black-eyed pea fritters, seasoned with peppers and onions.", photo: null, tags: ["snack","small chops"] },
-  { id: 114, catId: 7, name: "Accra Banana",                unitType: "Per item",   price: 0, costPerUnit: 0, description: "Sweet fried plantain fritters — crispy outside, soft and sweet inside.", photo: null, tags: ["snack","small chops"] },
-  { id: 115, catId: 7, name: "Sausage Rolls",               unitType: "Per item",   price: 0, costPerUnit: 0, description: "Seasoned sausage wrapped in flaky puff pastry, baked to golden perfection.", photo: null, tags: ["snack","small chops"] },
-  { id: 116, catId: 7, name: "Sharwarma",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Wraps of seasoned grilled meat, fresh vegetables and garlic sauce in flatbread.", photo: null, tags: ["snack","small chops"] },
-  { id: 117, catId: 7, name: "Prawn & Fish Rolls",          unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crispy rolled pastry stuffed with seasoned prawn and fish filling.", photo: null, tags: ["snack","small chops","seafood"] },
-  { id: 118, catId: 7, name: "Pancakes",                    unitType: "Per item",   price: 0, costPerUnit: 0, description: "Fluffy golden pancakes served with syrup, honey or fruit toppings.", photo: null, tags: ["snack","small chops","dessert"] },
-  { id: 119, catId: 7, name: "Money Bag",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Delicate pastry pouches gathered into a purse shape, filled with savoury or sweet filling.", photo: null, tags: ["snack","small chops","fancy"] },
-
-  // ── 🔥 Grills & Brochettes (cat 11) ──────────────────────────────
-  { id: 201, catId: 11, name: "Cow Soya",                   unitType: "Per head",   price: 0, costPerUnit: 0, description: "Classic Cameroonian beef soya — spiced beef skewers grilled over open charcoal flame.", photo: null, tags: ["grill","soya","beef"] },
-  { id: 202, catId: 11, name: "Chicken Soya",               unitType: "Per head",   price: 0, costPerUnit: 0, description: "Tender marinated chicken pieces grilled on skewers with Cameroonian suya spice blend.", photo: null, tags: ["grill","soya","chicken"] },
-  { id: 203, catId: 11, name: "Goat Soya",                  unitType: "Per head",   price: 0, costPerUnit: 0, description: "Juicy goat meat skewers seasoned with suya spices and slow-grilled to perfection.", photo: null, tags: ["grill","soya","goat"] },
-  { id: 204, catId: 11, name: "Asun",                       unitType: "Per head",   price: 0, costPerUnit: 0, description: "Spicy smoked goat meat — grilled, chopped and tossed with hot peppers and onions.", photo: null, tags: ["grill","goat","spicy"] },
-  { id: 205, catId: 11, name: "Mackerel (Grilled)",         unitType: "Per item",   price: 0, costPerUnit: 0, description: "Whole fresh mackerel marinated in spices and grilled over charcoal.", photo: null, tags: ["grill","fish","seafood"] },
-  { id: 206, catId: 11, name: "Steak",                      unitType: "Per item",   price: 0, costPerUnit: 0, description: "Premium beef steak seasoned and grilled to the client's preferred doneness.", photo: null, tags: ["grill","beef","premium"] },
-  { id: 207, catId: 11, name: "Lamb Chops",                 unitType: "Per item",   price: 0, costPerUnit: 0, description: "Tender lamb chops marinated in herbs and garlic, grilled to a smoky finish.", photo: null, tags: ["grill","lamb","premium"] },
-  { id: 208, catId: 11, name: "Hot Dog",                    unitType: "Per item",   price: 0, costPerUnit: 0, description: "Grilled sausage served in a soft bun with mustard, ketchup and relish.", photo: null, tags: ["grill","sausage"] },
-  { id: 209, catId: 11, name: "Meat Skewers",               unitType: "Per item",   price: 0, costPerUnit: 0, description: "Mixed beef and vegetable skewers grilled with aromatic spices.", photo: null, tags: ["grill","beef","skewer"] },
-  { id: 210, catId: 11, name: "Chicken Skewers",            unitType: "Per item",   price: 0, costPerUnit: 0, description: "Marinated chicken pieces threaded on skewers and grilled over charcoal.", photo: null, tags: ["grill","chicken","skewer"] },
-  { id: 211, catId: 11, name: "Pork (Grilled)",             unitType: "Per item",   price: 0, costPerUnit: 0, description: "Seasoned pork cuts grilled over open flame for a rich smoky flavour.", photo: null, tags: ["grill","pork"] },
-  { id: 212, catId: 11, name: "Croakers (Grilled)",         unitType: "Per item",   price: 0, costPerUnit: 0, description: "Fresh croaker fish seasoned with peppers and spices, grilled whole.", photo: null, tags: ["grill","fish","seafood"] },
-  { id: 213, catId: 11, name: "Gambas (Grilled Prawns)",    unitType: "Per item",   price: 0, costPerUnit: 0, description: "Jumbo prawns marinated in garlic butter and spices, grilled to juicy perfection.", photo: null, tags: ["grill","seafood","prawns","premium"] },
-
-  // ── 🍰 Desserts & Pastries (cat 8) ───────────────────────────────
-  { id: 301, catId: 8, name: "Mousse",                      unitType: "Per item",   price: 0, costPerUnit: 0, description: "Light, airy mousse — available in chocolate, fruit or vanilla flavours.", photo: null, tags: ["dessert","mousse"] },
-  { id: 302, catId: 8, name: "Fruit Tart",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Buttery pastry shell filled with smooth custard cream and topped with fresh fruits.", photo: null, tags: ["dessert","pastry","tart"] },
-  { id: 303, catId: 8, name: "Panacotta",                   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Classic Italian set cream dessert, silky smooth with a berry or caramel sauce.", photo: null, tags: ["dessert","italian"] },
-  { id: 304, catId: 8, name: "Baked & Deconstructed Cheese Cake", unitType: "Per item", price: 0, costPerUnit: 0, description: "Rich baked cheesecake or artistically deconstructed cheesecake plating.", photo: null, tags: ["dessert","cheesecake"] },
-  { id: 305, catId: 8, name: "Swiss Roll",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Soft sponge cake rolled with a cream or jam filling — classic and elegant.", photo: null, tags: ["dessert","cake","roll"] },
-  { id: 306, catId: 8, name: "Crème Caramel",               unitType: "Per item",   price: 0, costPerUnit: 0, description: "Smooth baked custard with a golden caramel sauce — a French dessert favourite.", photo: null, tags: ["dessert","custard","french"] },
-  { id: 307, catId: 8, name: "Apple Pie & Filling",         unitType: "Per item",   price: 0, costPerUnit: 0, description: "Flaky double-crust apple pie with spiced cinnamon-apple filling, baked golden.", photo: null, tags: ["dessert","pie","fruit"] },
-  { id: 308, catId: 8, name: "Waffles",                     unitType: "Per item",   price: 0, costPerUnit: 0, description: "Crispy golden waffles served with syrup, cream and fresh fruits.", photo: null, tags: ["dessert","waffle"] },
-  { id: 309, catId: 8, name: "Lemon Curd",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Tangy, silky lemon curd — served as a dessert filling or accompaniment.", photo: null, tags: ["dessert","lemon","filling"] },
-  { id: 310, catId: 8, name: "Blueberry Sauce",             unitType: "Per item",   price: 0, costPerUnit: 0, description: "Rich homemade blueberry compote — a perfect topping for cakes or ice cream.", photo: null, tags: ["dessert","sauce","fruit"] },
-  { id: 311, catId: 8, name: "Mocha Filling",               unitType: "Per item",   price: 0, costPerUnit: 0, description: "Coffee-chocolate mocha cream filling — ideal for cakes, rolls and pastries.", photo: null, tags: ["dessert","filling","coffee"] },
-  { id: 312, catId: 8, name: "Red Velvet",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Iconic red velvet cake with velvety texture and creamy cheese frosting.", photo: null, tags: ["dessert","cake","red velvet"] },
-  { id: 313, catId: 8, name: "Chocolate & Carrot Cake",     unitType: "Per item",   price: 0, costPerUnit: 0, description: "Rich moist chocolate cake or spiced carrot cake — both with decadent frosting.", photo: null, tags: ["dessert","cake","chocolate"] },
-  { id: 314, catId: 8, name: "Strawberry Purée",            unitType: "Per item",   price: 0, costPerUnit: 0, description: "Fresh blended strawberry purée — used as a dessert coulis or drink base.", photo: null, tags: ["dessert","fruit","sauce"] },
-  { id: 315, catId: 8, name: "Salted Caramel Sauce",        unitType: "Per item",   price: 0, costPerUnit: 0, description: "Indulgent buttery salted caramel sauce — perfect drizzled over cakes and ice cream.", photo: null, tags: ["dessert","sauce","caramel"] },
-  { id: 316, catId: 8, name: "Vanilla Custard",             unitType: "Per item",   price: 0, costPerUnit: 0, description: "Classic smooth vanilla custard — served warm or cold as a dessert accompaniment.", photo: null, tags: ["dessert","custard","vanilla"] },
-  { id: 317, catId: 8, name: "Cream Cheese Frosting",       unitType: "Per item",   price: 0, costPerUnit: 0, description: "Tangy, rich cream cheese frosting — the signature topping for red velvet and carrot cakes.", photo: null, tags: ["dessert","frosting","cake"] },
-  { id: 318, catId: 8, name: "Crumble Mix",                 unitType: "Per item",   price: 0, costPerUnit: 0, description: "Buttery oat and flour crumble topping — used on fruit crumbles and dessert platters.", photo: null, tags: ["dessert","crumble","topping"] },
-
-  // ── 🥗 Fruit Platters & Yogurts (cat 10) ─────────────────────────
-  { id: 401, catId: 10, name: "Normal & Exotic Fruit Platters", unitType: "Per platter", price: 0, costPerUnit: 0, description: "Beautifully arranged platters of seasonal local and exotic tropical fruits.", photo: null, tags: ["fruit","platter","healthy"] },
-  { id: 402, catId: 10, name: "Pineapple & Orange Juice",  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Freshly squeezed pineapple and orange juice — natural, no added sugar.", photo: null, tags: ["juice","drink","fresh"] },
-  { id: 403, catId: 10, name: "Cocktails",                  unitType: "Per item",   price: 0, costPerUnit: 0, description: "Fresh fruit cocktails — mocktail versions available for all events.", photo: null, tags: ["cocktail","drink"] },
-  { id: 404, catId: 10, name: "Folere (Bissap)",            unitType: "Per item",   price: 0, costPerUnit: 0, description: "Refreshing hibiscus flower drink — a Cameroonian classic, served chilled.", photo: null, tags: ["drink","local","folere"] },
-  { id: 405, catId: 10, name: "Kossam",                     unitType: "Per item",   price: 0, costPerUnit: 0, description: "Traditional Fulani fermented milk drink — refreshing and lightly tangy.", photo: null, tags: ["drink","local","kossam"] },
-  { id: 406, catId: 10, name: "Fruits & Exotic Parfaits",   unitType: "Per item",   price: 0, costPerUnit: 0, description: "Layered parfait cups with yogurt, granola and exotic tropical fruits.", photo: null, tags: ["dessert","parfait","fruit","yogurt"] },
-  { id: 407, catId: 10, name: "Greek & Swiss Yogurts",      unitType: "Per item",   price: 0, costPerUnit: 0, description: "Premium thick Greek or Swiss-style yogurt served plain or with fruit toppings.", photo: null, tags: ["yogurt","healthy","dairy"] },
-  { id: 408, catId: 10, name: "Detox Smoothies",            unitType: "Per item",   price: 0, costPerUnit: 0, description: "Cold-pressed green detox smoothies — spinach, cucumber, pineapple and ginger blend.", photo: null, tags: ["smoothie","drink","healthy","detox"] },
-  { id: 409, catId: 10, name: "Healthy Smoothies",          unitType: "Per item",   price: 0, costPerUnit: 0, description: "Nutrient-packed fruit and vegetable smoothies — customised to the event theme.", photo: null, tags: ["smoothie","drink","healthy"] },
-  { id: 410, catId: 10, name: "Granola",                    unitType: "Per item",   price: 0, costPerUnit: 0, description: "House-made crunchy oat granola — served with yogurt or fruit platters.", photo: null, tags: ["granola","healthy","breakfast"] },
-
-  // ── 🫙 Stews & Sauces — Cameroonian Mains (cat 5) ────────────────
-  { id: 501, catId: 5, name: "Ndolé",              unitType: "Per head", price: 0, costPerUnit: 0, description: "Bitterleaf stew with peanuts, meat, fish, or shrimp / Ragoût de feuilles amères aux arachides, viande, poisson ou crevettes.",   photo: null, tags: ["cameroonian","stew","main"] },
-  { id: 502, catId: 5, name: "Eru",                unitType: "Per head", price: 0, costPerUnit: 0, description: "Shredded eru leaves cooked with meat, fish, or cow skin / Eru aux légumes verts, viande, poisson ou peau de bœuf.",                photo: null, tags: ["cameroonian","stew","main"] },
-  { id: 503, catId: 5, name: "Achu & Yellow Soup", unitType: "Per head", price: 0, costPerUnit: 0, description: "Pounded cocoyam with traditional yellow sauce / Taro pilé avec sauce jaune traditionnelle.",                                       photo: null, tags: ["cameroonian","soup","main","achu"] },
-  { id: 504, catId: 5, name: "Mbongo Tchobi",      unitType: "Per head", price: 0, costPerUnit: 0, description: "Black spiced stew, usually with fish or meat / Sauce noire épicée, généralement au poisson ou à la viande.",                      photo: null, tags: ["cameroonian","stew","main","spicy"] },
-  { id: 505, catId: 5, name: "Koki Beans",         unitType: "Per head", price: 0, costPerUnit: 0, description: "Steamed black-eyed pea cake / Gâteau de haricots à œil noir cuit à la vapeur.",                                                   photo: null, tags: ["cameroonian","vegetarian","main","koki"] },
-  { id: 506, catId: 5, name: "Kwacoco & Banga",    unitType: "Per head", price: 0, costPerUnit: 0, description: "Steamed cocoyam with palm nut sauce / Macabo râpé cuit à la vapeur avec sauce de noix de palme.",                                  photo: null, tags: ["cameroonian","stew","main"] },
-  { id: 507, catId: 5, name: "Ekwang",             unitType: "Per head", price: 0, costPerUnit: 0, description: "Grated cocoyam wrapped in leaves and slow-cooked / Taro râpé emballé dans des feuilles et mijoté.",                               photo: null, tags: ["cameroonian","main","cocoyam"] },
-  { id: 508, catId: 5, name: "Okok",               unitType: "Per head", price: 0, costPerUnit: 0, description: "Okok leaves cooked with palm oil and spices / Feuilles d'okok cuisinées à l'huile de palme et aux épices.",                       photo: null, tags: ["cameroonian","main","leaves","vegetarian"] },
-  { id: 509, catId: 5, name: "Sanga",              unitType: "Per head", price: 0, costPerUnit: 0, description: "Maize, cassava leaves, and palm nut preparation / Maïs, feuilles de manioc et jus de noix de palme.",                             photo: null, tags: ["cameroonian","main","maize"] },
-  { id: 510, catId: 5, name: "Kondré",             unitType: "Per head", price: 0, costPerUnit: 0, description: "Unripe plantain stew, often with meat / Ragoût de plantain non mûr, souvent à la viande.",                                        photo: null, tags: ["cameroonian","stew","main","plantain"] },
-  { id: 511, catId: 5, name: "Nkui / Nkwi",       unitType: "Per head", price: 0, costPerUnit: 0, description: "Traditional western Cameroon sauce served with fufu / Sauce traditionnelle de l'Ouest servie avec du fufu.",                       photo: null, tags: ["cameroonian","sauce","main","western"] },
-  { id: 512, catId: 5, name: "Poulet DG",          unitType: "Per head", price: 0, costPerUnit: 0, description: "Chicken and ripe plantain in rich sauce / Poulet aux plantains mûrs dans une sauce riche.",                                         photo: null, tags: ["cameroonian","chicken","main","plantain"] },
-  { id: 513, catId: 5, name: "Kati Kati",          unitType: "Per head", price: 0, costPerUnit: 0, description: "Fire-grilled chicken in traditional sauce / Poulet grillé à la sauce traditionnelle.",                                              photo: null, tags: ["cameroonian","chicken","main","grilled"] },
-  { id: 514, catId: 5, name: "Pepper Soup",        unitType: "Per head", price: 0, costPerUnit: 0, description: "Spicy meat or fish soup with aromatic Cameroonian spices / Soupe de viande ou poisson épicée.",                                     photo: null, tags: ["cameroonian","soup","main","spicy"] },
-  { id: 515, catId: 5, name: "Roasted Fish / Poisson Braisé", unitType: "Per item", price: 0, costPerUnit: 0, description: "Grilled fish with pepper sauce / Poisson grillé avec sauce pimentée.",                                                  photo: null, tags: ["cameroonian","fish","main","grilled"] },
-  { id: 516, catId: 5, name: "Assorted Meat Sauce", unitType: "Per head", price: 0, costPerUnit: 0, description: "Mixed meat in rich traditional sauce / Sauce de viandes variées.",                                                                 photo: null, tags: ["cameroonian","meat","main","sauce"] },
-  { id: 517, catId: 5, name: "Grilled Chicken / Poulet Braisé", unitType: "Per item", price: 0, costPerUnit: 0, description: "Whole or half chicken marinated and grilled over charcoal / Poulet entier ou demi grillé au charbon de bois.",        photo: null, tags: ["cameroonian","chicken","main","grilled"] },
-];
+const CAT_ITEMS = [];
 
 // ─── MEALS (Restaurant menu items with inventory linking) ─────────
 const INIT_MEALS = [];
@@ -16421,11 +16314,13 @@ export default function App() {
         setProposals(_v); ls_set("cb_proposals", _v);
       }
       // Strip base64 blobs before loading catalog/meals — they bloat JSONB and break sync
-      if (cloud["cb_catalog"] !== undefined && cloud["cb_catalog"] !== null) {
-        const clean = stripBase64Photos(cloud["cb_catalog"]);
-        setCatalogItems(clean); ls_set("cb_catalog", clean);
-      }
-      apply("cb_catalog_cats", setCatalogCategories);
+      // Catalog is now derived entirely from Meals — clear any stale cloud data
+      // The meal→catalog sync effect will repopulate it immediately after cloudLoaded
+      setCatalogItems([]);
+      ls_set("cb_catalog", []);
+      setCatalogCategories([]);
+      ls_set("cb_catalog_cats", []);
+      // (catalog categories are rebuilt from meals by the sync effect)
       // Inventory: if cloud is empty array, seed with INIT_INVENTORY
       apply("cb_inventory",    setInventory);
       if (cloud["cb_meals"] !== undefined && cloud["cb_meals"] !== null) {
@@ -16485,6 +16380,76 @@ export default function App() {
   useEffect(() => { if (cloudLoaded) syncKey("cb_customers",    customers);    }, [customers,    cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_vendors",      vendors);      }, [vendors,      cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_social",       socialLinks);  }, [socialLinks,  cloudLoaded, syncKey]);
+
+  // ── Auto-sync Meals → Catalog ──────────────────────────────────────
+  // Meals are the source of truth. On every meals change:
+  // 1. Upsert each meal into catalogItems (by name, preserving unitType/tags/notes if set)
+  // 2. Sync meal categories into catalogCategories
+  useEffect(() => {
+    if (!cloudLoaded) return;
+
+    // 1. Sync categories: derive from meals, preserve existing catalog-only cats
+    setCatalogCategories(prev => {
+      const mealCatNames = [...new Set(meals.map(m => m.category).filter(Boolean))];
+      let updated = [...prev];
+      mealCatNames.forEach(name => {
+        if (!updated.find(c => c.name === name)) {
+          const maxId = updated.reduce((m, c) => Math.max(m, c.id), 0);
+          updated.push({ id: maxId + 1, name });
+        }
+      });
+      return updated;
+    });
+
+    // 2. Upsert meals into catalog items
+    setCatalogItems(prev => {
+      let updated = [...prev];
+      meals.forEach(meal => {
+        const existingIdx = updated.findIndex(c => c.name.toLowerCase() === meal.name.toLowerCase());
+        // Find matching cat id
+        const catName = meal.category || "";
+        const catObj = catalogCategories.find(c => c.name === catName) ||
+                       catalogCategories.find(c => c.name.toLowerCase() === catName.toLowerCase());
+        const catId = catObj?.id || (catalogCategories[0]?.id || 1);
+
+        if (existingIdx >= 0) {
+          // Update existing — preserve unitType/tags/notes, sync name/photo/description/catId
+          updated[existingIdx] = {
+            ...updated[existingIdx],
+            name: meal.name,
+            description: meal.description || updated[existingIdx].description || "",
+            photo: meal.photo || updated[existingIdx].photo || null,
+            catId,
+          };
+        } else {
+          // Add new catalog item from meal
+          updated.push({
+            id: Date.now() + Math.random(),
+            catId,
+            name: meal.name,
+            description: meal.description || "",
+            unitType: "Per head",
+            price: 0,
+            costPerUnit: 0,
+            photo: meal.photo || null,
+            tags: [],
+            notes: "",
+          });
+        }
+      });
+      // Remove catalog items that were synced from meals but meal no longer exists
+      // Only remove auto-synced items (those with no manual unitType override)
+      updated = updated.filter(c => {
+        const linkedMeal = meals.find(m => m.name.toLowerCase() === c.name.toLowerCase());
+        // If no linked meal and unitType is still default "Per head", it was auto-added — remove it
+        // If it has a custom unitType, keep it (manually managed)
+        if (!linkedMeal && c.unitType === "Per head" && !c.tags?.length && !c.notes) return false;
+        return true;
+      });
+      return updated;
+    });
+  // eslint-disable-next-line
+  }, [meals, cloudLoaded]);
 
   // Backfill/merge customers from all sources: sales, catering events & invoices
   useEffect(() => {
