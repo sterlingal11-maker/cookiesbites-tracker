@@ -3520,7 +3520,8 @@ function buildOrderInvoiceHTML(sale, biz, logo) {
     sale.type + " Order",
   ].filter(Boolean).join("<br/>");
   const rows = [
-    `<tr><td class="bold">${sale.meal}</td><td class="tc">${sale.plates} plate${sale.plates > 1 ? "s" : ""}</td><td class="tr">${fmt(sale.pricePerPlate)}</td><td class="tr">${fmt(sale.plates * sale.pricePerPlate)}</td></tr>`,
+    ...(sale.items && sale.items.length > 0 ? sale.items : [{ meal: sale.meal, plates: sale.plates, pricePerPlate: sale.pricePerPlate }])
+      .map(it => `<tr><td class="bold">${it.meal}</td><td class="tc">${it.plates} plate${Number(it.plates) > 1 ? "s" : ""}</td><td class="tr">${fmt(it.pricePerPlate)}</td><td class="tr">${fmt(Number(it.plates) * Number(it.pricePerPlate))}</td></tr>`),
     sale.deliveryFee > 0
       ? `<tr><td>Delivery Fee</td><td class="tc">—</td><td class="tr">${fmt(sale.deliveryFee)}</td><td class="tr">${fmt(sale.deliveryFee)}</td></tr>`
       : "",
