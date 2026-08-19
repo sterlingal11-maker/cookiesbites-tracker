@@ -10073,15 +10073,58 @@ function RestaurantPage({
                 </div>
                 <div>
                   <label style={S.label}>Category</label>
-                  <select
-                    style={S.select}
-                    value={nm.category}
-                    onChange={(e) => setNm({ ...nm, category: e.target.value })}
-                  >
-                    {(catalogCategories || []).map((c) => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
+                  {nm._addingCat ? (
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <input
+                        autoFocus
+                        style={{ ...S.input, marginBottom: 0, flex: 1 }}
+                        placeholder="New category name…"
+                        value={nm._newCatName || ""}
+                        onChange={e => setNm({ ...nm, _newCatName: e.target.value })}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            const name = (nm._newCatName || "").trim();
+                            if (name) {
+                              setCatalogCategories(prev => {
+                                const maxId = prev.reduce((m, c) => Math.max(m, c.id), 0);
+                                return [...prev, { id: maxId + 1, name }];
+                              });
+                              setNm({ ...nm, category: name, _addingCat: false, _newCatName: "" });
+                            }
+                          }
+                          if (e.key === "Escape") setNm({ ...nm, _addingCat: false, _newCatName: "" });
+                        }}
+                      />
+                      <button style={{ ...S.btn("primary"), fontSize: 11, padding: "4px 9px" }} onClick={() => {
+                        const name = (nm._newCatName || "").trim();
+                        if (name) {
+                          setCatalogCategories(prev => {
+                            const maxId = prev.reduce((m, c) => Math.max(m, c.id), 0);
+                            return [...prev, { id: maxId + 1, name }];
+                          });
+                          setNm({ ...nm, category: name, _addingCat: false, _newCatName: "" });
+                        }
+                      }}>Save</button>
+                      <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "4px 9px" }} onClick={() => setNm({ ...nm, _addingCat: false, _newCatName: "" })}>✕</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <select
+                        style={{ ...S.select, flex: 1 }}
+                        value={nm.category}
+                        onChange={(e) => setNm({ ...nm, category: e.target.value })}
+                      >
+                        {(catalogCategories || []).map((c) => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        title="Add new category"
+                        style={{ ...S.btn("ghost"), fontSize: 12, padding: "4px 8px", whiteSpace: "nowrap" }}
+                        onClick={() => setNm({ ...nm, _addingCat: true, _newCatName: "" })}
+                      >＋</button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={S.label}>Photo</label>
