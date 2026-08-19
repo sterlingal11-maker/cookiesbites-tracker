@@ -8491,10 +8491,17 @@ function BatchesTab({ batches, setBatches, meals, setMeals, inventory, setInvent
 
   // Compute remaining portions for a batch: batch.portions minus all sales of that meal on/after batch date
   const batchRemaining = (b) => {
-    if (!b.mealId) return null; // manual batches without linked meal — unknown
-    const sold = (sales || [])
-      .filter((s) => s.mealId === b.mealId && s.date >= b.date)
-      .reduce((sum, s) => sum + Number(s.plates || 0), 0);
+    if (!b.mealId) return null;
+    const sold = (sales || []).reduce((sum, s) => {
+      // Multi-item orders: check items array
+      if (Array.isArray(s.items) && s.items.length > 0) {
+        return sum + s.items
+          .filter(it => Number(it.mealId) === Number(b.mealId) && s.date >= b.date)
+          .reduce((a, it) => a + Number(it.plates || 0), 0);
+      }
+      // Legacy single-item orders
+      return sum + (Number(s.mealId) === Number(b.mealId) && s.date >= b.date ? Number(s.plates || 0) : 0);
+    }, 0);
     return Math.max(0, b.portions - sold);
   };
 
@@ -8979,13 +8986,8 @@ function RestaurantPage({
       }
     });
 
-    if (Object.keys(mealDeductions).length > 0) {
-      setMeals(prev => prev.map(m =>
-        mealDeductions[m.id]
-          ? { ...m, availablePortions: Math.max(0, (Number(m.availablePortions) || 0) - mealDeductions[m.id]) }
-          : m
-      ));
-    }
+    // Batch portions are computed live from batches minus sales (see batchRemaining / mealPortions)
+    // No need to deduct availablePortions from meal state — that field is not used by the picker
 
     if (Object.keys(inventoryDeductions).length > 0) {
       setInventory(prev => prev.map(inv => {
@@ -9388,9 +9390,16 @@ function RestaurantPage({
                     const mealPortions = {};
                     batches.forEach((b) => {
                       if (!b.mealId) return;
-                      const sold = sales
-                        .filter((s) => Number(s.mealId) === Number(b.mealId) && s.date >= b.date)
-                        .reduce((sum, s) => sum + Number(s.plates || 0), 0);
+                      const sold = sales.reduce((sum, s) => {
+                        // Multi-item orders: check items array
+                        if (Array.isArray(s.items) && s.items.length > 0) {
+                          return sum + s.items
+                            .filter(it => Number(it.mealId) === Number(b.mealId) && s.date >= b.date)
+                            .reduce((a, it) => a + Number(it.plates || 0), 0);
+                        }
+                        // Legacy single-item orders
+                        return sum + (Number(s.mealId) === Number(b.mealId) && s.date >= b.date ? Number(s.plates || 0) : 0);
+                      }, 0);
                       const rem = Math.max(0, b.portions - sold);
                       mealPortions[b.mealId] = (mealPortions[b.mealId] || 0) + rem;
                     });
