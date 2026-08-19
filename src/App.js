@@ -11275,61 +11275,29 @@ function RestaurantPage({
                     {/* Action buttons */}
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                       <button
-                        style={{
-                          ...S.btn("ghost"),
-                          fontSize: 9,
-                          padding: "2px 6px",
-                        }}
+                        style={{ ...S.btn("ghost"), fontSize: 9, padding: "2px 6px" }}
                         onClick={() => startEditMeal(meal)}
-                      >
-                        ✏️ Edit
-                      </button>
+                      >✏️ Edit</button>
                       <button
-                        style={{
-                          ...S.btn("ghost"),
-                          fontSize: 9,
-                          padding: "2px 6px",
-                          borderColor: isExpanded ? T.accent : T.border,
-                          color: isExpanded ? T.accent : T.text,
-                        }}
-                        onClick={() =>
-                          setExpandedMeal(isExpanded ? null : meal.id)
-                        }
-                      >
-                        💰 {isExpanded ? "Hide Cost" : "View Cost"}
-                      </button>
-                      <button
-                        style={{
-                          ...S.btn("ghost"),
-                          fontSize: 9,
-                          padding: "2px 6px",
-                          color: meal.active ? T.danger : T.success,
-                        }}
-                        onClick={() =>
-                          setMeals((prev) =>
-                            prev.map((m) =>
-                              m.id === meal.id ? { ...m, active: !m.active } : m
-                            )
-                          )
-                        }
-                      >
-                        {meal.active ? "Deactivate" : "Activate"}
-                      </button>
-                      <button
-                        style={{
-                          ...S.btn("ghost"),
-                          fontSize: 9,
-                          padding: "2px 6px",
-                          color: T.danger,
-                          borderColor: T.danger + "40",
-                        }}
+                        style={{ ...S.btn("ghost"), fontSize: 9, padding: "2px 6px" }}
                         onClick={() => {
-                          if (window.confirm(`Delete "${meal.name}"?\n\nThis cannot be undone.`))
-                            setMeals((prev) => prev.filter((m) => m.id !== meal.id));
+                          const copy = { ...meal, id: Date.now(), name: meal.name + " (copy)", active: false };
+                          setMeals(prev => [...prev, copy]);
+                          startEditMeal(copy);
                         }}
-                      >
-                        🗑 Delete
-                      </button>
+                      >⧉ Duplicate</button>
+                      <button
+                        style={{ ...S.btn("ghost"), fontSize: 9, padding: "2px 6px", borderColor: isExpanded ? T.accent : T.border, color: isExpanded ? T.accent : T.text }}
+                        onClick={() => setExpandedMeal(isExpanded ? null : meal.id)}
+                      >💰 {isExpanded ? "Hide Cost" : "View Cost"}</button>
+                      <button
+                        style={{ ...S.btn("ghost"), fontSize: 9, padding: "2px 6px", color: meal.active ? T.danger : T.success }}
+                        onClick={() => setMeals((prev) => prev.map((m) => m.id === meal.id ? { ...m, active: !m.active } : m))}
+                      >{meal.active ? "Deactivate" : "Activate"}</button>
+                      <button
+                        style={{ ...S.btn("ghost"), fontSize: 9, padding: "2px 6px", color: T.danger, borderColor: T.danger + "40" }}
+                        onClick={() => { if (window.confirm(`Delete "${meal.name}"?\n\nThis cannot be undone.`)) setMeals((prev) => prev.filter((m) => m.id !== meal.id)); }}
+                      >🗑 Delete</button>
                     </div>
                   </div>
                 </div>
@@ -11683,52 +11651,29 @@ function RestaurantPage({
                       <td style={S.td}>
                         <div style={{ display: "flex", gap: 3 }}>
                           <button
-                            style={{
-                              ...S.btn("ghost"),
-                              fontSize: 10,
-                              padding: "2px 6px",
-                            }}
+                            style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
                             onClick={() => startEditInv(item)}
-                          >
-                            Edit
-                          </button>
+                          >Edit</button>
                           <button
-                            style={{
-                              ...S.btn("ghost"),
-                              fontSize: 10,
-                              padding: "2px 6px",
-                            }}
+                            style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
                             onClick={() => {
-                              const qty = prompt(
-                                `Restock ${item.name}\nCurrent: ${item.stock} ${item.unit}\nAdd quantity:`
-                              );
+                              const copy = { ...item, id: Date.now(), name: item.name + " (copy)", stock: 0 };
+                              setInventory(prev => [...prev, copy]);
+                              startEditInv(copy);
+                            }}
+                          >⧉ Dupe</button>
+                          <button
+                            style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
+                            onClick={() => {
+                              const qty = prompt(`Restock ${item.name}\nCurrent: ${item.stock} ${item.unit}\nAdd quantity:`);
                               if (qty && !isNaN(Number(qty)))
-                                setInventory((prev) =>
-                                  prev.map((it) =>
-                                    it.id === item.id
-                                      ? { ...it, stock: it.stock + Number(qty) }
-                                      : it
-                                  )
-                                );
+                                setInventory((prev) => prev.map((it) => it.id === item.id ? { ...it, stock: it.stock + Number(qty) } : it));
                             }}
-                          >
-                            + Restock
-                          </button>
+                          >+ Restock</button>
                           <button
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: T.danger,
-                              cursor: "pointer",
-                              fontSize: 11,
-                            }}
-                            onClick={() => {
-                              if (window.confirm(`Delete ${item.name}?`))
-                                deleteInv(item.id);
-                            }}
-                          >
-                            ✕
-                          </button>
+                            style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 11 }}
+                            onClick={() => { if (window.confirm(`Delete ${item.name}?`)) deleteInv(item.id); }}
+                          >✕</button>
                         </div>
                       </td>
                     </tr>
@@ -13415,26 +13360,21 @@ function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
                       </div>
                       <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
                         <button
-                          style={{
-                            ...S.btn("ghost"),
-                            fontSize: 10,
-                            padding: "3px 8px",
-                          }}
+                          style={{ ...S.btn("ghost"), fontSize: 10, padding: "3px 8px" }}
                           onClick={() => startEdit(o)}
-                        >
-                          ✏️ Edit
-                        </button>
+                        >✏️ Edit</button>
                         <button
-                          style={{
-                            ...S.btn("ghost"),
-                            fontSize: 10,
-                            padding: "3px 8px",
-                            color: T.danger,
+                          style={{ ...S.btn("ghost"), fontSize: 10, padding: "3px 8px" }}
+                          onClick={() => {
+                            const copy = { ...o, id: Date.now(), date: TODAY_ISO };
+                            setOverheads(prev => [...prev, copy]);
+                            startEdit(copy);
                           }}
+                        >⧉ Duplicate</button>
+                        <button
+                          style={{ ...S.btn("ghost"), fontSize: 10, padding: "3px 8px", color: T.danger }}
                           onClick={() => deleteItem(o.id)}
-                        >
-                          ✕
-                        </button>
+                        >✕</button>
                       </div>
                     </div>
                   );
@@ -13569,26 +13509,21 @@ function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
                             <td style={S.td}>
                               <div style={{ display: "flex", gap: 4 }}>
                                 <button
-                                  style={{
-                                    ...S.btn("ghost"),
-                                    fontSize: 10,
-                                    padding: "2px 6px",
-                                  }}
+                                  style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
                                   onClick={() => startEdit(o)}
-                                >
-                                  Edit
-                                </button>
+                                >Edit</button>
                                 <button
-                                  style={{
-                                    ...S.btn("ghost"),
-                                    fontSize: 10,
-                                    padding: "2px 6px",
-                                    color: T.danger,
+                                  style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
+                                  onClick={() => {
+                                    const copy = { ...o, id: Date.now(), date: TODAY_ISO };
+                                    setOverheads(prev => [...prev, copy]);
+                                    startEdit(copy);
                                   }}
+                                >⧉ Dupe</button>
+                                <button
+                                  style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px", color: T.danger }}
                                   onClick={() => deleteItem(o.id)}
-                                >
-                                  ✕
-                                </button>
+                                >✕</button>
                               </div>
                             </td>
                           </tr>
