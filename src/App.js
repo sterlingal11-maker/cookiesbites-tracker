@@ -8961,23 +8961,40 @@ function RestaurantPage({
       setSales((prev) => [...prev, sale]);
     }
 
-    // Deduct portions and inventory for each item
+    // Deduct portions and inventory for each item — must be done in single state updates
+    // to avoid React batching overwriting earlier deductions with stale prev state
+
+    // Build deduction maps: mealId → total plates, itemName → total qty
+    const mealDeductions = {};
+    const inventoryDeductions = {};
+
     items.forEach(item => {
       if (item.mealId) {
-        setMeals(prev => prev.map(m =>
-          m.id === Number(item.mealId)
-            ? { ...m, availablePortions: Math.max(0, (Number(m.availablePortions) || 0) - Number(item.plates)) }
-            : m
-        ));
+        const key = Number(item.mealId);
+        mealDeductions[key] = (mealDeductions[key] || 0) + Number(item.plates);
       }
       if (!editSaleId && item._catalogItemId) {
-        setInventory(prev => prev.map(inv =>
-          inv.name.toLowerCase() === item.meal.toLowerCase()
-            ? { ...inv, stock: Math.max(0, Number(inv.stock) - Number(item.plates)) }
-            : inv
-        ));
+        const key = item.meal.toLowerCase();
+        inventoryDeductions[key] = (inventoryDeductions[key] || 0) + Number(item.plates);
       }
     });
+
+    if (Object.keys(mealDeductions).length > 0) {
+      setMeals(prev => prev.map(m =>
+        mealDeductions[m.id]
+          ? { ...m, availablePortions: Math.max(0, (Number(m.availablePortions) || 0) - mealDeductions[m.id]) }
+          : m
+      ));
+    }
+
+    if (Object.keys(inventoryDeductions).length > 0) {
+      setInventory(prev => prev.map(inv => {
+        const key = inv.name.toLowerCase();
+        return inventoryDeductions[key]
+          ? { ...inv, stock: Math.max(0, Number(inv.stock) - inventoryDeductions[key]) }
+          : inv;
+      }));
+    }
     setEditSaleId(null);
     setNs(EMPTY);
     setShowNewCustomer(false);
