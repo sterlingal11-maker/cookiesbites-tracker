@@ -16382,69 +16382,40 @@ export default function App() {
   useEffect(() => { if (cloudLoaded) syncKey("cb_social",       socialLinks);  }, [socialLinks,  cloudLoaded, syncKey]);
 
   // ── Auto-sync Meals → Catalog ──────────────────────────────────────
-  // Meals are the source of truth. On every meals change:
-  // 1. Upsert each meal into catalogItems (by name, preserving unitType/tags/notes if set)
-  // 2. Sync meal categories into catalogCategories
+  // Meals are the source of truth. Recomputes catalog synchronously from meals.
   useEffect(() => {
     if (!cloudLoaded) return;
 
-    // 1. Build the full category list from meal categories
+    // Build categories synchronously from meal categories
     const mealCatNames = [...new Set(meals.map(m => m.category).filter(Boolean))];
+    const newCats = mealCatNames.map((name, i) => ({ id: i + 1, name }));
 
-    // Upsert meal categories into catalogCategories, return the updated list
-    let updatedCats = [];
-    setCatalogCategories(prev => {
-      updatedCats = [...prev];
-      mealCatNames.forEach(name => {
-        if (!updatedCats.find(c => c.name === name)) {
-          const maxId = updatedCats.reduce((m, c) => Math.max(m, c.id), 0);
-          updatedCats.push({ id: maxId + 1, name });
-        }
-      });
-      return updatedCats;
-    });
-
-    // 2. Upsert meals into catalog items — use updatedCats for accurate catId lookup
+    // Build catalog items synchronously — preserve existing unitType/tags/notes per item
     setCatalogItems(prev => {
-      let updated = [...prev];
-      meals.forEach(meal => {
-        const existingIdx = updated.findIndex(c => c.name.toLowerCase() === meal.name.toLowerCase());
-        const catName = meal.category || "";
-        const catObj = updatedCats.find(c => c.name === catName)
-                    || updatedCats.find(c => c.name.toLowerCase() === catName.toLowerCase());
-        const catId = catObj?.id || (updatedCats[0]?.id || 1);
+      const existingMap = {};
+      prev.forEach(c => { existingMap[c.name.toLowerCase()] = c; });
 
-        if (existingIdx >= 0) {
-          updated[existingIdx] = {
-            ...updated[existingIdx],
-            name: meal.name,
-            description: meal.description || updated[existingIdx].description || "",
-            photo: meal.photo || updated[existingIdx].photo || null,
-            catId,
-          };
-        } else {
-          updated.push({
-            id: Date.now() + Math.random(),
-            catId,
-            name: meal.name,
-            description: meal.description || "",
-            unitType: "Per head",
-            price: 0,
-            costPerUnit: 0,
-            photo: meal.photo || null,
-            tags: [],
-            notes: "",
-          });
-        }
+      const items = meals.map(meal => {
+        const existing = existingMap[meal.name.toLowerCase()];
+        const cat = newCats.find(c => c.name === meal.category)
+                 || newCats.find(c => c.name.toLowerCase() === (meal.category || "").toLowerCase());
+        return {
+          id: existing?.id || (Date.now() + Math.random()),
+          catId: cat?.id || 1,
+          name: meal.name,
+          description: meal.description || existing?.description || "",
+          unitType: existing?.unitType || "Per head",
+          price: existing?.price || 0,
+          costPerUnit: existing?.costPerUnit || 0,
+          photo: meal.photo || existing?.photo || null,
+          tags: existing?.tags || [],
+          notes: existing?.notes || "",
+        };
       });
-      // Remove auto-synced items whose meal no longer exists (only if still default/unmodified)
-      updated = updated.filter(c => {
-        const linkedMeal = meals.find(m => m.name.toLowerCase() === c.name.toLowerCase());
-        if (!linkedMeal && c.unitType === "Per head" && !c.tags?.length && !c.notes) return false;
-        return true;
-      });
-      return updated;
+      return items;
     });
+
+    setCatalogCategories(newCats);
   // eslint-disable-next-line
   }, [meals, cloudLoaded]);
 
