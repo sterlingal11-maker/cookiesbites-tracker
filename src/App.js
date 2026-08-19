@@ -10048,18 +10048,15 @@ function RestaurantPage({
             </div>
           </div>
 
-          {/* Import from catalog panel */}
           {/* Add / edit meal form */}
           {addingMeal && (
             <div style={{ ...S.card, marginBottom: 12, borderColor: T.accent }}>
               <div style={S.sectionTitle}>
                 {editMealId ? "✏️ Edit Meal" : "➕ New Meal"}
-                  color: T.textMuted,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.6,
-                  marginBottom: 6,
-                }}
-              >
+              </div>
+
+              {/* Basic Info */}
+              <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>
                 Basic Info
               </div>
               <div style={S.grid(3)}>
