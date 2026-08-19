@@ -8867,7 +8867,9 @@ function RestaurantPage({
   inventory,
   setInventory,
   catalogItems,
+  setCatalogItems,
   catalogCategories,
+  setCatalogCategories,
   meals,
   setMeals,
   batches,
@@ -9217,6 +9219,28 @@ function RestaurantPage({
     setCatalogItems(prev => prev.map(c =>
       c.name.toLowerCase() === mealName.toLowerCase() ? { ...c, photo: photoSrc } : c
     ));
+  };
+
+  const copyToCatalog = (meal) => {
+    if (!setCatalogItems) return;
+    const alreadyExists = catalogItems.some(c => c.name.toLowerCase() === meal.name.toLowerCase());
+    if (alreadyExists) { alert(`"${meal.name}" already exists in Catalog.`); return; }
+    const defaultCat = (catalogCategories || [])[0];
+    // Try to match meal category name to a catalog category
+    const matchedCat = (catalogCategories || []).find(c => c.name.toLowerCase() === (meal.category || "").toLowerCase()) || defaultCat;
+    setCatalogItems(prev => [...prev, {
+      id: Date.now(),
+      catId: matchedCat?.id || 1,
+      name: meal.name,
+      description: meal.description || "",
+      unitType: "Per head",
+      price: 0,
+      costPerUnit: 0,
+      photo: meal.photo || null,
+      tags: [],
+      notes: "",
+    }]);
+    alert(`✅ "${meal.name}" added to Catalog. Open the Catalog tab to set the unit type and details.`);
   };
 
   // Sync a photo to the matching meal by name
@@ -11286,6 +11310,16 @@ function RestaurantPage({
                           startEditMeal(copy);
                         }}
                       >⧉ Duplicate</button>
+                      {!catalogItems.some(c => c.name.toLowerCase() === meal.name.toLowerCase()) && (
+                        <button
+                          title="Add to Catalog for use in Proposals"
+                          style={{ ...S.btn("ghost"), fontSize: 9, padding: "2px 6px", color: T.accent, borderColor: T.accent + "40" }}
+                          onClick={() => copyToCatalog(meal)}
+                        >→ Catalog</button>
+                      )}
+                      {catalogItems.some(c => c.name.toLowerCase() === meal.name.toLowerCase()) && (
+                        <span style={{ fontSize: 8, color: T.success, background: T.success + "18", padding: "2px 6px", borderRadius: 8, fontWeight: 700 }}>🔗 Catalog</span>
+                      )}
                       <button
                         style={{ ...S.btn("ghost"), fontSize: 9, padding: "2px 6px", borderColor: isExpanded ? T.accent : T.border, color: isExpanded ? T.accent : T.text }}
                         onClick={() => setExpandedMeal(isExpanded ? null : meal.id)}
@@ -16795,7 +16829,9 @@ export default function App() {
             inventory={inventory}
             setInventory={setInventory}
             catalogItems={catalogItems}
+            setCatalogItems={setCatalogItems}
             catalogCategories={catalogCategories}
+            setCatalogCategories={setCatalogCategories}
             meals={meals}
             setMeals={setMeals}
             batches={batches}
