@@ -1657,7 +1657,12 @@ const eCOGS = (c, costLines) => {
 const evtCOGS = (evt) => eCOGS(evt?.costs, evt?.costLines);
 const propTotal = (lines, disc = 0) =>
   lines.reduce((s, l) => s + l.qty * l.price, 0) - disc;
-const orderTotal = (s) => s.plates * s.pricePerPlate + (s.deliveryFee || 0);
+const orderTotal = (s) => {
+  const itemsTotal = Array.isArray(s.items) && s.items.length > 0
+    ? s.items.reduce((sum, it) => sum + (Number(it.plates) || 0) * (Number(it.pricePerPlate) || 0), 0)
+    : (Number(s.plates) || 0) * (Number(s.pricePerPlate) || 0);
+  return itemsTotal + (Number(s.deliveryFee) || 0);
+};
 
 // Compute COGS for a restaurant sale using meal ingredient-level costing when available,
 // falling back to catalog cost-rate estimate
@@ -3490,11 +3495,11 @@ function buildOrderReceiptHTML(sale, biz, logo) {
     `<div class="party-name">${biz.name}</div><div class="party-detail">${[biz.address, biz.city, biz.phone].filter(Boolean).join("<br/>")}</div>`,
     "Customer",
     `<div class="party-name">${clientName}</div><div class="party-detail">${clientDetail}</div>`
-  )}<div class="receipt-hero ${isPartial ? "partial" : ""}"><div class="rh-label">${statusLabel}</div><div class="rh-amount">${fmt(paid)}</div><div class="rh-sub">${sale.method} · ${sale.date}</div>${isPartial ? `<div class="rh-balance">Balance Outstanding: ${fmt(balance)}</div>` : ""}</div><div class="items-section"><div class="section-heading">Order Details</div><table><thead><tr><th>Item</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Amount (XAF)</th></tr></thead><tbody><tr><td class="bold">${
-    sale.meal
-  }</td><td class="tc">${sale.plates} plate${sale.plates > 1 ? "s" : ""}</td><td class="tr">${fmt(sale.pricePerPlate)}</td><td class="tr">${fmt(
-    sale.plates * sale.pricePerPlate
-  )}</td></tr>${
+  )}<div class="receipt-hero ${isPartial ? "partial" : ""}"><div class="rh-label">${statusLabel}</div><div class="rh-amount">${fmt(paid)}</div><div class="rh-sub">${sale.method} · ${sale.date}</div>${isPartial ? `<div class="rh-balance">Balance Outstanding: ${fmt(balance)}</div>` : ""}</div><div class="items-section"><div class="section-heading">Order Details</div><table><thead><tr><th>Item</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Amount (XAF)</th></tr></thead><tbody>${
+    (sale.items && sale.items.length > 0 ? sale.items : [{ meal: sale.meal, plates: sale.plates, pricePerPlate: sale.pricePerPlate }])
+      .map(it => `<tr><td class="bold">${it.meal}</td><td class="tc">${it.plates} plate${it.plates > 1 ? "s" : ""}</td><td class="tr">${fmt(it.pricePerPlate)}</td><td class="tr">${fmt(Number(it.plates) * Number(it.pricePerPlate))}</td></tr>`)
+      .join("")
+  }${
     sale.deliveryFee > 0
       ? `<tr><td>Delivery Fee</td><td class="tc">—</td><td class="tr">${fmt(sale.deliveryFee)}</td><td class="tr">${fmt(sale.deliveryFee)}</td></tr>`
       : ""
@@ -8789,10 +8794,7 @@ function RestaurantPage({
   const [doc, setDoc] = useState(null);
   const EMPTY = {
     date: TODAY_ISO,
-    meal: "",
-    mealId: null,
-    plates: "",
-    pricePerPlate: "",
+    items: [],           // [{ meal, mealId, _catalogItemId, plates, pricePerPlate }]
     method: "Cash",
     type: "Dine-in",
     deliveryFee: 0,
@@ -8804,9 +8806,16 @@ function RestaurantPage({
     notes: "",
     partialPaid: "",
     _pickerMode: "batch",
+    // legacy single-item fields (kept for edit compat)
+    meal: "",
+    mealId: null,
+    plates: "",
+    pricePerPlate: "",
     _catalogItemId: null,
   };
+  const EMPTY_ITEM = { meal: "", mealId: null, _catalogItemId: null, plates: "", pricePerPlate: "" };
   const [ns, setNs] = useState(EMPTY);
+  const [currentItem, setCurrentItem] = useState(EMPTY_ITEM); // item being composed before adding to order
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCust, setNewCust] = useState({ name: "", phone: "", email: "", notes: "" });
 
@@ -8910,73 +8919,64 @@ function RestaurantPage({
   );
 
   const saveSale = () => {
-    const plates = Number(ns.plates);
+    // Ensure any in-progress currentItem gets added automatically if it has data
+    const allItems = ns.items && ns.items.length > 0 ? ns.items : [];
+    if (allItems.length === 0 && !currentItem.meal) return; // nothing to save
+
+    // If currentItem has a meal selected but wasn't added yet, add it now
+    const items = allItems.length > 0 ? allItems :
+      (currentItem.meal ? [{ ...currentItem, plates: Number(currentItem.plates) || 1, pricePerPlate: Number(currentItem.pricePerPlate) || 0 }] : []);
+
+    if (items.length === 0) return;
+
+    // For backward compat, also save top-level meal/plates/pricePerPlate from first item
+    const first = items[0];
     const sale = {
       ...ns,
       id: editSaleId || Date.now(),
-      plates,
-      pricePerPlate: Number(ns.pricePerPlate),
+      items,
+      meal: first.meal,
+      mealId: first.mealId || null,
+      plates: Number(first.plates) || 1,
+      pricePerPlate: Number(first.pricePerPlate) || 0,
       deliveryFee: Number(ns.deliveryFee || 0),
     };
 
     if (editSaleId) {
-      // Restore portions for the OLD sale before replacing
       const old = sales.find((s) => s.id === editSaleId);
-      if (old && old.mealId) {
-        setMeals((prev) =>
-          prev.map((m) =>
-            m.id === Number(old.mealId)
-              ? { ...m, availablePortions: (Number(m.availablePortions) || 0) + Number(old.plates) }
+      // Restore portions for old sale items
+      if (old) {
+        const oldItems = old.items || [{ mealId: old.mealId, plates: old.plates }];
+        oldItems.forEach(oi => {
+          if (oi.mealId) setMeals(prev => prev.map(m =>
+            m.id === Number(oi.mealId)
+              ? { ...m, availablePortions: (Number(m.availablePortions) || 0) + Number(oi.plates) }
               : m
-          )
-        );
+          ));
+        });
       }
       setSales((prev) => prev.map((s) => s.id === editSaleId ? sale : s));
     } else {
       setSales((prev) => [...prev, sale]);
     }
 
-    // Deduct availablePortions for the NEW/updated sale
-    if (ns.mealId) {
-      setMeals((prev) =>
-        prev.map((m) =>
-          m.id === Number(ns.mealId)
-            ? { ...m, availablePortions: Math.max(0, (Number(m.availablePortions) || 0) - plates) }
+    // Deduct portions and inventory for each item
+    items.forEach(item => {
+      if (item.mealId) {
+        setMeals(prev => prev.map(m =>
+          m.id === Number(item.mealId)
+            ? { ...m, availablePortions: Math.max(0, (Number(m.availablePortions) || 0) - Number(item.plates)) }
             : m
-        )
-      );
-    }
-
-    // Deduct inventory stock for catalog item sales (beverages, sodas, direct items)
-    if (!editSaleId && ns._catalogItemId) {
-      setInventory((prev) =>
-        prev.map((item) => {
-          if (item.name.toLowerCase() === ns.meal.toLowerCase()) {
-            return { ...item, stock: Math.max(0, Number(item.stock) - plates) };
-          }
-          return item;
-        })
-      );
-    }
-    // Legacy inventory deduction by meal name match
-    if (!editSaleId) {
-      setInventory((prev) =>
-        prev.map((item) => {
-          const mealLower = ns.meal.toLowerCase();
-          const linked =
-            Array.isArray(item.linkedMeals) &&
-            item.linkedMeals.some(
-              (m) =>
-                mealLower.includes(m.toLowerCase().split(" ")[0]) ||
-                m.toLowerCase().includes(mealLower.split(" ")[0])
-            );
-          if (linked && item.usedPerPlate > 0)
-            return { ...item, stock: Math.max(0, item.stock - item.usedPerPlate * plates) };
-          return item;
-        })
-      );
-    }
-    setAddSale(false);
+        ));
+      }
+      if (!editSaleId && item._catalogItemId) {
+        setInventory(prev => prev.map(inv =>
+          inv.name.toLowerCase() === item.meal.toLowerCase()
+            ? { ...inv, stock: Math.max(0, Number(inv.stock) - Number(item.plates)) }
+            : inv
+        ));
+      }
+    });
     setEditSaleId(null);
     setNs(EMPTY);
     setShowNewCustomer(false);
@@ -9004,6 +9004,13 @@ function RestaurantPage({
       });
     }
 
+    setAddSale(false);
+    setEditSaleId(null);
+    setNs(EMPTY);
+    setCurrentItem(EMPTY_ITEM);
+    setShowNewCustomer(false);
+    setNewCust({ name: "", phone: "", email: "", notes: "" });
+
     // Invoice and Receipt are available on the sale card — no auto-popup
   };
 
@@ -9024,7 +9031,12 @@ function RestaurantPage({
   };
 
   const startEditSale = (s) => {
-    setNs({ ...s });
+    // Normalize old single-item orders into items array
+    const items = s.items && s.items.length > 0
+      ? s.items
+      : [{ meal: s.meal || "", mealId: s.mealId || null, _catalogItemId: s._catalogItemId || null, plates: s.plates || 1, pricePerPlate: s.pricePerPlate || 0 }];
+    setNs({ ...s, items });
+    setCurrentItem(EMPTY_ITEM);
     setEditSaleId(s.id);
     setAddSale(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -9330,27 +9342,7 @@ function RestaurantPage({
                 }}
               >
                 <div style={S.sectionTitle}>{editSaleId ? "Edit Order" : "New Order"}</div>
-                {ns.meal && (
-                  <div style={{ fontSize: 11, color: T.textMuted }}>
-                    {ns.mealId ? (
-                      <>
-                        From batch:{" "}
-                        <strong style={{ color: T.accent }}>{ns.meal}</strong>
-                        {" · "}
-                        <span style={{ color: T.success }}>
-                          {Number(meals.find(m => m.id === ns.mealId)?.availablePortions) || 0} available
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        Manual entry:{" "}
-                        <strong style={{ color: T.warning }}>{ns.meal}</strong>
-                        {" · "}
-                        <span style={{ color: T.textDim }}>not linked to a batch</span>
-                      </>
-                    )}
-                  </div>
-                )}
+
               </div>
               <div style={S.grid(3)}>
                 <div>
@@ -9368,7 +9360,7 @@ function RestaurantPage({
                     {[["batch", "🍳 From Batch"], ["catalog", "🛒 From Catalog"]].map(([mode, label]) => (
                       <button key={mode}
                         style={{ ...S.btn((!ns._pickerMode && mode === "batch") || ns._pickerMode === mode ? "primary" : "ghost"), fontSize: 11, padding: "4px 12px" }}
-                        onClick={() => setNs({ ...ns, _pickerMode: mode, meal: "", mealId: null, _catalogItemId: null, pricePerPlate: "" })}
+                        onClick={() => { setNs({ ...ns, _pickerMode: mode }); setCurrentItem(EMPTY_ITEM); }}
                       >{label}</button>
                     ))}
                   </div>
@@ -9402,12 +9394,12 @@ function RestaurantPage({
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 6 }}>
                           {available.map(({ meal: m, portions }) => {
-                            const isSelected = ns.mealId === m.id;
-                            const platesNum = Number(ns.plates) || 0;
+                            const isSelected = currentItem.mealId === m.id;
+                            const platesNum = Number(currentItem.plates) || 0;
                             const wouldOversell = isSelected && platesNum > portions;
                             return (
                               <button key={m.id}
-                                onClick={() => setNs({ ...ns, meal: m.name, mealId: m.id, _catalogItemId: null, pricePerPlate: m.price || ns.pricePerPlate })}
+                                onClick={() => setCurrentItem({ ...EMPTY_ITEM, meal: m.name, mealId: m.id, pricePerPlate: m.price || currentItem.pricePerPlate || "" })}
                                 style={{ background: isSelected ? T.accentSoft : T.surface, border: `1.5px solid ${isSelected ? T.accent : wouldOversell ? T.danger : T.border}`, borderRadius: 8, padding: "8px 11px", cursor: "pointer", textAlign: "left", transition: "all 0.12s" }}
                               >
                                 <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? T.accent : T.text, marginBottom: 2 }}>{m.name}</div>
@@ -9417,10 +9409,10 @@ function RestaurantPage({
                             );
                           })}
                         </div>
-                        {ns.mealId && (() => {
-                          const sel = meals.find((m) => m.id === ns.mealId);
+                        {currentItem.mealId && (() => {
+                          const sel = meals.find((m) => m.id === currentItem.mealId);
                           const avail = sel ? Number(sel.availablePortions) : 0;
-                          const platesNum = Number(ns.plates) || 0;
+                          const platesNum = Number(currentItem.plates) || 0;
                           if (platesNum > avail) return <div style={{ fontSize: 11, color: T.danger, background: `${T.danger}12`, borderRadius: 6, padding: "5px 10px" }}>⚠️ {platesNum} plates requested but only {avail} available.</div>;
                           if (platesNum > 0) return <div style={{ fontSize: 11, color: T.success, background: `${T.success}12`, borderRadius: 6, padding: "5px 10px" }}>✓ {avail - platesNum} portions will remain after this order.</div>;
                           return null;
@@ -9446,12 +9438,12 @@ function RestaurantPage({
                               <div style={{ fontSize: 9, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 5 }}>{cat?.name || "Other"}</div>
                               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 5 }}>
                                 {items.map(item => {
-                                  const isSelected = ns._catalogItemId === item.id;
+                                  const isSelected = currentItem._catalogItemId === item.id;
                                   const invItem = inventory.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
                                   const stock = invItem ? Number(invItem.stock) : null;
                                   return (
                                     <button key={item.id}
-                                      onClick={() => setNs({ ...ns, meal: item.name, mealId: null, _catalogItemId: item.id, pricePerPlate: ns.pricePerPlate || "" })}
+                                      onClick={() => setCurrentItem({ ...EMPTY_ITEM, meal: item.name, _catalogItemId: item.id, pricePerPlate: currentItem.pricePerPlate || "" })}
                                       style={{ background: isSelected ? T.accentSoft : T.surface, border: `1.5px solid ${isSelected ? T.accent : T.border}`, borderRadius: 8, padding: "8px 10px", cursor: "pointer", textAlign: "left" }}
                                     >
                                       {item.photo && <img src={item.photo} alt={item.name} style={{ width: "100%", height: 44, objectFit: "cover", borderRadius: 5, marginBottom: 4 }} />}
@@ -9465,9 +9457,9 @@ function RestaurantPage({
                             </div>
                           );
                         })}
-                        {ns._catalogItemId && (
+                        {currentItem._catalogItemId && (
                           <button style={{ fontSize: 10, color: T.textMuted, background: "none", border: "none", cursor: "pointer", marginTop: 4, padding: 0 }}
-                            onClick={() => setNs({ ...ns, meal: "", mealId: null, _catalogItemId: null, pricePerPlate: "" })}>
+                            onClick={() => setCurrentItem(EMPTY_ITEM)}>
                             ✕ Clear selection
                           </button>
                         )}
@@ -9481,13 +9473,13 @@ function RestaurantPage({
                     <input
                       style={{ ...S.input, fontSize: 11 }}
                       placeholder="Type any item or meal name"
-                      value={(ns.mealId || ns._catalogItemId) ? "" : ns.meal}
-                      disabled={!!ns.mealId || !!ns._catalogItemId}
-                      onChange={(e) => setNs({ ...ns, meal: e.target.value, mealId: null, _catalogItemId: null })}
+                      value={(currentItem.mealId || currentItem._catalogItemId) ? "" : currentItem.meal}
+                      disabled={!!currentItem.mealId || !!currentItem._catalogItemId}
+                      onChange={(e) => setCurrentItem({ ...currentItem, meal: e.target.value, mealId: null, _catalogItemId: null })}
                     />
-                    {(ns.mealId || ns._catalogItemId) && (
+                    {(currentItem.mealId || currentItem._catalogItemId) && (
                       <button style={{ fontSize: 10, color: T.textMuted, background: "none", border: "none", cursor: "pointer", marginTop: 3, padding: 0 }}
-                        onClick={() => setNs({ ...ns, meal: "", mealId: null, _catalogItemId: null, pricePerPlate: "" })}>
+                        onClick={() => setCurrentItem(EMPTY_ITEM)}>
                         ✕ Clear selection to type manually
                       </button>
                     )}
@@ -9513,25 +9505,60 @@ function RestaurantPage({
                   </select>
                 </div>
                 <div>
-                  <label style={S.label}>Plates</label>
+                  <label style={S.label}>Qty / Plates</label>
                   <input
                     type="number"
                     style={S.input}
-                    value={ns.plates}
-                    onChange={(e) => setNs({ ...ns, plates: e.target.value })}
+                    placeholder="e.g. 2"
+                    value={currentItem.plates}
+                    onChange={(e) => setCurrentItem({ ...currentItem, plates: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label style={S.label}>Price/Plate (XAF)</label>
+                  <label style={S.label}>Price / Plate (XAF)</label>
                   <input
                     type="number"
                     style={S.input}
-                    value={ns.pricePerPlate}
-                    onChange={(e) =>
-                      setNs({ ...ns, pricePerPlate: e.target.value })
-                    }
+                    placeholder="e.g. 2500"
+                    value={currentItem.pricePerPlate}
+                    onChange={(e) => setCurrentItem({ ...currentItem, pricePerPlate: e.target.value })}
                   />
                 </div>
+                <div style={{ display: "flex", alignItems: "flex-end" }}>
+                  <button
+                    style={{ ...S.btn("primary"), width: "100%", fontSize: 12 }}
+                    disabled={!currentItem.meal || !currentItem.plates}
+                    onClick={() => {
+                      if (!currentItem.meal || !currentItem.plates) return;
+                      setNs(prev => ({ ...prev, items: [...(prev.items || []), { ...currentItem, plates: Number(currentItem.plates), pricePerPlate: Number(currentItem.pricePerPlate) || 0 }] }));
+                      setCurrentItem(EMPTY_ITEM);
+                    }}
+                  >＋ Add Item</button>
+                </div>
+
+                {/* Order items list */}
+                {ns.items && ns.items.length > 0 && (
+                  <div style={{ gridColumn: "1 / -1", background: T.surface, borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden", marginBottom: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, padding: "6px 12px", borderBottom: `1px solid ${T.border}` }}>
+                      Order Items
+                    </div>
+                    {ns.items.map((item, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderBottom: i < ns.items.length - 1 ? `1px solid ${T.border}` : "none" }}>
+                        <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: T.text }}>{item.meal}</div>
+                        <div style={{ fontSize: 11, color: T.textMuted }}>{item.plates} × {fmt(item.pricePerPlate)}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: T.accent, minWidth: 80, textAlign: "right" }}>{fmt(Number(item.plates) * Number(item.pricePerPlate))} XAF</div>
+                        <button
+                          style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 13, padding: "0 2px" }}
+                          onClick={() => setNs(prev => ({ ...prev, items: prev.items.filter((_, j) => j !== i) }))}
+                        >✕</button>
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", justifyContent: "flex-end", padding: "6px 12px", borderTop: `1px solid ${T.border}`, fontSize: 12, fontWeight: 700, color: T.accent }}>
+                      Subtotal: {fmt(ns.items.reduce((s, it) => s + Number(it.plates) * Number(it.pricePerPlate), 0))} XAF
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label style={S.label}>Payment Method</label>
                   <select
@@ -9704,10 +9731,10 @@ function RestaurantPage({
                   />
                 </div>
                 {/* Order total summary */}
-                {ns.plates && ns.pricePerPlate && (
+                {ns.items && ns.items.length > 0 && (
                   <div style={{ gridColumn: "1 / -1" }}>
                     {(() => {
-                      const total = Number(ns.plates) * Number(ns.pricePerPlate) + Number(ns.deliveryFee || 0);
+                      const total = ns.items.reduce((s, it) => s + Number(it.plates) * Number(it.pricePerPlate), 0) + Number(ns.deliveryFee || 0);
                       const paid = ns.partialPaid !== "" ? Number(ns.partialPaid) : total;
                       const balance = total - paid;
                       return (
@@ -9804,10 +9831,14 @@ function RestaurantPage({
                   >
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700 }}>
-                        {s.meal}
+                        {s.items && s.items.length > 1
+                          ? `${s.items.length} items`
+                          : s.meal}
                       </div>
                       <div style={{ fontSize: 10, color: T.textMuted }}>
-                        {s.date} · {s.plates} plates
+                        {s.date} · {s.items && s.items.length > 1
+                          ? s.items.map(it => `${it.meal} ×${it.plates}`).join(", ")
+                          : `${s.plates} plates`}
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
