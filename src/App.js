@@ -16388,32 +16388,33 @@ export default function App() {
   useEffect(() => {
     if (!cloudLoaded) return;
 
-    // 1. Sync categories: derive from meals, preserve existing catalog-only cats
+    // 1. Build the full category list from meal categories
+    const mealCatNames = [...new Set(meals.map(m => m.category).filter(Boolean))];
+
+    // Upsert meal categories into catalogCategories, return the updated list
+    let updatedCats = [];
     setCatalogCategories(prev => {
-      const mealCatNames = [...new Set(meals.map(m => m.category).filter(Boolean))];
-      let updated = [...prev];
+      updatedCats = [...prev];
       mealCatNames.forEach(name => {
-        if (!updated.find(c => c.name === name)) {
-          const maxId = updated.reduce((m, c) => Math.max(m, c.id), 0);
-          updated.push({ id: maxId + 1, name });
+        if (!updatedCats.find(c => c.name === name)) {
+          const maxId = updatedCats.reduce((m, c) => Math.max(m, c.id), 0);
+          updatedCats.push({ id: maxId + 1, name });
         }
       });
-      return updated;
+      return updatedCats;
     });
 
-    // 2. Upsert meals into catalog items
+    // 2. Upsert meals into catalog items — use updatedCats for accurate catId lookup
     setCatalogItems(prev => {
       let updated = [...prev];
       meals.forEach(meal => {
         const existingIdx = updated.findIndex(c => c.name.toLowerCase() === meal.name.toLowerCase());
-        // Find matching cat id
         const catName = meal.category || "";
-        const catObj = catalogCategories.find(c => c.name === catName) ||
-                       catalogCategories.find(c => c.name.toLowerCase() === catName.toLowerCase());
-        const catId = catObj?.id || (catalogCategories[0]?.id || 1);
+        const catObj = updatedCats.find(c => c.name === catName)
+                    || updatedCats.find(c => c.name.toLowerCase() === catName.toLowerCase());
+        const catId = catObj?.id || (updatedCats[0]?.id || 1);
 
         if (existingIdx >= 0) {
-          // Update existing — preserve unitType/tags/notes, sync name/photo/description/catId
           updated[existingIdx] = {
             ...updated[existingIdx],
             name: meal.name,
@@ -16422,7 +16423,6 @@ export default function App() {
             catId,
           };
         } else {
-          // Add new catalog item from meal
           updated.push({
             id: Date.now() + Math.random(),
             catId,
@@ -16437,12 +16437,9 @@ export default function App() {
           });
         }
       });
-      // Remove catalog items that were synced from meals but meal no longer exists
-      // Only remove auto-synced items (those with no manual unitType override)
+      // Remove auto-synced items whose meal no longer exists (only if still default/unmodified)
       updated = updated.filter(c => {
         const linkedMeal = meals.find(m => m.name.toLowerCase() === c.name.toLowerCase());
-        // If no linked meal and unitType is still default "Per head", it was auto-added — remove it
-        // If it has a custom unitType, keep it (manually managed)
         if (!linkedMeal && c.unitType === "Per head" && !c.tags?.length && !c.notes) return false;
         return true;
       });
