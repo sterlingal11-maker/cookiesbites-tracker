@@ -7558,6 +7558,7 @@ function ProposalsPage({
                 <table style={S.table}>
                   <thead>
                     <tr>
+                      <th style={{ ...S.th, width: 20 }}></th>
                       {draft.lines.some(l => l.photo) && <th style={S.th}></th>}
                       {[
                         "Item",
@@ -7575,7 +7576,26 @@ function ProposalsPage({
                   </thead>
                   <tbody>
                     {draft.lines.map((l, i) => (
-                      <tr key={i}>
+                      <tr
+                        key={i}
+                        draggable
+                        onDragStart={e => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(i)); }}
+                        onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.style.boxShadow = `0 -2px 0 ${T.accent}`; }}
+                        onDragLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
+                        onDrop={e => {
+                          e.preventDefault();
+                          e.currentTarget.style.boxShadow = "none";
+                          const from = Number(e.dataTransfer.getData("text/plain"));
+                          if (from === i) return;
+                          const ls = [...draft.lines];
+                          const [moved] = ls.splice(from, 1);
+                          ls.splice(i, 0, moved);
+                          setDraft({ ...draft, lines: ls });
+                        }}
+                        onDragEnd={e => { e.currentTarget.style.boxShadow = "none"; }}
+                        style={{ cursor: "grab" }}
+                      >
+                        <td style={{ ...S.td, width: 20, padding: "4px 2px", color: T.textDim, fontSize: 14, userSelect: "none" }} title="Drag to reorder">⠿</td>
                         {draft.lines.some(l => l.photo) && (
                           <td style={{ ...S.td, width: 44, padding: "4px 6px" }}>
                             {l.photo
