@@ -4254,8 +4254,31 @@ function Dashboard({
   );
   const totalOverheads = pOverheads.reduce((s, o) => s + Number(o.amount), 0);
   const netProfit = gp - totalOverheads;
-  const cashRcvd = invoices.reduce((s, i) => s + i.paid, 0);
-  const arOut = invoices.reduce((s, i) => s + (i.total - i.paid), 0);
+
+  // Cash Received = catering invoices paid + restaurant sales cash received in period
+  const invoiceCashRcvd = invoices
+    .filter(i => inRange(i.issued || i.lastPaymentDate, range[0], range[1]))
+    .reduce((s, i) => s + (i.paid || 0), 0);
+  const salesCashRcvd = pSales.reduce((s, sale) => {
+    const total = orderTotal(sale);
+    const paid = sale.partialPaid !== "" && sale.partialPaid != null
+      ? Number(sale.partialPaid)
+      : total;
+    return s + paid;
+  }, 0);
+  const cashRcvd = invoiceCashRcvd + salesCashRcvd;
+
+  // AR Outstanding = unpaid catering invoice balance + restaurant sales with outstanding balance
+  const invoiceAR = invoices.reduce((s, i) => s + Math.max(0, (i.total || 0) - (i.paid || 0)), 0);
+  const salesAR = pSales.reduce((s, sale) => {
+    if (sale.method === "Credit" || (sale.partialPaid !== "" && sale.partialPaid != null)) {
+      const total = orderTotal(sale);
+      const paid = sale.partialPaid !== "" && sale.partialPaid != null ? Number(sale.partialPaid) : total;
+      return s + Math.max(0, total - paid);
+    }
+    return s;
+  }, 0);
+  const arOut = invoiceAR + salesAR;
   const delFees = pSales
     .filter((s) => s.type === "Delivery")
     .reduce((s, r) => s + (r.deliveryFee || 0), 0);
