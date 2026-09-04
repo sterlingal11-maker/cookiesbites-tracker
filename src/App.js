@@ -8820,6 +8820,8 @@ function RestaurantPage({
 }) {
   const [tab, setTab] = useState("orders");
   const [filterType, setFilterType] = useState("All");
+  const [filterPayment, setFilterPayment] = useState("All"); // All | Unpaid | Paid
+  const [orderPmtPanel, setOrderPmtPanel] = useState(null); // sale id
   const [addSale, setAddSale] = useState(false);
   const [editSaleId, setEditSaleId] = useState(null);
   const [doc, setDoc] = useState(null);
@@ -8916,8 +8918,17 @@ function RestaurantPage({
 
   const openDoc = (title, html) =>
     setDoc({ title, html, onPrint: () => printDoc(title, html) });
-  const filtered =
-    filterType === "All" ? sales : sales.filter((s) => s.type === filterType);
+  const filtered = sales
+    .filter(s => filterType === "All" || s.type === filterType)
+    .filter(s => {
+      if (filterPayment === "All") return true;
+      const tot = orderTotal(s);
+      const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+      const bal = tot - paid;
+      if (filterPayment === "Unpaid") return bal > 0;
+      if (filterPayment === "Paid") return bal <= 0;
+      return true;
+    });
   const todayRev = sales
     .filter((s) => s.date === TODAY_ISO)
     .reduce((s, r) => s + orderTotal(r), 0);
@@ -9365,6 +9376,14 @@ function RestaurantPage({
                 >
                   {t}
                 </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 3 }}>
+              {[["All","All Orders"], ["Unpaid","⚠️ Unpaid / Partial"], ["Paid","✅ Paid"]].map(([val, label]) => (
+                <button key={val}
+                  style={{ ...S.navBtn(filterPayment === val), ...(val === "Unpaid" && filterPayment === val ? { background: T.danger, color: "#fff", borderColor: T.danger } : {}), ...(val === "Unpaid" ? { color: filterPayment === val ? "#fff" : T.danger, borderColor: T.danger + "60" } : {}) }}
+                  onClick={() => setFilterPayment(val)}
+                >{label}</button>
               ))}
             </div>
             <button
@@ -9939,7 +9958,56 @@ function RestaurantPage({
                     <div style={{ fontSize: 10, color: T.textDim, marginTop: 2, fontStyle: "italic" }}>📝 {s.notes}</div>
                   )}
                   {(() => { const tot = orderTotal(s); const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot; const bal = tot - paid; return bal > 0 ? <div style={{ fontSize: 11, color: T.danger, fontWeight: 700, marginTop: 3 }}>⚠️ Balance: {fmt(bal)}</div> : null; })()}
+                  {/* Inline payment panel */}
+                  {orderPmtPanel === s.id && (() => {
+                    const tot = orderTotal(s);
+                    const alreadyPaid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : 0;
+                    const bal = tot - alreadyPaid;
+                    const [pmtAmt, setPmtAmt] = [null, null]; // use a ref-free approach via input id
+                    return (
+                      <div style={{ background: T.surface, border: `1.5px solid ${T.accent}`, borderRadius: 8, padding: 10, marginTop: 6 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: T.text, marginBottom: 6 }}>
+                          💳 Record Payment · Balance: <span style={{ color: T.danger }}>{fmt(bal)} XAF</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                          {[Math.round(bal * 0.5), bal].map(amt => (
+                            <button key={amt} style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 8px" }}
+                              onClick={() => { document.getElementById(`pmt-amt-${s.id}`).value = amt; }}>
+                              {fmt(amt)}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ display: "flex", gap: 5 }}>
+                          <input id={`pmt-amt-${s.id}`} type="number" style={{ ...S.input, marginBottom: 0, flex: 1 }} placeholder={`Amount (max ${fmt(bal)})`} defaultValue={bal} />
+                          <button style={{ ...S.btn("primary"), fontSize: 11, whiteSpace: "nowrap" }}
+                            onClick={() => {
+                              const amt = Number(document.getElementById(`pmt-amt-${s.id}`).value || bal);
+                              const newPaid = alreadyPaid + Math.min(amt, bal);
+                              setSales(prev => prev.map(x => x.id === s.id ? { ...x, partialPaid: newPaid >= tot ? "" : String(newPaid) } : x));
+                              setOrderPmtPanel(null);
+                            }}>
+                            ✓ Collect
+                          </button>
+                          <button style={{ ...S.btn("ghost"), fontSize: 11 }} onClick={() => setOrderPmtPanel(null)}>✕</button>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div style={{ marginTop: 6, display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                    {(() => {
+                      const tot = orderTotal(s);
+                      const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+                      const bal = tot - paid;
+                      if (bal <= 0) return null;
+                      return (
+                        <button
+                          style={{ ...S.btn("primary"), fontSize: 11, padding: "4px 12px", background: T.danger, borderColor: T.danger, fontWeight: 700 }}
+                          onClick={() => setOrderPmtPanel(orderPmtPanel === s.id ? null : s.id)}
+                        >
+                          💳 Collect {fmt(bal)}
+                        </button>
+                      );
+                    })()}
                     <button
                       style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 7px", color: T.accent, borderColor: T.accent + "50" }}
                       onClick={() =>
@@ -10010,7 +10078,8 @@ function RestaurantPage({
                 </thead>
                 <tbody>
                   {[...filtered].reverse().map((s) => (
-                    <tr key={s.id}>
+                    <React.Fragment key={s.id}>
+                    <tr>
                       <td style={S.td}>{s.date}</td>
                       <td style={{ ...S.td, fontWeight: 700 }}>{s.meal}</td>
                       <td style={S.td}>{s.plates}</td>
@@ -10059,7 +10128,20 @@ function RestaurantPage({
                       </td>
                       <td style={{ ...S.td, fontSize: 11, color: T.textDim }}>{s.notes || "—"}</td>
                       <td style={S.td}>
-                        <div style={{ display: "flex", gap: 4 }}>
+                        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                          {(() => {
+                            const tot = orderTotal(s);
+                            const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+                            const bal = tot - paid;
+                            if (bal <= 0) return null;
+                            return (
+                              <button
+                                style={{ ...S.btn("primary"), fontSize: 10, padding: "2px 8px", background: T.danger, borderColor: T.danger, fontWeight: 700, whiteSpace: "nowrap" }}
+                                title={`Collect outstanding balance of ${fmt(bal)}`}
+                                onClick={() => setOrderPmtPanel(orderPmtPanel === s.id ? null : s.id)}
+                              >💳 {fmt(bal)}</button>
+                            );
+                          })()}
                           <button
                             style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px", color: T.accent, borderColor: T.accent + "50" }}
                             onClick={() =>
@@ -10099,6 +10181,27 @@ function RestaurantPage({
                         </div>
                       </td>
                     </tr>
+                    {orderPmtPanel === s.id ? <tr key={`pmt-${s.id}`}>
+                      <td colSpan={13} style={{ ...S.td, padding: 0 }}>
+                        <div style={{ background: T.surface, borderLeft: `3px solid ${T.danger}`, padding: "10px 14px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>💳 Record Payment</span>
+                          <span style={{ fontSize: 11, color: T.textMuted }}>Balance: <strong style={{ color: T.danger }}>{fmt(Math.max(0, orderTotal(s) - (s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : 0)))} XAF</strong></span>
+                          <input id={`tbl-pmt-${s.id}`} type="number" style={{ ...S.input, marginBottom: 0, width: 130 }} defaultValue={Math.max(0, orderTotal(s) - (s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : 0))} />
+                          <button style={{ ...S.btn("primary"), fontSize: 11, background: T.danger, borderColor: T.danger }}
+                            onClick={() => {
+                              const tot = orderTotal(s);
+                              const alreadyPaid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : 0;
+                              const bal = tot - alreadyPaid;
+                              const amt = Number(document.getElementById(`tbl-pmt-${s.id}`).value || bal);
+                              const newPaid = alreadyPaid + Math.min(amt, bal);
+                              setSales(prev => prev.map(x => x.id === s.id ? { ...x, partialPaid: newPaid >= tot ? "" : String(newPaid) } : x));
+                              setOrderPmtPanel(null);
+                            }}>✓ Collect</button>
+                          <button style={{ ...S.btn("ghost"), fontSize: 11 }} onClick={() => setOrderPmtPanel(null)}>✕</button>
+                        </div>
+                      </td>
+                    </tr> : null}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
