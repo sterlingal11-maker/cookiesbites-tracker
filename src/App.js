@@ -2182,11 +2182,14 @@ function MobileNav({ tab, setTab, tabs }) {
   );
 }
 
-function KpiCard({ label, value, sub, color = T.accent, icon = "" }) {
+function KpiCard({ label, value, sub, color = T.accent, icon = "", onClick }) {
   return (
-    <div style={S.card}>
+    <div style={{ ...S.card, cursor: onClick ? "pointer" : "default", transition: "opacity 0.15s" }}
+      onClick={onClick}
+      title={onClick ? "Click to see details" : undefined}
+    >
       <div style={S.cardTitle}>
-        {icon} {label}
+        {icon} {label}{onClick && <span style={{ float: "right", fontSize: 10, color: T.textDim }}>▼</span>}
       </div>
       <div style={{ ...S.kpi, color }}>{value}</div>
       {sub && <div style={S.kpiSub}>{sub}</div>}
@@ -4219,6 +4222,7 @@ function Dashboard({
   const [period, setPeriod] = useState("ytd");
   const [customFrom, setCustomFrom] = useState(`${THIS_YEAR}-01-01`);
   const [customTo, setCustomTo] = useState(TODAY_ISO);
+  const [drilldown, setDrilldown] = useState(null); // "cash" | "ar"
   const range = useMemo(
     () => getPeriodRange(period, customFrom, customTo),
     [period, customFrom, customTo]
@@ -4537,7 +4541,8 @@ function Dashboard({
             ))}
           </div>
           <div style={{ ...S.cardMobile, marginBottom: 10 }}>
-            <div style={S.cardTitle}>Open Invoices</div>
+            <div style={S.cardTitle}>Open Invoices & Unpaid Orders</div>
+            {/* Catering invoices with balance */}
             {invoices
               .filter((i) => i.total - i.paid > 0)
               .map((inv, i) => {
@@ -4581,6 +4586,35 @@ function Dashboard({
                   </div>
                 );
               })}
+            {/* Unpaid / partial restaurant sales */}
+            {pSales
+              .filter(s => {
+                const tot = orderTotal(s);
+                const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+                return tot - paid > 0;
+              })
+              .map((s, i) => {
+                const tot = orderTotal(s);
+                const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+                const bal = tot - paid;
+                return (
+                  <div key={`rs-${i}`} style={{ padding: "8px 0", borderBottom: `1px solid ${T.border}15` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700 }}>
+                        {s.clientName || "Walk-in"} <span style={{ fontSize: 10, color: T.warning, fontWeight: 400 }}>· Order</span>
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: T.danger }}>{fmt(bal)}</div>
+                    </div>
+                    <div style={{ fontSize: 10, color: T.textMuted }}>
+                      {s.date} · {s.items && s.items.length > 1 ? `${s.items.length} items` : s.meal} · {s.method}
+                    </div>
+                  </div>
+                );
+              })}
+            {invoices.filter(i => i.total - i.paid > 0).length === 0 &&
+             pSales.filter(s => { const t = orderTotal(s); const p = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : t; return t - p > 0; }).length === 0 && (
+              <div style={{ color: T.success, fontSize: 12, padding: "10px 0" }}>✅ All invoices & orders paid</div>
+            )}
           </div>
         </>
       ) : (
@@ -4612,6 +4646,7 @@ function Dashboard({
               sub={fmt(cashRcvd)}
               color={T.delivery}
               icon="💵"
+              onClick={() => setDrilldown(drilldown === "cash" ? null : "cash")}
             />
             <KpiCard
               label="AR Outstanding"
@@ -4619,8 +4654,76 @@ function Dashboard({
               sub={fmt(arOut)}
               color={T.danger}
               icon="⚠️"
+              onClick={() => setDrilldown(drilldown === "ar" ? null : "ar")}
             />
           </div>
+
+          {/* Drilldown panel for Cash Received / AR Outstanding */}
+          {drilldown && (
+            <div style={{ ...S.card, marginBottom: 10, borderColor: drilldown === "ar" ? T.danger : T.delivery }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: drilldown === "ar" ? T.danger : T.delivery }}>
+                  {drilldown === "ar" ? "⚠️ AR Outstanding — Breakdown" : "💵 Cash Received — Breakdown"}
+                </div>
+                <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "2px 8px" }} onClick={() => setDrilldown(null)}>✕ Close</button>
+              </div>
+
+              {/* Catering invoices */}
+              {invoices.filter(i => drilldown === "ar" ? (i.total - i.paid) > 0 : i.paid > 0).length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Catering Invoices</div>
+                  {invoices.filter(i => drilldown === "ar" ? (i.total - i.paid) > 0 : i.paid > 0).map((inv, i) => {
+                    const amt = drilldown === "ar" ? (inv.total - inv.paid) : inv.paid;
+                    return (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${T.border}20` }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600 }}>{inv.client}</div>
+                          <div style={{ fontSize: 10, color: T.textMuted }}>{inv.num} · {inv.issued}</div>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: drilldown === "ar" ? T.danger : T.success }}>{fmt(amt)} XAF</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Restaurant sales */}
+              {(() => {
+                const rdItems = pSales.filter(s => {
+                  const tot = orderTotal(s);
+                  const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+                  return drilldown === "ar" ? (tot - paid) > 0 : paid > 0;
+                });
+                if (!rdItems.length) return null;
+                return (
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Restaurant Orders</div>
+                    {rdItems.map((s, i) => {
+                      const tot = orderTotal(s);
+                      const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+                      const amt = drilldown === "ar" ? (tot - paid) : paid;
+                      return (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${T.border}20` }}>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600 }}>{s.clientName || "Walk-in"}</div>
+                            <div style={{ fontSize: 10, color: T.textMuted }}>{s.date} · {s.items && s.items.length > 1 ? `${s.items.length} items` : s.meal} · {s.method}</div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: drilldown === "ar" ? T.danger : T.success }}>{fmt(amt)} XAF</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "flex-end" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: drilldown === "ar" ? T.danger : T.delivery }}>
+                  Total: {fmt(drilldown === "ar" ? arOut : cashRcvd)} XAF
+                </div>
+              </div>
+            </div>
+          )}
+
           <div style={{ ...S.grid(2), marginTop: 10 }}>
             <div style={S.card}>
               <div
