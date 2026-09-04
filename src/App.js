@@ -2606,145 +2606,89 @@ function LogoArea({ logo, setLogo, biz, onSettings }) {
 // ─── BAR CHART ────────────────────────────────────────────────────
 function BarChart({ data, height = 140 }) {
   if (!data || !data.length)
-    return (
-      <div
-        style={{
-          color: T.textMuted,
-          fontSize: 11,
-          textAlign: "center",
-          padding: 20,
-        }}
-      >
-        No data
-      </div>
-    );
+    return <div style={{ color: T.textMuted, fontSize: 11, textAlign: "center", padding: 20 }}>No data</div>;
+
   const maxVal = Math.max(...data.map((d) => d.sales || 0), 1);
   const barW = Math.max(18, Math.min(48, Math.floor(560 / data.length) - 6));
+
+  const fmtY = (val) => {
+    if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+    if (val >= 1000)    return `${Math.round(val / 1000)}K`;
+    return String(Math.round(val));
+  };
+
   return (
     <div style={{ overflowX: "auto" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: 4,
-          height: height + 28,
-          paddingBottom: 24,
-          minWidth: data.length * (barW + 4),
-          position: "relative",
-        }}
-      >
-        {[0, 25, 50, 75, 100].map((pct) => (
-          <div
-            key={pct}
-            style={{
+      <div style={{ display: "flex" }}>
+        {/* Y-axis */}
+        <div style={{ position: "relative", width: 40, flexShrink: 0, height: height + 28 }}>
+          {[100, 75, 50, 25, 0].map((pct) => (
+            <div key={pct} style={{
               position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 24 + (pct / 100) * height,
-              borderTop: `1px solid ${T.border}40`,
-              pointerEvents: "none",
-            }}
-          />
-        ))}
-        {data.map((d, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              flex: 1,
-              minWidth: barW,
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                gap: 1,
-                alignItems: "flex-end",
-                height,
-              }}
-            >
-              <div
-                style={{
-                  flex: 1,
-                  background: T.restaurant,
-                  borderRadius: "3px 3px 0 0",
-                  height: d.sales ? (d.sales / maxVal) * height : 1,
-                  minHeight: 1,
-                  transition: "height 0.3s",
-                }}
-              />
-              <div
-                style={{
-                  flex: 1,
-                  background: T.success,
-                  borderRadius: "3px 3px 0 0",
-                  height:
-                    d.profit && d.profit > 0 ? (d.profit / maxVal) * height : 1,
-                  minHeight: 1,
-                  opacity: 0.85,
-                  transition: "height 0.3s",
-                }}
-              />
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: T.textMuted,
-                marginTop: 3,
-                whiteSpace: "nowrap",
-                textAlign: "center",
-                overflow: "hidden",
-                maxWidth: barW + 4,
-              }}
-            >
-              {d.label}
-            </div>
+              right: 4,
+              bottom: 24 + (pct / 100) * height - 6,
+              fontSize: 8,
+              color: T.textDim,
+              whiteSpace: "nowrap",
+              textAlign: "right",
+              lineHeight: 1,
+            }}>{fmtY((pct / 100) * maxVal)}</div>
+          ))}
+        </div>
+        {/* Bars */}
+        <div style={{ flex: 1, overflowX: "auto" }}>
+          <div style={{
+            display: "flex",
+            alignItems: "flex-end",
+            gap: 4,
+            height: height + 28,
+            paddingBottom: 24,
+            minWidth: data.length * (barW + 4),
+            position: "relative",
+          }}>
+            {[0, 25, 50, 75, 100].map((pct) => (
+              <div key={pct} style={{
+                position: "absolute", left: 0, right: 0,
+                bottom: 24 + (pct / 100) * height,
+                borderTop: `1px solid ${T.border}40`,
+                pointerEvents: "none",
+              }} />
+            ))}
+            {data.map((d, i) => (
+              <div key={i} style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                flex: 1, minWidth: barW, position: "relative",
+              }}>
+                <div style={{ width: "100%", display: "flex", gap: 1, alignItems: "flex-end", height }}>
+                  <div style={{
+                    flex: 1, background: T.restaurant, borderRadius: "3px 3px 0 0",
+                    height: d.sales ? (d.sales / maxVal) * height : 1,
+                    minHeight: 1, transition: "height 0.3s",
+                  }} />
+                  <div style={{
+                    flex: 1, background: T.success, borderRadius: "3px 3px 0 0",
+                    height: d.profit && d.profit > 0 ? (d.profit / maxVal) * height : 1,
+                    minHeight: 1, opacity: 0.85, transition: "height 0.3s",
+                  }} />
+                </div>
+                <div style={{
+                  fontSize: 9, color: T.textMuted, marginTop: 3,
+                  whiteSpace: "nowrap", textAlign: "center",
+                  overflow: "hidden", maxWidth: barW + 4,
+                }}>{d.label}</div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
-      <div
-        style={{
-          display: "flex",
-          gap: 14,
-          fontSize: 10,
-          color: T.textMuted,
-          marginTop: 2,
-        }}
-      >
-        <span>
-          <span
-            style={{
-              display: "inline-block",
-              width: 8,
-              height: 8,
-              background: T.restaurant,
-              borderRadius: 2,
-              marginRight: 3,
-            }}
-          />
-          Sales
-        </span>
-        <span>
-          <span
-            style={{
-              display: "inline-block",
-              width: 8,
-              height: 8,
-              background: T.success,
-              borderRadius: 2,
-              marginRight: 3,
-            }}
-          />
-          Gross Profit
-        </span>
+      <div style={{ display: "flex", gap: 14, fontSize: 10, color: T.textMuted, marginTop: 2, paddingLeft: 44 }}>
+        <span><span style={{ display: "inline-block", width: 8, height: 8, background: T.restaurant, borderRadius: 2, marginRight: 3 }} />Sales (XAF)</span>
+        <span><span style={{ display: "inline-block", width: 8, height: 8, background: T.success, borderRadius: 2, marginRight: 3 }} />Gross Profit (XAF)</span>
       </div>
     </div>
   );
 }
+
 
 // ─── PERIOD SELECTOR ──────────────────────────────────────────────
 function PeriodSelector({
