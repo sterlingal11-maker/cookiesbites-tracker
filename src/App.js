@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback, Fragment } from "react";
 import { cloudGet, cloudSet, cloudGetAll, isSupabaseConfigured, uploadFile, readAsDataURL } from "./supabase";
 
 // ─── MOBILE DETECTION HOOK ────────────────────────────────────────
@@ -10078,7 +10078,7 @@ function RestaurantPage({
                 </thead>
                 <tbody>
                   {[...filtered].reverse().map((s) => (
-                    <React.Fragment key={s.id}>
+                    <Fragment key={s.id}>
                     <tr>
                       <td style={S.td}>{s.date}</td>
                       <td style={{ ...S.td, fontWeight: 700 }}>{s.meal}</td>
@@ -10201,7 +10201,7 @@ function RestaurantPage({
                         </div>
                       </td>
                     </tr> : null}
-                    </React.Fragment>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
