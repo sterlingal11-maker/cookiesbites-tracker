@@ -4324,11 +4324,20 @@ function Dashboard({
       .map((k) => ({ ...groups[k], profit: groups[k].sales - groups[k].cogs }));
   }, [pSales, pEvents, range, catalogItems]);
   const arBuckets = {};
+  // Catering invoices — bucketed by due date age
   invoices.forEach((inv) => {
     const bal = inv.total - inv.paid;
     if (bal <= 0) return;
     const b = ageBucket(daysOD(inv.due));
     arBuckets[b] = (arBuckets[b] || 0) + bal;
+  });
+  // Restaurant sales with outstanding balance — always "Current" (point-of-sale debt, no credit terms)
+  sales.forEach((s) => {
+    const tot = orderTotal(s);
+    const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+    const bal = tot - paid;
+    if (bal <= 0) return;
+    arBuckets["Current"] = (arBuckets["Current"] || 0) + bal;
   });
   const mealMap = {};
   pSales.forEach((s) => {
