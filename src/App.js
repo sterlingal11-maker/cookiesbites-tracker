@@ -9378,76 +9378,62 @@ function RestaurantPage({
       {/* ── ORDERS TAB ── */}
       {tab === "orders" && (
         <>
-          {/* Dynamic period label based on active filters */}
+          {/* Dynamic KPIs — all driven by filtered orders */}
           {(() => {
             const periodLabel = filterOrderDate
               ? filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate
               : filterType !== "All" ? filterType
               : filterPayment !== "All" ? filterPayment
-              : "All Orders";
+              : "All Time";
+
             return (
-              <div style={S.grid(4)}>
-                <KpiCard
-                  label={`Revenue · ${periodLabel}`}
-                  value={fmt(filteredRev)}
-                  icon="💰"
-                  color={T.accent}
-                  sub={`${filtered.length} order${filtered.length !== 1 ? "s" : ""}`}
-                />
-                <KpiCard
-                  label={`Plates Sold · ${periodLabel}`}
-                  value={String(filteredPlates)}
-                  icon="🍽️"
-                  color={T.restaurant}
-                  sub={`avg ${filtered.length ? Math.round(filteredPlates / filtered.length * 10) / 10 : 0} per order`}
-                />
-                <KpiCard
-                  label={`Delivery Revenue · ${periodLabel}`}
-                  value={fmt(filteredDelRev)}
-                  color={T.delivery}
-                  icon="🛵"
-                  sub={`incl. ${fmt(filteredDelFees)} fees · ${filteredDel.length} orders`}
-                />
-                <KpiCard
-                  label={`Best Seller · ${periodLabel}`}
-                  value={Object.entries(filteredByMeal).sort((a, b) => b[1] - a[1])[0]?.[0] || "—"}
-                  icon="⭐"
-                  color={T.warning}
-                />
-              </div>
-            );
-          })()}
-          <div style={{ ...S.card, marginTop: 10, marginBottom: 10 }}>
-            <div style={S.cardTitle}>Revenue by Fulfillment · {filterOrderDate ? (filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate) : "All Orders"}</div>
-            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-              {[
-                { label: "🪑 Dine-in", val: dineRev, color: T.restaurant },
-                { label: "🥡 Takeaway", val: tkRev, color: T.warning },
-                { label: "🛵 Delivery", val: delRev, color: T.delivery },
-              ].map((item) => (
-                <div key={item.label} style={{ minWidth: 130 }}>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: T.textMuted,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {item.label}
-                  </div>
-                  <div
-                    style={{ fontSize: 15, fontWeight: 800, color: item.color }}
-                  >
-                    {fmt(item.val)}
-                  </div>
-                  <PBar
-                    pct={weekRev ? (item.val / weekRev) * 100 : 0}
-                    color={item.color}
+              <>
+                <div style={S.grid(3)}>
+                  <KpiCard
+                    label={`Revenue · ${periodLabel}`}
+                    value={fmt(filteredRev)}
+                    icon="💰"
+                    color={T.accent}
+                    sub={`${filtered.length} order${filtered.length !== 1 ? "s" : ""}`}
+                  />
+                  <KpiCard
+                    label={`Plates Sold · ${periodLabel}`}
+                    value={String(filteredPlates)}
+                    icon="🍽️"
+                    color={T.restaurant}
+                    sub={`avg ${filtered.length ? (filteredPlates / filtered.length).toFixed(1) : 0} per order`}
+                  />
+                  <KpiCard
+                    label={`Best Seller · ${periodLabel}`}
+                    value={Object.entries(filteredByMeal).sort((a, b) => b[1] - a[1])[0]?.[0] || "—"}
+                    icon="⭐"
+                    color={T.warning}
                   />
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* Revenue by fulfillment — dynamic */}
+                <div style={{ ...S.card, marginTop: 10, marginBottom: 10 }}>
+                  <div style={S.cardTitle}>Revenue by Fulfillment · {periodLabel}</div>
+                  <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 8 }}>
+                    {[
+                      { label: "🪑 Dine-in",   val: filteredDineRev, color: T.restaurant },
+                      { label: "🥡 Takeaway",  val: filteredTkRev,   color: T.warning },
+                      { label: "🛵 Delivery",  val: filteredDelRev,  color: T.delivery, sub: `incl. ${fmt(filteredDelFees)} fees` },
+                    ].map(item => (
+                      <div key={item.label} style={{ minWidth: 130 }}>
+                        <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2 }}>{item.label}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: item.color }}>{fmt(item.val)}</div>
+                        {item.sub && <div style={{ fontSize: 10, color: T.textDim }}>{item.sub}</div>}
+                        <div style={{ marginTop: 4, height: 3, borderRadius: 2, background: T.border }}>
+                          <div style={{ width: `${filteredRev ? (item.val / filteredRev * 100) : 0}%`, height: "100%", background: item.color, borderRadius: 2 }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
           {lowStock.length > 0 && (
             <div style={{ background: `${T.warning}12`, border: `1px solid ${T.warning}40`, borderRadius: 6, padding: 8, marginBottom: 8, fontSize: 11 }}>
               <strong style={{ color: T.warning }}>⚠️ Low Stock:</strong>{" "}
