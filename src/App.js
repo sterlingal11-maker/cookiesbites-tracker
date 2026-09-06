@@ -9447,6 +9447,57 @@ function RestaurantPage({
               ))}
             </div>
           )}
+          {/* Per-meal revenue and plates breakdown */}
+          {Object.keys(filteredByMeal).length > 0 && (
+            <div style={{ ...S.card, marginBottom: 10 }}>
+              <div style={S.cardTitle}>Revenue & Plates by Meal · {filterOrderDate ? (filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate) : filterType !== "All" ? filterType : filterPayment !== "All" ? filterPayment : "All Time"}</div>
+              <div style={{ overflowX: "auto", marginTop: 8 }}>
+                <table style={{ ...S.table, minWidth: 400 }}>
+                  <thead>
+                    <tr>
+                      {["Meal", "Plates", "Revenue", "% of Total"].map(h => (
+                        <th key={h} style={{ ...S.th, textAlign: h === "Meal" ? "left" : "right" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Build per-meal plates from filtered
+                      const mealPlates = {};
+                      filtered.forEach(s => {
+                        const items = Array.isArray(s.items) && s.items.length > 0
+                          ? s.items : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
+                        items.forEach(it => {
+                          if (!it.meal) return;
+                          mealPlates[it.meal] = (mealPlates[it.meal] || 0) + (Number(it.plates) || 0);
+                        });
+                      });
+                      return Object.entries(filteredByMeal)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([meal, rev]) => (
+                          <tr key={meal}>
+                            <td style={{ ...S.td, fontWeight: 600 }}>{meal}</td>
+                            <td style={{ ...S.td, textAlign: "right" }}>{mealPlates[meal] || 0}</td>
+                            <td style={{ ...S.td, textAlign: "right", color: T.accent, fontWeight: 700 }}>{fmt(rev)}</td>
+                            <td style={{ ...S.td, textAlign: "right" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+                                <div style={{ width: 60, height: 4, background: T.border, borderRadius: 2 }}>
+                                  <div style={{ width: `${filteredRev ? (rev / filteredRev * 100) : 0}%`, height: "100%", background: T.accent, borderRadius: 2 }} />
+                                </div>
+                                <span style={{ fontSize: 11, color: T.textMuted, minWidth: 32, textAlign: "right" }}>
+                                  {filteredRev ? (rev / filteredRev * 100).toFixed(1) : 0}%
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           <div style={{ ...S.row, marginBottom: 9, flexWrap: "wrap", gap: 5 }}>
             <div style={{ display: "flex", gap: 3 }}>
               {["All", "Dine-in", "Takeaway", "Delivery"].map((t) => (
