@@ -4866,10 +4866,8 @@ function Dashboard({
                 }}
               >
                 <span style={{ fontSize: 12, fontWeight: 700 }}>Total AR</span>
-                <span
-                  style={{ fontSize: 12, fontWeight: 800, color: T.danger }}
-                >
-                  {fmt(arOut)}
+                <span style={{ fontSize: 12, fontWeight: 800, color: T.danger }}>
+                  {fmt(Object.values(arBuckets).reduce((s, v) => s + v, 0))}
                 </span>
               </div>
             </div>
