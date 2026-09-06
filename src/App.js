@@ -1675,6 +1675,11 @@ const orderTotal = (s) => {
   return itemsTotal + (Number(s.deliveryFee) || 0);
 };
 
+const totalPlates = (s) =>
+  Array.isArray(s.items) && s.items.length > 0
+    ? s.items.reduce((sum, it) => sum + (Number(it.plates) || 0), 0)
+    : (Number(s.plates) || 0);
+
 // Compute COGS for a restaurant sale using meal ingredient-level costing when available,
 // falling back to catalog cost-rate estimate
 const orderCOGS = (s, catalogItems, meals) => {
@@ -9374,6 +9379,12 @@ function RestaurantPage({
             <KpiCard label="Today's Revenue" value={fmt(todayRev)} icon="📅" />
             <KpiCard label="Week Total" value={fmt(weekRev)} icon="📆" />
             <KpiCard
+              label="Plates Sold Today"
+              value={String(sales.filter(s => s.date === TODAY_ISO).reduce((sum, s) => sum + totalPlates(s), 0))}
+              icon="🍽️"
+              color={T.accent}
+            />
+            <KpiCard
               label="Delivery Revenue"
               value={fmt(delRev)}
               color={T.delivery}
@@ -9979,7 +9990,7 @@ function RestaurantPage({
                       <div style={{ fontSize: 10, color: T.textMuted }}>
                         {s.date} · {s.items && s.items.length > 1
                           ? s.items.map(it => `${it.meal} ×${it.plates}`).join(", ")
-                          : `${s.plates} plates`}
+                          : `${totalPlates(s)} plate${totalPlates(s) !== 1 ? 's' : ''}`}
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
@@ -10006,7 +10017,7 @@ function RestaurantPage({
                     }}
                   >
                     <span>
-                      {s.method} · {fmt(s.pricePerPlate)}/plate
+                      {s.method} · {Array.isArray(s.items) && s.items.length > 1 ? `${s.items.length} items` : `${fmt(s.pricePerPlate)}/plate`}
                     </span>
                     {s.deliveryFee > 0 && (
                       <span style={{ color: T.delivery }}>
@@ -10154,8 +10165,8 @@ function RestaurantPage({
                     <tr>
                       <td style={S.td}>{s.date}</td>
                       <td style={{ ...S.td, fontWeight: 700 }}>{s.meal}</td>
-                      <td style={S.td}>{s.plates}</td>
-                      <td style={S.td}>{fmt(s.pricePerPlate)}</td>
+                      <td style={S.td}>{totalPlates(s)}</td>
+                      <td style={S.td}>{Array.isArray(s.items) && s.items.length > 1 ? <span style={{ color: T.textDim, fontSize: 10 }}>—</span> : fmt(s.pricePerPlate)}</td>
                       <td
                         style={{
                           ...S.td,
@@ -12323,7 +12334,7 @@ function CustomersPage({ customers, setCustomers, invoices, setInvoices, events,
                     return <tr key={s.id}>
                       <td style={S.td}>{s.date}</td>
                       <td style={S.td}>{s.meal}</td>
-                      <td style={S.td}>{s.plates}</td>
+                      <td style={S.td}>{totalPlates(s)}</td>
                       <td style={S.td}>{fmt(tot)}</td>
                       <td style={{ ...S.td, color: T.success }}>{fmt(paid)}</td>
                       <td style={{ ...S.td, color: bal > 0 ? T.danger : T.success, fontWeight: bal > 0 ? 700 : 400 }}>{fmt(bal)}</td>
@@ -12508,7 +12519,7 @@ function CustomersPage({ customers, setCustomers, invoices, setInvoices, events,
                           <td style={S.td}>{s.date}</td>
                           <td style={{ ...S.td, fontWeight: 700 }}>{s.clientName}</td>
                           <td style={S.td}>{s.meal}</td>
-                          <td style={S.td}>{s.plates}</td>
+                          <td style={S.td}>{totalPlates(s)}</td>
                           <td style={S.td}>{fmt(tot)}</td>
                           <td style={{ ...S.td, color: T.success }}>{fmt(paid)}</td>
                           <td style={{ ...S.td, color: T.danger, fontWeight: 700 }}>{fmt(bal)}</td>
