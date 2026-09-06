@@ -9511,9 +9511,24 @@ function RestaurantPage({
                         </div>
                       </div>
                     ))}
-                    <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 11, color: T.textMuted }}>Total Collected</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: T.success }}>{fmt(totalCash)}</span>
+                    <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 11, color: T.textMuted }}>Total Revenue</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{fmt(filteredRev)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 11, color: T.textMuted }}>Cash Collected</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: T.success }}>{fmt(totalCash)}</span>
+                      </div>
+                      {filteredRev - totalCash > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between", background: `${T.danger}12`, borderRadius: 6, padding: "5px 8px", margin: "0 -8px" }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: T.danger }}>⚠️ Amount Owed</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: T.danger }}>{fmt(filteredRev - totalCash)}</span>
+                        </div>
+                      )}
+                      {filteredRev - totalCash <= 0 && filteredRev > 0 && (
+                        <div style={{ fontSize: 11, color: T.success, fontWeight: 700 }}>✅ Fully Collected</div>
+                      )}
                     </div>
                   </div>
                 </div>
