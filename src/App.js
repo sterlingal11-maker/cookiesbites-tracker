@@ -8997,31 +8997,34 @@ function RestaurantPage({
       if (filterPayment === "Paid") return bal <= 0;
       return true;
     });
-  const todayRev = sales
-    .filter((s) => s.date === TODAY_ISO)
-    .reduce((s, r) => s + orderTotal(r), 0);
-  const weekRev = sales.reduce((s, r) => s + orderTotal(r), 0);
-  const delRev = sales
-    .filter((s) => s.type === "Delivery")
-    .reduce((s, r) => s + orderTotal(r), 0);
-  const delFees = sales
-    .filter((s) => s.type === "Delivery")
-    .reduce((s, r) => s + (r.deliveryFee || 0), 0);
-  const dineRev = sales
-    .filter((s) => s.type === "Dine-in")
-    .reduce((s, r) => s + orderTotal(r), 0);
-  const tkRev = sales
-    .filter((s) => s.type === "Takeaway")
-    .reduce((s, r) => s + orderTotal(r), 0);
-  const byMeal = {};
-  sales.forEach((s) => {
+  // All KPIs derive from `filtered` so they're always in sync with active filters
+  const filteredRev    = filtered.reduce((s, r) => s + orderTotal(r), 0);
+  const filteredPlates = filtered.reduce((sum, s) => sum + totalPlates(s), 0);
+  const filteredDel    = filtered.filter(s => s.type === "Delivery");
+  const filteredDelRev  = filteredDel.reduce((s, r) => s + orderTotal(r), 0);
+  const filteredDelFees = filteredDel.reduce((s, r) => s + (r.deliveryFee || 0), 0);
+  const filteredDineRev = filtered.filter(s => s.type === "Dine-in").reduce((s, r) => s + orderTotal(r), 0);
+  const filteredTkRev   = filtered.filter(s => s.type === "Takeaway").reduce((s, r) => s + orderTotal(r), 0);
+
+  // Best seller from filtered orders
+  const filteredByMeal = {};
+  filtered.forEach(s => {
     const items = Array.isArray(s.items) && s.items.length > 0
-      ? s.items
-      : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
+      ? s.items : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
     items.forEach(it => {
-      if (it.meal) byMeal[it.meal] = (byMeal[it.meal] || 0) + (Number(it.plates) || 0) * (Number(it.pricePerPlate) || 0);
+      if (it.meal) filteredByMeal[it.meal] = (filteredByMeal[it.meal] || 0) + (Number(it.plates) || 0) * (Number(it.pricePerPlate) || 0);
     });
   });
+
+  // Legacy names kept for Revenue by Fulfillment card (now all from filtered)
+  const todayRev = filteredRev;
+  const weekRev  = filteredRev;
+  const delRev   = filteredDelRev;
+  const delFees  = filteredDelFees;
+  const dineRev  = filteredDineRev;
+  const tkRev    = filteredTkRev;
+  const byMeal   = filteredByMeal;
+
   const lowStock = inventory.filter((i) => i.stock <= i.reorderAt);
   const typeColor = {
     "Dine-in": T.restaurant,
@@ -9375,34 +9378,47 @@ function RestaurantPage({
       {/* ── ORDERS TAB ── */}
       {tab === "orders" && (
         <>
-          <div style={S.grid(4)}>
-            <KpiCard label="Today's Revenue" value={fmt(todayRev)} icon="📅" />
-            <KpiCard label="Week Total" value={fmt(weekRev)} icon="📆" />
-            <KpiCard
-              label={filterOrderDate ? `Plates (${filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate})` : "Plates Sold Today"}
-              value={String(filtered.reduce((sum, s) => sum + totalPlates(s), 0))}
-              icon="🍽️"
-              color={T.accent}
-            />
-            <KpiCard
-              label="Delivery Revenue"
-              value={fmt(delRev)}
-              color={T.delivery}
-              icon="🛵"
-              sub={`incl. ${fmt(delFees)} fees`}
-            />
-            <KpiCard
-              label="Best Seller"
-              value={
-                Object.entries(byMeal).sort((a, b) => b[1] - a[1])[0]?.[0] ||
-                "—"
-              }
-              icon="⭐"
-              color={T.restaurant}
-            />
-          </div>
+          {/* Dynamic period label based on active filters */}
+          {(() => {
+            const periodLabel = filterOrderDate
+              ? filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate
+              : filterType !== "All" ? filterType
+              : filterPayment !== "All" ? filterPayment
+              : "All Orders";
+            return (
+              <div style={S.grid(4)}>
+                <KpiCard
+                  label={`Revenue · ${periodLabel}`}
+                  value={fmt(filteredRev)}
+                  icon="💰"
+                  color={T.accent}
+                  sub={`${filtered.length} order${filtered.length !== 1 ? "s" : ""}`}
+                />
+                <KpiCard
+                  label={`Plates Sold · ${periodLabel}`}
+                  value={String(filteredPlates)}
+                  icon="🍽️"
+                  color={T.restaurant}
+                  sub={`avg ${filtered.length ? Math.round(filteredPlates / filtered.length * 10) / 10 : 0} per order`}
+                />
+                <KpiCard
+                  label={`Delivery Revenue · ${periodLabel}`}
+                  value={fmt(filteredDelRev)}
+                  color={T.delivery}
+                  icon="🛵"
+                  sub={`incl. ${fmt(filteredDelFees)} fees · ${filteredDel.length} orders`}
+                />
+                <KpiCard
+                  label={`Best Seller · ${periodLabel}`}
+                  value={Object.entries(filteredByMeal).sort((a, b) => b[1] - a[1])[0]?.[0] || "—"}
+                  icon="⭐"
+                  color={T.warning}
+                />
+              </div>
+            );
+          })()}
           <div style={{ ...S.card, marginTop: 10, marginBottom: 10 }}>
-            <div style={S.cardTitle}>Revenue by Fulfillment (Week)</div>
+            <div style={S.cardTitle}>Revenue by Fulfillment · {filterOrderDate ? (filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate) : "All Orders"}</div>
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
               {[
                 { label: "🪑 Dine-in", val: dineRev, color: T.restaurant },
