@@ -8882,6 +8882,7 @@ function RestaurantPage({
   const [tab, setTab] = useState("orders");
   const [filterType, setFilterType] = useState("All");
   const [filterPayment, setFilterPayment] = useState("All"); // All | Unpaid | Paid
+  const [filterOrderDate, setFilterOrderDate] = useState(""); // "" = all, or YYYY-MM-DD
   const [orderPmtPanel, setOrderPmtPanel] = useState(null); // sale id
   const [addSale, setAddSale] = useState(false);
   const [editSaleId, setEditSaleId] = useState(null);
@@ -8981,6 +8982,7 @@ function RestaurantPage({
     setDoc({ title, html, onPrint: () => printDoc(title, html) });
   const filtered = sales
     .filter(s => filterType === "All" || s.type === filterType)
+    .filter(s => !filterOrderDate || s.date === filterOrderDate)
     .filter(s => {
       if (filterPayment === "All") return true;
       const tot = orderTotal(s);
@@ -9435,13 +9437,7 @@ function RestaurantPage({
           <div style={{ ...S.row, marginBottom: 9, flexWrap: "wrap", gap: 5 }}>
             <div style={{ display: "flex", gap: 3 }}>
               {["All", "Dine-in", "Takeaway", "Delivery"].map((t) => (
-                <button
-                  key={t}
-                  style={S.navBtn(filterType === t)}
-                  onClick={() => setFilterType(t)}
-                >
-                  {t}
-                </button>
+                <button key={t} style={S.navBtn(filterType === t)} onClick={() => setFilterType(t)}>{t}</button>
               ))}
             </div>
             <div style={{ display: "flex", gap: 3 }}>
@@ -9452,12 +9448,22 @@ function RestaurantPage({
                 >{label}</button>
               ))}
             </div>
-            <button
-              style={S.btn("primary")}
-              onClick={() => setAddSale(!addSale)}
-            >
-              + Record Order
-            </button>
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <button
+                style={{ ...S.btn(filterOrderDate === TODAY_ISO ? "primary" : "ghost"), fontSize: 11, padding: "4px 10px" }}
+                onClick={() => setFilterOrderDate(filterOrderDate === TODAY_ISO ? "" : TODAY_ISO)}
+              >📅 Today</button>
+              <input
+                type="date"
+                style={{ ...S.input, marginBottom: 0, fontSize: 11, padding: "3px 7px", width: 140 }}
+                value={filterOrderDate}
+                onChange={e => setFilterOrderDate(e.target.value)}
+              />
+              {filterOrderDate && (
+                <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "3px 7px" }} onClick={() => setFilterOrderDate("")}>✕</button>
+              )}
+            </div>
+            <button style={S.btn("primary")} onClick={() => setAddSale(!addSale)}>+ Record Order</button>
           </div>
           {addSale && (
             <div style={{ ...S.card, marginBottom: 10, borderColor: T.accent }}>
