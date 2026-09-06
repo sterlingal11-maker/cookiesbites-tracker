@@ -9434,69 +9434,92 @@ function RestaurantPage({
               </>
             );
           })()}
-          {lowStock.length > 0 && (
-            <div style={{ background: `${T.warning}12`, border: `1px solid ${T.warning}40`, borderRadius: 6, padding: 8, marginBottom: 8, fontSize: 11 }}>
-              <strong style={{ color: T.warning }}>⚠️ Low Stock:</strong>{" "}
-              {lowStock.map((i) => (
-                <span key={i.id} style={{ marginRight: 8 }}>
-                  {i.name}
-                  <span style={{ color: i.stock === 0 ? T.danger : T.warning, fontWeight: 700 }}>
-                    {" "}({i.stock === 0 ? "OUT" : `${i.stock} ${i.unit}`})
-                  </span>
-                </span>
-              ))}
-            </div>
-          )}
-          {/* Per-meal revenue and plates breakdown */}
-          {Object.keys(filteredByMeal).length > 0 && (
-            <div style={{ ...S.card, marginBottom: 10 }}>
-              <div style={S.cardTitle}>Revenue & Plates by Meal · {filterOrderDate ? (filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate) : filterType !== "All" ? filterType : filterPayment !== "All" ? filterPayment : "All Time"}</div>
-              <div style={{ overflowX: "auto", marginTop: 8 }}>
-                <table style={{ ...S.table, minWidth: 400 }}>
-                  <thead>
-                    <tr>
-                      {["Meal", "Plates", "Revenue", "% of Total"].map(h => (
-                        <th key={h} style={{ ...S.th, textAlign: h === "Meal" ? "left" : "right" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      // Build per-meal plates from filtered
-                      const mealPlates = {};
-                      filtered.forEach(s => {
-                        const items = Array.isArray(s.items) && s.items.length > 0
-                          ? s.items : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
-                        items.forEach(it => {
-                          if (!it.meal) return;
-                          mealPlates[it.meal] = (mealPlates[it.meal] || 0) + (Number(it.plates) || 0);
-                        });
-                      });
-                      return Object.entries(filteredByMeal)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([meal, rev]) => (
+          {/* Per-meal revenue + cash by method breakdown */}
+          {Object.keys(filteredByMeal).length > 0 && (() => {
+            // Build per-meal plates
+            const mealPlates = {};
+            filtered.forEach(s => {
+              const items = Array.isArray(s.items) && s.items.length > 0
+                ? s.items : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
+              items.forEach(it => {
+                if (!it.meal) return;
+                mealPlates[it.meal] = (mealPlates[it.meal] || 0) + (Number(it.plates) || 0);
+              });
+            });
+
+            // Build cash received by payment method
+            const byMethod = {};
+            filtered.forEach(s => {
+              const tot = orderTotal(s);
+              const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
+              const method = s.method || "Unknown";
+              byMethod[method] = (byMethod[method] || 0) + paid;
+            });
+            const methodEntries = Object.entries(byMethod).sort((a, b) => b[1] - a[1]);
+            const totalCash = methodEntries.reduce((s, [, v]) => s + v, 0);
+
+            const periodLabel = filterOrderDate
+              ? filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate
+              : filterType !== "All" ? filterType
+              : filterPayment !== "All" ? filterPayment : "All Time";
+
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, marginBottom: 10 }}>
+                {/* Meal breakdown */}
+                <div style={S.card}>
+                  <div style={S.cardTitle}>Revenue & Plates by Meal · {periodLabel}</div>
+                  <div style={{ overflowX: "auto", marginTop: 8 }}>
+                    <table style={{ ...S.table, minWidth: 380 }}>
+                      <thead>
+                        <tr>
+                          {["Meal", "Plates", "Revenue", "%"].map(h => (
+                            <th key={h} style={{ ...S.th, textAlign: h === "Meal" ? "left" : "right" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(filteredByMeal).sort((a, b) => b[1] - a[1]).map(([meal, rev]) => (
                           <tr key={meal}>
                             <td style={{ ...S.td, fontWeight: 600 }}>{meal}</td>
                             <td style={{ ...S.td, textAlign: "right" }}>{mealPlates[meal] || 0}</td>
                             <td style={{ ...S.td, textAlign: "right", color: T.accent, fontWeight: 700 }}>{fmt(rev)}</td>
-                            <td style={{ ...S.td, textAlign: "right" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
-                                <div style={{ width: 60, height: 4, background: T.border, borderRadius: 2 }}>
-                                  <div style={{ width: `${filteredRev ? (rev / filteredRev * 100) : 0}%`, height: "100%", background: T.accent, borderRadius: 2 }} />
-                                </div>
-                                <span style={{ fontSize: 11, color: T.textMuted, minWidth: 32, textAlign: "right" }}>
-                                  {filteredRev ? (rev / filteredRev * 100).toFixed(1) : 0}%
-                                </span>
-                              </div>
+                            <td style={{ ...S.td, textAlign: "right", color: T.textMuted, fontSize: 10 }}>
+                              {filteredRev ? (rev / filteredRev * 100).toFixed(1) : 0}%
                             </td>
                           </tr>
-                        ));
-                    })()}
-                  </tbody>
-                </table>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Cash by method */}
+                <div style={{ ...S.card, minWidth: 200 }}>
+                  <div style={S.cardTitle}>Cash Received · {periodLabel}</div>
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {methodEntries.map(([method, amt]) => (
+                      <div key={method}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: T.text }}>{method}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: T.success }}>{fmt(amt)}</span>
+                        </div>
+                        <div style={{ height: 4, background: T.border, borderRadius: 2 }}>
+                          <div style={{ width: `${totalCash ? (amt / totalCash * 100) : 0}%`, height: "100%", background: T.success, borderRadius: 2, opacity: 0.8 }} />
+                        </div>
+                        <div style={{ fontSize: 9, color: T.textDim, marginTop: 1 }}>
+                          {totalCash ? (amt / totalCash * 100).toFixed(1) : 0}%
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 11, color: T.textMuted }}>Total Collected</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: T.success }}>{fmt(totalCash)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div style={{ ...S.row, marginBottom: 9, flexWrap: "wrap", gap: 5 }}>
             <div style={{ display: "flex", gap: 3 }}>
