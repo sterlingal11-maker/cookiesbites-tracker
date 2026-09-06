@@ -51,6 +51,21 @@ const fmtShort = (n) => {
 };
 
 const APP_TODAY = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+
+// Return ISO date string in LOCAL timezone (not UTC) — critical for Cameroon UTC+1
+const toLocalISO = (d) => {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+// Compare dates as strings to avoid UTC/local timezone mismatches
+const inRange = (dateStr, from, to) => {
+  if (!dateStr) return false;
+  const s = dateStr.slice(0, 10); // "YYYY-MM-DD"
+  const f = toLocalISO(from);
+  const t = toLocalISO(to);
+  return s >= f && s <= t;
+};
 function getPeriodRange(period, customFrom, customTo) {
   const d = new Date(APP_TODAY);
   const y = d.getFullYear(),
@@ -104,10 +119,6 @@ function getPeriodRange(period, customFrom, customTo) {
       return [new Date(y, 0, 1), new Date(d)];
   }
 }
-const inRange = (dateStr, from, to) => {
-  const d = new Date(dateStr);
-  return d >= from && d <= to;
-};
 const fmtDate = (d) =>
   d.toLocaleDateString("fr-CM", {
     day: "2-digit",
@@ -1667,46 +1678,44 @@ const orderTotal = (s) => {
 // Compute COGS for a restaurant sale using meal ingredient-level costing when available,
 // falling back to catalog cost-rate estimate
 const orderCOGS = (s, catalogItems, meals) => {
-  // Try meals data first (ingredient-level costing)
-  if (meals && meals.length) {
-    const meal = meals.find(
-      (m) =>
-        m.name.toLowerCase() === s.meal.toLowerCase() ||
-        m.name.toLowerCase().includes(s.meal.toLowerCase().split(" ")[0])
-    );
-    if (meal) {
-      const hasCost =
-        meal.laborCost > 0 ||
-        (meal.otherCosts && meal.otherCosts.length > 0) ||
-        (meal.ingredientLinks && meal.ingredientLinks.length > 0);
-      if (hasCost) {
-        const cat = catalogItems.find((i) =>
-          i.name.toLowerCase().includes(s.meal.toLowerCase().split(" ")[0])
-        );
-        const ingCost = Number(cat?.costPerUnit) || 0;
-        const otherCost = (meal.otherCosts || []).reduce(
-          (a, c) => a + Number(c.amount || 0),
-          0
-        );
-        return (
-          s.plates * (ingCost + Number(meal.laborCost || 0) + otherCost) +
-          (s.deliveryFee || 0) * 0.4
-        );
+  // Get all items — multi-item orders use s.items, legacy uses single fields
+  const items = Array.isArray(s.items) && s.items.length > 0
+    ? s.items
+    : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
+
+  let total = 0;
+  items.forEach(it => {
+    const mealName = (it.meal || "").toLowerCase();
+    const plates = Number(it.plates) || 0;
+    const pricePerPlate = Number(it.pricePerPlate) || 0;
+
+    if (meals && meals.length) {
+      const meal = meals.find(m =>
+        m.name.toLowerCase() === mealName ||
+        m.name.toLowerCase().includes(mealName.split(" ")[0])
+      );
+      if (meal) {
+        const hasCost = meal.laborCost > 0 ||
+          (meal.otherCosts && meal.otherCosts.length > 0) ||
+          (meal.ingredientLinks && meal.ingredientLinks.length > 0);
+        if (hasCost) {
+          const cat = catalogItems.find(i => i.name.toLowerCase().includes(mealName.split(" ")[0]));
+          const ingCost = Number(cat?.costPerUnit) || 0;
+          const otherCost = (meal.otherCosts || []).reduce((a, c) => a + Number(c.amount || 0), 0);
+          total += plates * (ingCost + Number(meal.laborCost || 0) + otherCost);
+          return;
+        }
       }
     }
-  }
-  // Fallback: catalog cost-rate — guard against price=0 or missing costPerUnit
-  const item = catalogItems.find((i) =>
-    i.name.toLowerCase().includes(s.meal.toLowerCase().split(" ")[0])
-  );
-  const costPerUnit = Number(item?.costPerUnit) || 0;
-  const price = Number(item?.price) || 0;
-  // Only use catalog rate if both cost and price are set; otherwise use 35% default
-  const costRate = (price > 0 && costPerUnit > 0) ? Math.min(costPerUnit / price, 0.75) : 0.35;
-  return (
-    s.plates * s.pricePerPlate * costRate +
-    (s.deliveryFee || 0) * 0.4
-  );
+    // Fallback: 35% cost rate
+    const item = catalogItems.find(i => i.name.toLowerCase().includes(mealName.split(" ")[0]));
+    const costPerUnit = Number(item?.costPerUnit) || 0;
+    const price = Number(item?.price) || 0;
+    const costRate = (price > 0 && costPerUnit > 0) ? Math.min(costPerUnit / price, 0.75) : 0.35;
+    total += plates * pricePerPlate * costRate;
+  });
+
+  return total + (Number(s.deliveryFee) || 0) * 0.4;
 };
 
 // Compute total inventory stock value
@@ -1761,7 +1770,7 @@ const ageBucket = (days) => {
   return "61+ days";
 };
 const TODAY_LABEL = APP_TODAY.toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" });
-const TODAY_ISO = APP_TODAY.toISOString().slice(0, 10);
+const TODAY_ISO = toLocalISO(APP_TODAY);
 const THIS_YEAR = APP_TODAY.getFullYear();
 
 const PIPELINE_PHASES = [
@@ -4318,7 +4327,12 @@ function Dashboard({
   });
   const mealMap = {};
   pSales.forEach((s) => {
-    mealMap[s.meal] = (mealMap[s.meal] || 0) + s.plates * s.pricePerPlate;
+    const items = Array.isArray(s.items) && s.items.length > 0
+      ? s.items
+      : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
+    items.forEach(it => {
+      if (it.meal) mealMap[it.meal] = (mealMap[it.meal] || 0) + (Number(it.plates) || 0) * (Number(it.pricePerPlate) || 0);
+    });
   });
   const topMeals = Object.entries(mealMap)
     .sort((a, b) => b[1] - a[1])
@@ -8994,7 +9008,12 @@ function RestaurantPage({
     .reduce((s, r) => s + orderTotal(r), 0);
   const byMeal = {};
   sales.forEach((s) => {
-    byMeal[s.meal] = (byMeal[s.meal] || 0) + s.plates * s.pricePerPlate;
+    const items = Array.isArray(s.items) && s.items.length > 0
+      ? s.items
+      : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
+    items.forEach(it => {
+      if (it.meal) byMeal[it.meal] = (byMeal[it.meal] || 0) + (Number(it.plates) || 0) * (Number(it.pricePerPlate) || 0);
+    });
   });
   const lowStock = inventory.filter((i) => i.stock <= i.reorderAt);
   const typeColor = {
@@ -15195,11 +15214,16 @@ function ReportsPage({
         // Meals ranked by revenue
         const byMeal = {};
         pSales.forEach(s => {
-          const key = s.meal || "Unknown";
-          if (!byMeal[key]) byMeal[key] = { revenue: 0, orders: 0, plates: 0 };
-          byMeal[key].revenue += orderTotal(s);
-          byMeal[key].orders += 1;
-          byMeal[key].plates += s.plates;
+          const items = Array.isArray(s.items) && s.items.length > 0
+            ? s.items
+            : [{ meal: s.meal, plates: s.plates, pricePerPlate: s.pricePerPlate }];
+          items.forEach(it => {
+            const key = it.meal || "Unknown";
+            if (!byMeal[key]) byMeal[key] = { revenue: 0, orders: 0, plates: 0 };
+            byMeal[key].revenue += (Number(it.plates) || 0) * (Number(it.pricePerPlate) || 0);
+            byMeal[key].orders += 1;
+            byMeal[key].plates += Number(it.plates) || 0;
+          });
         });
         const mealRanked = Object.entries(byMeal).sort((a,b) => b[1].revenue - a[1].revenue);
 
