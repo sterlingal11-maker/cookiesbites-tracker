@@ -9379,8 +9379,8 @@ function RestaurantPage({
             <KpiCard label="Today's Revenue" value={fmt(todayRev)} icon="📅" />
             <KpiCard label="Week Total" value={fmt(weekRev)} icon="📆" />
             <KpiCard
-              label="Plates Sold Today"
-              value={String(sales.filter(s => s.date === TODAY_ISO).reduce((sum, s) => sum + totalPlates(s), 0))}
+              label={filterOrderDate ? `Plates (${filterOrderDate === TODAY_ISO ? "Today" : filterOrderDate})` : "Plates Sold Today"}
+              value={String(filtered.reduce((sum, s) => sum + totalPlates(s), 0))}
               icon="🍽️"
               color={T.accent}
             />
