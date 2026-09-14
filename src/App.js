@@ -16633,8 +16633,12 @@ export default function App() {
         setCatalogMeta(cloud["cb_catalog_meta"]);
         ls_set("cb_catalog_meta", cloud["cb_catalog_meta"]);
       }
-      // Inventory: if cloud is empty array, seed with INIT_INVENTORY
-      apply("cb_inventory",    setInventory);
+      // Inventory: only apply if cloud has actual items — never overwrite with empty array
+      if (cloud["cb_inventory"] !== undefined && cloud["cb_inventory"] !== null
+          && Array.isArray(cloud["cb_inventory"]) && cloud["cb_inventory"].length > 0) {
+        setInventory(cloud["cb_inventory"]);
+        ls_set("cb_inventory", cloud["cb_inventory"]);
+      }
       if (cloud["cb_meals"] !== undefined && cloud["cb_meals"] !== null) {
         const catCats = cloud["cb_catalog_cats"] || catalogCategories;
         const clean = migrateMealCategories(stripBase64Photos(cloud["cb_meals"]), catCats);
