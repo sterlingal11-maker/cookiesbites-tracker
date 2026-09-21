@@ -12412,14 +12412,76 @@ function CustomersPage({ customers, setCustomers, invoices, setInvoices, events,
                   <span style={{ fontWeight: 700, fontSize: 16 }}>{selCustomer.name}</span>
                   {" "}<span style={{ background: classColor[selCustomer.classification] || T.info, color: "#fff", borderRadius: 10, padding: "2px 10px", fontSize: 11, marginLeft: 6 }}>{selCustomer.classification}</span>
                 </div>
-                <button style={S.btn("ghost")} onClick={() => setSelCust(null)}>✕ Close</button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={{ ...S.btn("ghost"), fontSize: 11 }} onClick={() => {
+                    const cSales = custSales(selCustomer.name);
+                    const cEvents = custEvents(selCustomer.name);
+                    const cInvs = custInvoices(selCustomer.name);
+                    const totalSpend = custTotalSpend(selCustomer.name);
+                    const salesAR = cSales.reduce((s, sale) => {
+                      const tot = orderTotal(sale); const paid = sale.partialPaid !== "" && sale.partialPaid != null ? Number(sale.partialPaid) : tot; return s + Math.max(0, tot - paid);
+                    }, 0);
+                    const invoiceAR = cInvs.reduce((s, i) => s + Math.max(0, i.total - i.paid), 0);
+                    const totalAR = salesAR + invoiceAR;
+                    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Statement — ${selCustomer.name}</title>
+<style>body{font-family:sans-serif;color:#111;padding:40px;max-width:800px;margin:0 auto}h1{font-size:22px;margin:0}h2{font-size:14px;font-weight:700;margin:24px 0 8px;border-bottom:2px solid #111;padding-bottom:4px}table{width:100%;border-collapse:collapse;margin-bottom:16px}th{background:#111;color:#fff;padding:7px 10px;font-size:11px;text-align:left}td{padding:7px 10px;border-bottom:1px solid #eee;font-size:12px}.ar{color:#dc2626;font-weight:700}.paid{color:#16a34a;font-weight:600}.total-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:13px}.grand{font-weight:800;font-size:15px;border-top:2px solid #111;margin-top:4px;padding-top:8px}.badge{display:inline-block;background:#f5f5f5;border-radius:12px;padding:2px 10px;font-size:11px}</style></head><body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+  <div><h1>Customer Statement</h1><p style="margin:4px 0;color:#666;font-size:13px">Prepared by ${biz.name || "Cookie's Bites"}</p><p style="margin:4px 0;color:#666;font-size:12px">${new Date().toLocaleDateString("fr-CM",{day:"2-digit",month:"long",year:"numeric"})}</p></div>
+  <div style="text-align:right"><strong style="font-size:16px">${selCustomer.name}</strong><br/><span class="badge">${selCustomer.classification}</span><br/>${selCustomer.phone ? `<span style="font-size:12px;color:#666">${selCustomer.phone}</span><br/>` : ""}${selCustomer.email ? `<span style="font-size:12px;color:#666">${selCustomer.email}</span>` : ""}</div>
+</div>
+<div style="background:#f8f8f8;border-radius:8px;padding:14px 20px;margin-bottom:24px;display:flex;gap:40px">
+  <div><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px">Total Spend</div><div style="font-size:22px;font-weight:800;color:#16a34a">${fmt(totalSpend)} XAF</div></div>
+  ${totalAR > 0 ? `<div><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px">Outstanding AR</div><div style="font-size:22px;font-weight:800;color:#dc2626">${fmt(totalAR)} XAF</div></div>` : `<div><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px">Outstanding AR</div><div style="font-size:22px;font-weight:800;color:#16a34a">✅ Fully Paid</div></div>`}
+  <div><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px">Orders</div><div style="font-size:22px;font-weight:800">${cSales.length}</div></div>
+</div>
+${cSales.length > 0 ? `<h2>Restaurant Orders</h2><table><thead><tr><th>Date</th><th>Items</th><th>Plates</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead><tbody>${cSales.map(s => {
+  const tot = orderTotal(s); const paid2 = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot; const bal2 = tot - paid2;
+  const items = Array.isArray(s.items) && s.items.length > 0 ? s.items.map(it => it.meal).join(", ") : s.meal;
+  return `<tr><td>${s.date}</td><td>${items}</td><td>${totalPlates(s)}</td><td>${fmt(tot)}</td><td class="paid">${fmt(paid2)}</td><td class="${bal2>0?"ar":"paid"}">${fmt(bal2)}</td></tr>`;
+}).join("")}</tbody></table>` : ""}
+${cInvs.length > 0 ? `<h2>Catering Invoices</h2><table><thead><tr><th>Invoice #</th><th>Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead><tbody>${cInvs.map(inv => {
+  const bal3 = inv.total - inv.paid;
+  return `<tr><td>${inv.num}</td><td>${inv.issued||""}</td><td>${fmt(inv.total)}</td><td class="paid">${fmt(inv.paid)}</td><td class="${bal3>0?"ar":"paid"}">${fmt(bal3)}</td><td>${inv.status}</td></tr>`;
+}).join("")}</tbody></table>` : ""}
+${totalAR > 0 ? `<div style="margin-top:24px;padding:16px;border:2px solid #dc2626;border-radius:8px;background:#fff5f5"><strong style="color:#dc2626">Total Amount Outstanding: ${fmt(totalAR)} XAF</strong><br/><span style="font-size:12px;color:#666;margin-top:4px;display:block">Please arrange payment at your earliest convenience.</span>${biz.paymentTerms ? `<div style="margin-top:8px;font-size:12px;color:#444">${biz.paymentTerms.replace(/\n/g,"<br>")}</div>` : ""}</div>` : ""}
+</body></html>`;
+                    openDoc(`Statement — ${selCustomer.name}`, html);
+                  }}>📄 Statement</button>
+                  <button style={S.btn("ghost")} onClick={() => setSelCust(null)}>✕ Close</button>
+                </div>
               </div>
-              <div style={{ ...S.grid(3), marginBottom: 10 }}>
+
+              {/* AR Summary */}
+              {(() => {
+                const cSales = custSales(selCustomer.name);
+                const cInvs = custInvoices(selCustomer.name);
+                const salesAR = cSales.reduce((s, sale) => { const tot = orderTotal(sale); const paid = sale.partialPaid !== "" && sale.partialPaid != null ? Number(sale.partialPaid) : tot; return s + Math.max(0, tot - paid); }, 0);
+                const invoiceAR = cInvs.reduce((s, i) => s + Math.max(0, i.total - i.paid), 0);
+                const totalAR = salesAR + invoiceAR;
+                const totalSpend = custTotalSpend(selCustomer.name);
+                if (totalAR <= 0 && totalSpend <= 0) return null;
+                return (
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+                    <div style={{ ...S.card, flex: 1, padding: "10px 14px", minWidth: 130 }}>
+                      <div style={S.cardTitle}>Total Spend</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: T.success }}>{fmt(totalSpend)}</div>
+                    </div>
+                    <div style={{ ...S.card, flex: 1, padding: "10px 14px", minWidth: 130, borderColor: totalAR > 0 ? T.danger : T.success }}>
+                      <div style={S.cardTitle}>Outstanding AR</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: totalAR > 0 ? T.danger : T.success }}>{totalAR > 0 ? fmt(totalAR) : "✅ Nil"}</div>
+                      {totalAR > 0 && salesAR > 0 && invoiceAR > 0 && (
+                        <div style={{ fontSize: 10, color: T.textDim, marginTop: 2 }}>Orders: {fmt(salesAR)} · Invoices: {fmt(invoiceAR)}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div style={S.grid(3)}>
                 <div><span style={{ color: T.textDim, fontSize: 12 }}>Phone</span><br />{selCustomer.phone || "—"}</div>
                 <div><span style={{ color: T.textDim, fontSize: 12 }}>Email</span><br />{selCustomer.email || "—"}</div>
                 <div><span style={{ color: T.textDim, fontSize: 12 }}>Since</span><br />{selCustomer.createdAt || "—"}</div>
                 <div><span style={{ color: T.textDim, fontSize: 12 }}>Notes</span><br />{selCustomer.notes || "—"}</div>
-                <div><span style={{ color: T.textDim, fontSize: 12 }}>Total Spend</span><br /><strong style={{ color: T.success }}>{fmt(custTotalSpend(selCustomer.name))}</strong></div>
               </div>
               <div style={S.sectionTitle}>Restaurant Orders ({custSales(selCustomer.name).length})</div>
               {custSales(selCustomer.name).length === 0 ? <div style={{ color: T.textDim, fontSize: 13, marginBottom: 8 }}>No restaurant orders.</div> : (
@@ -12431,7 +12493,7 @@ function CustomersPage({ customers, setCustomers, invoices, setInvoices, events,
                     const bal = tot - paid;
                     return <tr key={s.id}>
                       <td style={S.td}>{s.date}</td>
-                      <td style={S.td}>{s.meal}</td>
+                      <td style={S.td}>{Array.isArray(s.items) && s.items.length > 1 ? s.items.map(it => it.meal).join(", ") : s.meal}</td>
                       <td style={S.td}>{totalPlates(s)}</td>
                       <td style={S.td}>{fmt(tot)}</td>
                       <td style={{ ...S.td, color: T.success }}>{fmt(paid)}</td>
@@ -12459,15 +12521,22 @@ function CustomersPage({ customers, setCustomers, invoices, setInvoices, events,
               <div style={S.sectionTitle}>Invoices ({custInvoices(selCustomer.name).length})</div>
               {custInvoices(selCustomer.name).length === 0 ? <div style={{ color: T.textDim, fontSize: 13 }}>No invoices.</div> : (
                 <table style={S.table}>
-                  <thead><tr>{["Invoice #","Total","Paid","Balance","Status"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                  <tbody>{custInvoices(selCustomer.name).map(inv => {
+                  <thead><tr>{["Invoice #","Total","Paid","Balance","Status",""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>{custInvoices(selCustomer.name).map((inv, idx) => {
                     const bal = inv.total - inv.paid;
+                    const evt = events.find(e => e.id === inv.eventId);
                     return <tr key={inv.id}>
                       <td style={{ ...S.td, color: T.accent, fontWeight: 700 }}>{inv.num}</td>
                       <td style={S.td}>{fmt(inv.total)}</td>
                       <td style={{ ...S.td, color: T.success }}>{fmt(inv.paid)}</td>
                       <td style={{ ...S.td, color: bal > 0 ? T.danger : T.success, fontWeight: 700 }}>{fmt(bal)}</td>
                       <td style={{ ...S.td, color: stColor[inv.status] }}>{inv.status}</td>
+                      <td style={S.td}>
+                        <button style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 7px" }}
+                          onClick={() => openDoc(`Invoice ${inv.num}`, buildInvoiceHTML(inv, evt, biz, logo))}>
+                          🖨 Print
+                        </button>
+                      </td>
                     </tr>;
                   })}</tbody>
                 </table>
