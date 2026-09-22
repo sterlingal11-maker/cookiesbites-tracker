@@ -67,7 +67,10 @@ const inRange = (dateStr, from, to) => {
   return s >= f && s <= t;
 };
 function getPeriodRange(period, customFrom, customTo) {
-  const d = new Date(APP_TODAY);
+  // Compute today fresh on every call — APP_TODAY is set once at load time and goes stale
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = today;
   const y = d.getFullYear(),
     m = d.getMonth();
   const dow = d.getDay();
@@ -1764,7 +1767,8 @@ const splitOverheads = (overheads) => {
   };
 };
 const daysOD = (due) => {
-   const d = Math.floor((APP_TODAY - new Date(due)) / 86400000);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const d = Math.floor((now - new Date(due)) / 86400000);
   return d > 0 ? d : 0;
 };
 const ageBucket = (days) => {
@@ -1774,9 +1778,10 @@ const ageBucket = (days) => {
   if (days <= 60) return "31–60 days";
   return "61+ days";
 };
-const TODAY_LABEL = APP_TODAY.toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" });
-const TODAY_ISO = toLocalISO(APP_TODAY);
-const THIS_YEAR = APP_TODAY.getFullYear();
+const getTodayISO  = () => { const d = new Date(); return toLocalISO(d); };
+const TODAY_ISO    = getTodayISO(); // used as default form value — acceptable to set once
+const TODAY_LABEL  = new Date().toLocaleDateString("fr-CM", { day: "2-digit", month: "short", year: "numeric" });
+const THIS_YEAR    = new Date().getFullYear();
 
 const PIPELINE_PHASES = [
   "Lead / Inquiry",
