@@ -159,6 +159,7 @@ const INIT_BIZ = {
   bankAccount: "",
   footer:
     "Thank you for choosing Cookies Bites — we look forward to serving you!",
+  staffTabs: ["restaurant", "customers"],
 };
 
 const CAT_CATS = [];
@@ -4001,6 +4002,43 @@ function SettingsModal({ biz, setBiz, logo, socialLinks, setSocialLinks, onClose
             )}
           </div>
         </div>
+
+        {/* ── STAFF PERMISSIONS ── */}
+        <div style={{ padding: "14px 18px", borderTop: `1px solid ${T.border}` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 10 }}>
+            🔐 Staff Permissions — Tabs Staff Can Access
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {[
+              { id: "dashboard", label: "📊 Dashboard" },
+              { id: "catering", label: "🎉 Catering" },
+              { id: "restaurant", label: "🍽️ Restaurant & Delivery" },
+              { id: "customers", label: "👥 Customers" },
+              { id: "vendors", label: "🧾 Expenses" },
+              { id: "reports", label: "📑 Reports" },
+            ].map(tab => {
+              const enabled = (draft.staffTabs || ["restaurant", "customers"]).includes(tab.id);
+              return (
+                <button key={tab.id}
+                  style={{ ...S.btn(enabled ? "primary" : "ghost"), fontSize: 11, padding: "5px 12px" }}
+                  onClick={() => {
+                    const current = draft.staffTabs || ["restaurant", "customers"];
+                    const next = enabled
+                      ? current.filter(t => t !== tab.id)
+                      : [...current, tab.id];
+                    setDraft({ ...draft, staffTabs: next });
+                  }}
+                >
+                  {enabled ? "✓ " : ""}{tab.label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10, color: T.textDim, marginTop: 8 }}>
+            AI Studio is always Owner-only. Changes take effect immediately after Save.
+          </div>
+        </div>
+
         {/* ── SOCIAL LINKS ── */}
           <div style={{ marginTop: 18 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 10 }}>
@@ -16553,7 +16591,8 @@ export default function App() {
   const [authed, setAuthed] = useState(() => !!loadSession());
   const [role, setRole] = useState(() => loadSession()?.role || "owner");
   const isOwner = role === "owner";
-  const visibleTabs = isOwner ? TABS : TABS.filter(t => STAFF_TABS.includes(t.id) && !t.ownerOnly);
+  const staffTabs = biz.staffTabs || ["restaurant", "customers"];
+  const visibleTabs = isOwner ? TABS : TABS.filter(t => staffTabs.includes(t.id) && !t.ownerOnly);
   const [tab, setTab] = useState(() => {
     const sess = loadSession();
     if (sess?.role === "staff") return "restaurant";
