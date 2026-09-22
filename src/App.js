@@ -3685,7 +3685,16 @@ function SettingsModal({ biz, setBiz, logo, socialLinks, setSocialLinks, onClose
   const [staffMsg, setStaffMsg] = useState(null);
   const [confirmRemoveStaff, setConfirmRemoveStaff] = useState(false);
 
-  const save = () => { setBiz(draft); setSocialLinks(draftSocial); onClose(); };
+  const save = () => {
+    setBiz(draft);
+    setSocialLinks(draftSocial);
+    // Force immediate cloud write — don't rely on debounced syncKey
+    if (isSupabaseConfigured()) {
+      cloudSet("cb_biz", draft);
+      cloudSet("cb_social", draftSocial);
+    }
+    onClose();
+  };
 
   const handleChangePw = () => {
     setPwMsg(null);
