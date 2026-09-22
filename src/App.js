@@ -4134,7 +4134,9 @@ function SettingsModal({ biz, setBiz, logo, socialLinks, setSocialLinks, onClose
           <button
             style={{ ...S.btn("ghost"), fontSize: 11, color: T.danger, borderColor: `${T.danger}60`, padding: "5px 14px" }}
             onClick={() => {
-              if (!window.confirm("Clear all training data?\n\nThis will delete:\n• All sales & orders\n• All catering events\n• All proposals\n• All invoices\n• All expenses\n• All production batches\n• All customers\n\nInventory, Meals and Catalog will NOT be affected.\n\nThis cannot be undone.")) return;
+              const confirmed = window.prompt('⚠️ DANGER: This permanently deletes ALL sales, expenses, events, invoices and customers from Supabase.\n\nType "DELETE" to confirm:');
+              if (confirmed !== "DELETE") { if (confirmed !== null) alert("Cancelled — you must type DELETE exactly."); return; }
+              if (!window.confirm("Last chance — are you absolutely sure? This cannot be undone.")) return;
               const empty = [];
               setEvents(empty);     if (cloudSet) cloudSet("cb_events",    empty);
               setSales(empty);      if (cloudSet) cloudSet("cb_sales",     empty);
