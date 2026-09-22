@@ -4127,44 +4127,6 @@ function SettingsModal({ biz, setBiz, logo, socialLinks, setSocialLinks, onClose
         <div
           style={{
             padding: "12px 18px",
-            borderTop: `1px solid ${T.danger}30`,
-            background: `${T.danger}08`,
-            borderRadius: "0 0 0 0",
-          }}
-        >
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: T.danger, marginBottom: 8 }}>
-            ⚠️ Danger Zone
-          </div>
-          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10, lineHeight: 1.5 }}>
-            <strong style={{ color: T.text }}>Clear Training / Practice Data</strong><br/>
-            Removes all practice sales, events, proposals, invoices, expenses, batches and customers.
-            Inventory, meals and catalog are <strong>not</strong> affected.
-          </div>
-          <button
-            style={{ ...S.btn("ghost"), fontSize: 11, color: T.danger, borderColor: `${T.danger}60`, padding: "5px 14px" }}
-            onClick={() => {
-              const confirmed = window.prompt('⚠️ DANGER: This permanently deletes ALL sales, expenses, events, invoices and customers from Supabase.\n\nType "DELETE" to confirm:');
-              if (confirmed !== "DELETE") { if (confirmed !== null) alert("Cancelled — you must type DELETE exactly."); return; }
-              if (!window.confirm("Last chance — are you absolutely sure? This cannot be undone.")) return;
-              const empty = [];
-              setEvents(empty);     if (cloudSet) cloudSet("cb_events",    empty);
-              setSales(empty);      if (cloudSet) cloudSet("cb_sales",     empty);
-              setInvoices(empty);   if (cloudSet) cloudSet("cb_invoices",  empty);
-              setProposals(empty);  if (cloudSet) cloudSet("cb_proposals", empty);
-              setBatches(empty);    if (cloudSet) cloudSet("cb_batches",   empty);
-              setOverheads(empty);  if (cloudSet) cloudSet("cb_overheads", empty);
-              setCustomers(empty);  if (cloudSet) cloudSet("cb_customers", empty);
-              onClose();
-              alert("✅ Training data cleared. Inventory, Meals and Catalog are untouched.");
-            }}
-          >
-            🗑 Clear All Training Data
-          </button>
-        </div>
-
-        <div
-          style={{
-            padding: "12px 18px",
             borderTop: `1px solid ${T.border}`,
             display: "flex",
             justifyContent: "flex-end",
