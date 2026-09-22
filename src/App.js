@@ -2927,6 +2927,8 @@ function getBizHTML(biz, logo) {
     biz.phone2,
     biz.email,
     biz.website,
+    biz.rccm ? `RCCM: ${biz.rccm}` : "",
+    biz.taxId ? `NIU: ${biz.taxId}` : "",
   ]
     .filter(Boolean)
     .join("<br/>");
@@ -3458,7 +3460,7 @@ function buildOrderReceiptHTML(sale, biz, logo) {
     biz, logo, "RECEIPT", rcn, sale.date, null
   )}${partiesHTML(
     "From",
-    `<div class="party-name">${biz.name}</div><div class="party-detail">${[biz.address, biz.city, biz.phone].filter(Boolean).join("<br/>")}</div>`,
+    `<div class="party-name">${biz.name}</div><div class="party-detail">${[biz.address, biz.city, biz.phone, biz.email, biz.rccm ? `RCCM: ${biz.rccm}` : "", biz.taxId ? `NIU: ${biz.taxId}` : ""].filter(Boolean).join("<br/>")}</div>`,
     "Customer",
     `<div class="party-name">${clientName}</div><div class="party-detail">${clientDetail}</div>`
   )}<div class="receipt-hero ${isPartial ? "partial" : ""}"><div class="rh-label">${statusLabel}</div><div class="rh-amount">${fmt(paid)}</div><div class="rh-sub">${sale.method} · ${sale.date}</div>${isPartial ? `<div class="rh-balance">Balance Outstanding: ${fmt(balance)}</div>` : ""}</div><div class="items-section"><div class="section-heading">Order Details</div><table><thead><tr><th>Item</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Amount (XAF)</th></tr></thead><tbody>${
