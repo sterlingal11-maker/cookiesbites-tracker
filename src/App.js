@@ -16690,6 +16690,7 @@ export default function App() {
   useEffect(() => {
     if (!isSupabaseConfigured()) { setCloudLoaded(true); return; }
     cloudGetAll(CLOUD_KEYS).then(cloud => {
+      try {
       // For each key, cloud value wins over local cache
       const apply = (key, setter) => {
         if (cloud[key] !== undefined && cloud[key] !== null) {
@@ -16750,6 +16751,7 @@ export default function App() {
       }
       apply("cb_vendors",      setVendors);
       apply("cb_social",       setSocialLinks);
+      } catch(e) { console.error("Cloud load error:", e); }
       setCloudLoaded(true);
     }).catch(() => setCloudLoaded(true)); // offline — use local cache
   // eslint-disable-next-line
