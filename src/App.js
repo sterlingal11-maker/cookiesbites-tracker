@@ -16591,8 +16591,6 @@ export default function App() {
   const [authed, setAuthed] = useState(() => !!loadSession());
   const [role, setRole] = useState(() => loadSession()?.role || "owner");
   const isOwner = role === "owner";
-  const staffTabs = biz.staffTabs || ["restaurant", "customers"];
-  const visibleTabs = isOwner ? TABS : TABS.filter(t => staffTabs.includes(t.id) && !t.ownerOnly);
   const [tab, setTab] = useState(() => {
     const sess = loadSession();
     if (sess?.role === "staff") return "restaurant";
@@ -16636,6 +16634,8 @@ export default function App() {
   const [overheads, setOverheads] = useState(() => ls_get("cb_overheads", []));
   const [logo, setLogo] = useState(() => ls_get("cb_logo", { src: LOGO_SRC }));
   const [biz, setBiz] = useState(() => ls_get("cb_biz", INIT_BIZ));
+  const staffTabs = biz.staffTabs || ["restaurant", "customers"];
+  const visibleTabs = isOwner ? TABS : TABS.filter(t => staffTabs.includes(t.id) && !t.ownerOnly);
   const [customers, setCustomers] = useState(() => ls_get("cb_customers", []));
   const [vendors, setVendors] = useState(() => ls_get("cb_vendors", []));
   const [socialLinks, setSocialLinks] = useState(() => ls_get("cb_social", { instagram: "", facebook: "", tiktok: "", whatsapp: "", google: "" }));
