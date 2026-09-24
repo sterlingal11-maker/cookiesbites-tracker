@@ -39,6 +39,19 @@ const fmt = (n) => {
   const v = Math.round(n || 0);
   return v.toLocaleString("en-US") + " XAF";
 };
+// Format payment terms — bold+color phone numbers and account names
+const fmtPaymentTerms = (terms) => {
+  if (!terms) return "";
+  return terms.split("\n").map(line => {
+    // Lines with digits (phone numbers, account details) get highlighted
+    if (/\d{3}/.test(line)) {
+      return `<div style="font-size:12px;font-weight:700;color:#b45309;margin:2px 0">${line}</div>`;
+    }
+    return `<div style="font-size:11px;color:#222;margin:2px 0">${line}</div>`;
+  }).join("");
+};
+
+
 const fmtShort = (n) => {
   const v = Math.round(n || 0);
   if (v >= 1000000)
@@ -3044,7 +3057,7 @@ function buildInvoiceHTML(inv, evt, biz, logo) {
     inv.notes
       ? `<div class="payment-row"><span>Notes:</span><strong>${inv.notes}</strong></div>`
       : ""
-  }</div><div class="terms-box"><p><strong>Terms:</strong> Payment is due by the date indicated. All services are provided as per the event agreement.</p>${biz.paymentTerms ? `<p><strong>Payment accepted via:</strong> ${biz.paymentTerms.replace(/\n/g, '<br>')}</p>` : ""}</div>${footerHTML(
+  }</div><div class="terms-box"><p><strong>Terms:</strong> Payment is due by the date indicated. All services are provided as per the event agreement.</p>${biz.paymentTerms ? `<div style="margin-top:6px"><strong style="font-size:11px;color:#222">Payment accepted via:</strong>${fmtPaymentTerms(biz.paymentTerms)}</div>` : ""}</div>${footerHTML(
     biz
   )}`;
 }
@@ -3510,7 +3523,7 @@ function buildOrderInvoiceHTML(sale, biz, logo) {
     `<div class="party-name">${biz.name}</div><div class="party-detail">${[biz.address, biz.city, biz.phone, biz.email].filter(Boolean).join("<br/>")}</div>`,
     "Bill To",
     `<div class="party-name">${clientName}</div><div class="party-detail">${clientDetail}</div>`
-  )}${statusBanner}<div class="items-section"><div class="section-heading">Order Line Items</div><table><thead><tr><th>Description</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Total (XAF)</th></tr></thead><tbody>${rows}</tbody></table></div><div class="totals-block"><div class="totals-inner"><div class="total-row"><span class="label">Subtotal</span><span class="value">${fmt(sale.plates * sale.pricePerPlate)}</span></div>${sale.deliveryFee > 0 ? `<div class="total-row"><span class="label">Delivery Fee</span><span class="value">${fmt(sale.deliveryFee)}</span></div>` : ""}<div class="total-row grand"><span class="label">ORDER TOTAL</span><span class="value">${fmt(total)}</span></div><div class="total-row highlight"><span class="label">Amount Paid</span><span class="value">${fmt(paid)}</span></div><div class="total-row"><span class="label" style="${balance>0?'color:#dc2626':'color:#16a34a'}">Balance Due</span><span class="value" style="${balance>0?'color:#dc2626;font-weight:800':'color:#16a34a;font-weight:800'}">${fmt(balance)}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Method:</span><strong>${sale.method}</strong></div><div class="payment-row"><span>Date:</span><strong>${sale.date}</strong></div><div class="payment-row"><span>Order type:</span><strong>${sale.type}</strong></div>${sale.notes ? `<div class="payment-row"><span>Notes:</span><strong>${sale.notes}</strong></div>` : ""}</div><div class="terms-box">${balance > 0 ? `<p>A balance of <strong>${fmt(balance)}</strong> remains outstanding. Please arrange payment at your earliest convenience.</p>` : ""}${biz.paymentTerms ? `<p><strong>Payment accepted via:</strong> ${biz.paymentTerms.replace(/\n/g, "<br>")}</p>` : ""}</div>${footerHTML(biz)}`;
+  )}${statusBanner}<div class="items-section"><div class="section-heading">Order Line Items</div><table><thead><tr><th>Description</th><th class="tc">Qty</th><th class="tr">Unit Price</th><th class="tr">Total (XAF)</th></tr></thead><tbody>${rows}</tbody></table></div><div class="totals-block"><div class="totals-inner"><div class="total-row"><span class="label">Subtotal</span><span class="value">${fmt(sale.plates * sale.pricePerPlate)}</span></div>${sale.deliveryFee > 0 ? `<div class="total-row"><span class="label">Delivery Fee</span><span class="value">${fmt(sale.deliveryFee)}</span></div>` : ""}<div class="total-row grand"><span class="label">ORDER TOTAL</span><span class="value">${fmt(total)}</span></div><div class="total-row highlight"><span class="label">Amount Paid</span><span class="value">${fmt(paid)}</span></div><div class="total-row"><span class="label" style="${balance>0?'color:#dc2626':'color:#16a34a'}">Balance Due</span><span class="value" style="${balance>0?'color:#dc2626;font-weight:800':'color:#16a34a;font-weight:800'}">${fmt(balance)}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Method:</span><strong>${sale.method}</strong></div><div class="payment-row"><span>Date:</span><strong>${sale.date}</strong></div><div class="payment-row"><span>Order type:</span><strong>${sale.type}</strong></div>${sale.notes ? `<div class="payment-row"><span>Notes:</span><strong>${sale.notes}</strong></div>` : ""}</div><div class="terms-box">${balance > 0 ? `<p>A balance of <strong>${fmt(balance)}</strong> remains outstanding. Please arrange payment at your earliest convenience.</p>` : ""}${biz.paymentTerms ? `<div style="margin-top:6px"><strong style="font-size:11px;color:#222">Payment accepted via:</strong>${fmtPaymentTerms(biz.paymentTerms)}</div>` : ""}</div>${footerHTML(biz)}`;
 }
 function buildCatalogHTML(items, categories, biz, logo) {
   const catMap = {};
@@ -12463,7 +12476,7 @@ ${cInvs.length > 0 ? `<h2>Catering Invoices</h2><table><thead><tr><th>Invoice #<
   const bal3 = inv.total - inv.paid;
   return `<tr><td>${inv.num}</td><td>${inv.issued||""}</td><td>${fmt(inv.total)}</td><td class="paid">${fmt(inv.paid)}</td><td class="${bal3>0?"ar":"paid"}">${fmt(bal3)}</td><td>${inv.status}</td></tr>`;
 }).join("")}</tbody></table>` : ""}
-${totalAR > 0 ? `<div style="margin-top:24px;padding:16px;border:2px solid #dc2626;border-radius:8px;background:#fff5f5"><strong style="color:#dc2626">Total Amount Outstanding: ${fmt(totalAR)}</strong><br/><span style="font-size:12px;color:#666;margin-top:4px;display:block">Please arrange payment at your earliest convenience.</span>${biz.paymentTerms ? `<div style="margin-top:8px;font-size:12px;color:#444">${biz.paymentTerms.replace(/\n/g,"<br>")}</div>` : ""}</div>` : ""}
+${totalAR > 0 ? `<div style="margin-top:24px;padding:16px;border:2px solid #dc2626;border-radius:8px;background:#fff5f5"><strong style="color:#dc2626">Total Amount Outstanding: ${fmt(totalAR)}</strong><br/><span style="font-size:12px;color:#666;margin-top:4px;display:block">Please arrange payment at your earliest convenience.</span>${biz.paymentTerms ? `<div style="margin-top:8px">${fmtPaymentTerms(biz.paymentTerms)}</div>` : ""}</div>` : ""}
 </body></html>`;
                     openDoc(`Statement — ${selCustomer.name}`, html);
                   }}>📄 Statement</button>
