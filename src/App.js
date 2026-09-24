@@ -43,9 +43,12 @@ const fmt = (n) => {
 const fmtPaymentTerms = (terms) => {
   if (!terms) return "";
   return terms.split("\n").map(line => {
-    // Lines with digits (phone numbers, account details) get highlighted
     if (/\d{3}/.test(line)) {
-      return `<div style="font-size:12px;font-weight:700;color:#b45309;margin:2px 0">${line}</div>`;
+      // Underline just the number sequences within the line
+      const formatted = line.replace(/[\d\s]{6,}/g, num =>
+        `<span style="text-decoration:underline;font-weight:700">${num}</span>`
+      );
+      return `<div style="font-size:12px;font-weight:600;color:#b45309;margin:2px 0">${formatted}</div>`;
     }
     return `<div style="font-size:11px;color:#222;margin:2px 0">${line}</div>`;
   }).join("");
