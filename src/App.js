@@ -16735,19 +16735,23 @@ export default function App() {
       };
       if (cloud["cb_events"] !== undefined && cloud["cb_events"] !== null) {
         const _v = cloud["cb_events"];
-        setEvents(_v); ls_set("cb_events", _v);
+        const local_v = ls_get("cb_events", []);
+        if (_v.length > 0 || local_v.length === 0) { setEvents(_v); ls_set("cb_events", _v); }
       }
       if (cloud["cb_sales"] !== undefined && cloud["cb_sales"] !== null) {
         const _v = cloud["cb_sales"];
-        setSales(_v); ls_set("cb_sales", _v);
+        const local_v = ls_get("cb_sales", []);
+        if (_v.length > 0 || local_v.length === 0) { setSales(_v); ls_set("cb_sales", _v); }
       }
       if (cloud["cb_invoices"] !== undefined && cloud["cb_invoices"] !== null) {
         const _v = cloud["cb_invoices"];
-        setInvoices(_v); ls_set("cb_invoices", _v);
+        const local_v = ls_get("cb_invoices", []);
+        if (_v.length > 0 || local_v.length === 0) { setInvoices(_v); ls_set("cb_invoices", _v); }
       }
       if (cloud["cb_proposals"] !== undefined && cloud["cb_proposals"] !== null) {
         const _v = cloud["cb_proposals"];
-        setProposals(_v); ls_set("cb_proposals", _v);
+        const local_v = ls_get("cb_proposals", []);
+        if (_v.length > 0 || local_v.length === 0) { setProposals(_v); ls_set("cb_proposals", _v); }
       }
       // Catalog is derived from Meals — clear items/cats so sync rebuilds them fresh
       setCatalogItems([]);
@@ -16768,21 +16772,25 @@ export default function App() {
       if (cloud["cb_meals"] !== undefined && cloud["cb_meals"] !== null) {
         const catCats = cloud["cb_catalog_cats"] || catalogCategories;
         const clean = migrateMealCategories(stripBase64Photos(cloud["cb_meals"]), catCats);
-        setMeals(clean); ls_set("cb_meals", clean);
+        const local_meals = ls_get("cb_meals", []);
+        if (clean.length > 0 || local_meals.length === 0) { setMeals(clean); ls_set("cb_meals", clean); }
       }
       if (cloud["cb_batches"] !== undefined && cloud["cb_batches"] !== null) {
         const _v = cloud["cb_batches"];
-        setBatches(_v); ls_set("cb_batches", _v);
+        const local_v = ls_get("cb_batches", []);
+        if (_v.length > 0 || local_v.length === 0) { setBatches(_v); ls_set("cb_batches", _v); }
       }
       if (cloud["cb_overheads"] !== undefined && cloud["cb_overheads"] !== null) {
         const _v = cloud["cb_overheads"];
-        setOverheads(_v); ls_set("cb_overheads", _v);
+        const local_v = ls_get("cb_overheads", []);
+        if (_v.length > 0 || local_v.length === 0) { setOverheads(_v); ls_set("cb_overheads", _v); }
       }
       apply("cb_logo",         setLogo);
       apply("cb_biz",          setBiz);
       if (cloud["cb_customers"] !== undefined && cloud["cb_customers"] !== null) {
         const _v = cloud["cb_customers"];
-        setCustomers(_v); ls_set("cb_customers", _v);
+        const local_v = ls_get("cb_customers", []);
+        if (_v.length > 0 || local_v.length === 0) { setCustomers(_v); ls_set("cb_customers", _v); }
       }
       apply("cb_vendors",      setVendors);
       apply("cb_social",       setSocialLinks);
