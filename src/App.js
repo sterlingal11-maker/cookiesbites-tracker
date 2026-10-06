@@ -12333,6 +12333,7 @@ function CustomersPage({ customers, setCustomers, invoices, setInvoices, events,
     setInvoices(u);
   };
   const stColor = { Paid: T.success, "Partially Paid": T.warning, Unpaid: T.danger, Cancelled: T.textDim };
+  const [arSort, setArSort] = useState("desc"); // "desc" = largest first, "asc" = smallest first
 
   const filtered = customers.filter(c => {
     if (filterClass !== "All" && c.classification !== filterClass) return false;
@@ -12698,6 +12699,16 @@ ${totalAR > 0 ? `<div style="margin-top:24px;padding:16px;border:2px solid #dc26
           const paid = sale.partialPaid !== "" && sale.partialPaid != null ? Number(sale.partialPaid) : tot;
           return s + (tot - paid);
         }, 0);
+        const sortMult = arSort === "desc" ? -1 : 1;
+        const sortedArSales = [...arSales].sort((a, b) => {
+          const balA = orderTotal(a) - (a.partialPaid !== "" && a.partialPaid != null ? Number(a.partialPaid) : orderTotal(a));
+          const balB = orderTotal(b) - (b.partialPaid !== "" && b.partialPaid != null ? Number(b.partialPaid) : orderTotal(b));
+          return sortMult * (balB - balA);
+        });
+        const sortedInvoices = [...invoices.filter(i => i.status !== "Paid" && i.status !== "Cancelled")]
+          .sort((a, b) => sortMult * ((b.total - b.paid) - (a.total - a.paid)));
+        const sortIcon = arSort === "desc" ? " ↓" : " ↑";
+        const balThStyle = { ...S.th, cursor: "pointer", userSelect: "none", color: T.accent };
         return (
           <div>
             <div style={S.grid(3)}>
@@ -12706,14 +12717,18 @@ ${totalAR > 0 ? `<div style="margin-top:24px;padding:16px;border:2px solid #dc26
               <KpiCard label="Total Outstanding" value={fmt(totalRestAR + totalAR)} color={T.danger} icon="⚠️" />
             </div>
             <div style={S.sectionTitle}>Restaurant — Partial Payments Outstanding</div>
-            {arSales.length === 0 ? (
+            {sortedArSales.length === 0 ? (
               <div style={{ color: T.textDim, padding: 16 }}>No outstanding restaurant balances.</div>
             ) : (
               <div className="tbl-wrap">
                 <table style={S.table}>
-                  <thead><tr>{["Date","Client","Meal","Plates","Order Total","Paid","Balance","Notes"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <thead><tr>
+                    {["Date","Client","Meal","Plates","Order Total","Paid"].map(h => <th key={h} style={S.th}>{h}</th>)}
+                    <th style={balThStyle} onClick={() => setArSort(s => s === "desc" ? "asc" : "desc")}>Balance{sortIcon}</th>
+                    <th style={S.th}>Notes</th>
+                  </tr></thead>
                   <tbody>
-                    {arSales.map(s => {
+                    {sortedArSales.map(s => {
                       const tot = orderTotal(s);
                       const paid = s.partialPaid !== "" && s.partialPaid != null ? Number(s.partialPaid) : tot;
                       const bal = tot - paid;
@@ -12735,14 +12750,18 @@ ${totalAR > 0 ? `<div style="margin-top:24px;padding:16px;border:2px solid #dc26
               </div>
             )}
             <div style={{ ...S.sectionTitle, marginTop: 18 }}>Catering — Unpaid / Partial Invoices</div>
-            {invoices.filter(i => i.status !== "Paid" && i.status !== "Cancelled").length === 0 ? (
+            {sortedInvoices.length === 0 ? (
               <div style={{ color: T.textDim, padding: 16 }}>No outstanding catering invoices.</div>
             ) : (
               <div className="tbl-wrap">
                 <table style={S.table}>
-                  <thead><tr>{["Invoice #","Client","Due","Total","Paid","Balance","Status"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <thead><tr>
+                    {["Invoice #","Client","Due","Total","Paid"].map(h => <th key={h} style={S.th}>{h}</th>)}
+                    <th style={balThStyle} onClick={() => setArSort(s => s === "desc" ? "asc" : "desc")}>Balance{sortIcon}</th>
+                    <th style={S.th}>Status</th>
+                  </tr></thead>
                   <tbody>
-                    {invoices.filter(i => i.status !== "Paid" && i.status !== "Cancelled").map(inv => {
+                    {sortedInvoices.map(inv => {
                       const bal = inv.total - inv.paid;
                       return (
                         <tr key={inv.id}>
