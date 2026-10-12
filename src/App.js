@@ -1783,6 +1783,29 @@ const splitOverheads = (overheads) => {
     totalLiabPaid,
   };
 };
+// ── Prepaid expense recognition helper ──────────────────────────────
+// Returns the total XAF amount of a prepaid schedule recognized within [fromDate, toDate].
+// Each calendar month that overlaps the amortization window counts as one slice.
+const calcPrepaidRecognized = (prepaidItems, fromDate, toDate) => {
+  if (!Array.isArray(prepaidItems) || !fromDate || !toDate) return 0;
+  let total = 0;
+  prepaidItems.forEach(item => {
+    if (!item.startDate || !item.months || !item.totalPaid) return;
+    const monthlyAmt = Number(item.totalPaid) / Number(item.months);
+    // Generate all month-start dates in the amortization window
+    const start = new Date(item.startDate + "-01");
+    for (let m = 0; m < Number(item.months); m++) {
+      const sliceDate = new Date(start.getFullYear(), start.getMonth() + m, 1);
+      const sliceEnd = new Date(sliceDate.getFullYear(), sliceDate.getMonth() + 1, 0); // last day of month
+      // Does this month overlap the report period?
+      if (sliceDate <= toDate && sliceEnd >= fromDate) {
+        total += monthlyAmt;
+      }
+    }
+  });
+  return total;
+};
+
 const daysOD = (due) => {
   const now = new Date(); now.setHours(0, 0, 0, 0);
   const d = Math.floor((now - new Date(due)) / 86400000);
@@ -4211,6 +4234,7 @@ function Dashboard({
   inventory,
   meals,
   invPurchases,
+  prepaidItems,
 }) {
   const [period, setPeriod] = useState("ytd");
   const [customFrom, setCustomFrom] = useState(`${THIS_YEAR}-01-01`);
@@ -4252,7 +4276,9 @@ function Dashboard({
       ),
     [overheads, range]
   );
-  const totalOverheads = pOverheads.reduce((s, o) => s + Number(o.amount), 0);
+  const ohFromEntries = pOverheads.reduce((s, o) => s + Number(o.amount), 0);
+  const prepaidRecognized = calcPrepaidRecognized(prepaidItems, range[0], range[1]);
+  const totalOverheads = ohFromEntries + prepaidRecognized;
   const netProfit = gp - totalOverheads;
 
   // Cash Received = catering invoices paid + restaurant sales cash received in period
@@ -14222,6 +14248,7 @@ function buildReportData({
   inventory,
   meals,
   invPurchases,
+  prepaidItems,
 }) {
   const p = REPORT_PERIODS.find((r) => r.id === periodId) || REPORT_PERIODS[0];
   const from = new Date(p.from),
@@ -14261,7 +14288,8 @@ function buildReportData({
       ohByCategory[o.category] =
         (ohByCategory[o.category] || 0) + Number(o.amount);
     });
-  const totalOverheads = oh.totalOpex; // only opex reduces profit
+  const prepaidRecognized = calcPrepaidRecognized(prepaidItems || [], from, to);
+  const totalOverheads = oh.totalOpex + prepaidRecognized; // opex entries + prepaid amortization
   const operatingProfit = (isNaN(grossProfit) ? totalRevenue : grossProfit) - totalOverheads;
 
   // AR / Cash
@@ -14310,6 +14338,7 @@ function buildReportData({
     grossProfit: isNaN(grossProfit) ? totalRevenue : grossProfit,
     ohByCategory,
     totalOverheads,
+    prepaidRecognized,
     operatingProfit,
     cashReceived,
     arOutstanding,
@@ -14355,6 +14384,10 @@ function ReportsPage({
   customers,
   batches,
   invPurchases,
+  prepaidItems,
+  setPrepaidItems,
+  deposits,
+  setDeposits,
 }) {
   const [reportType, setReportType] = useState("pl");
   const [periodId, setPeriodId] = useState(() => {
@@ -14380,6 +14413,7 @@ function ReportsPage({
         inventory: inventory || [],
         meals: meals || [],
         invPurchases: invPurchases || [],
+        prepaidItems: prepaidItems || [],
       }),
     [
       periodId,
@@ -14391,6 +14425,7 @@ function ReportsPage({
       inventory,
       meals,
       invPurchases,
+      prepaidItems,
     ]
   );
 
@@ -14476,6 +14511,7 @@ function ReportsPage({
             ["catering", "🎉 Catering"],
             ["customers", "👥 Customers"],
             ["expenses", "📋 Expenses"],
+            ["prepaid", "🏠 Prepaid & Deposits"],
           ].map(([t, label]) => (
             <button
               key={t}
@@ -14624,7 +14660,10 @@ function ReportsPage({
                 .map(([cat, amt]) => (
                   <Row key={cat} label={cat} value={fmt(amt)} indent />
                 ))}
-              {Object.keys(d.ohByCategory).length === 0 && (
+              {d.prepaidRecognized > 0 && (
+                <Row label="Rent / Prepaid Amortization" value={fmt(d.prepaidRecognized)} indent />
+              )}
+              {Object.keys(d.ohByCategory).length === 0 && d.prepaidRecognized === 0 && (
                 <div
                   style={{
                     fontSize: 11,
@@ -16196,6 +16235,271 @@ function ReportsPage({
         );
       })()}
 
+      {reportType === "prepaid" && (() => {
+        const TODAY = TODAY_ISO;
+        const EMPTY_PREPAID = { name: "", category: "Rent", startDate: TODAY.slice(0,7), months: "12", totalPaid: "", paymentDate: TODAY, notes: "" };
+        const EMPTY_DEPOSIT = { name: "", amount: "", paidDate: TODAY, landlord: "", notes: "", status: "held" };
+        // Local state inside IIFE won't persist — need component. Wrap in a sub-component.
+        return <PrepaidDepositsPanel prepaidItems={prepaidItems} setPrepaidItems={setPrepaidItems} deposits={deposits} setDeposits={setDeposits} />;
+      })()}
+
+    </div>
+  );
+}
+
+function PrepaidDepositsPanel({ prepaidItems, setPrepaidItems, deposits, setDeposits }) {
+  const TODAY = TODAY_ISO;
+  const EMPTY_PREPAID = { name: "", category: "Rent", startDate: TODAY.slice(0,7), months: "12", totalPaid: "", paymentDate: TODAY, notes: "" };
+  const EMPTY_DEPOSIT = { name: "", amount: "", paidDate: TODAY, party: "", notes: "", status: "held" };
+  const [showPrepaidForm, setShowPrepaidForm] = useState(false);
+  const [prepaidForm, setPrepaidForm] = useState(EMPTY_PREPAID);
+  const [editPrepaidId, setEditPrepaidId] = useState(null);
+  const [showDepositForm, setShowDepositForm] = useState(false);
+  const [depositForm, setDepositForm] = useState(EMPTY_DEPOSIT);
+  const [editDepositId, setEditDepositId] = useState(null);
+
+  // Compute recognition status for each prepaid
+  const NOW_YEAR = new Date().getFullYear();
+  const NOW_MONTH = new Date().getMonth() + 1;
+
+  const enriched = (prepaidItems || []).map(item => {
+    const monthly = Number(item.totalPaid) / Number(item.months);
+    const startY = Number(item.startDate.slice(0,4));
+    const startM = Number(item.startDate.slice(5,7));
+    // How many months have elapsed (including current)?
+    const elapsed = (NOW_YEAR - startY) * 12 + (NOW_MONTH - startM) + 1;
+    const recognized = Math.min(Math.max(elapsed, 0), Number(item.months)) * monthly;
+    const remaining = Number(item.totalPaid) - recognized;
+    const endYear = startY + Math.floor((startM - 1 + Number(item.months)) / 12);
+    const endMonth = ((startM - 1 + Number(item.months)) % 12) + 1;
+    const endDate = `${endYear}-${String(endMonth).padStart(2,"0")}`;
+    return { ...item, monthly, recognized, remaining, endDate };
+  });
+
+  const totalPrepaidAsset = enriched.reduce((s, i) => s + i.remaining, 0);
+  const totalDeposits = (deposits || []).filter(d => d.status === "held").reduce((s, d) => s + Number(d.amount || 0), 0);
+
+  const savePrepaid = () => {
+    if (!prepaidForm.name || !prepaidForm.totalPaid || !prepaidForm.months || !prepaidForm.startDate) return;
+    if (editPrepaidId) {
+      setPrepaidItems(prev => prev.map(x => x.id === editPrepaidId ? { ...prepaidForm, id: editPrepaidId } : x));
+    } else {
+      setPrepaidItems(prev => [{ ...prepaidForm, id: Date.now() }, ...prev]);
+    }
+    setPrepaidForm(EMPTY_PREPAID); setEditPrepaidId(null); setShowPrepaidForm(false);
+  };
+
+  const saveDeposit = () => {
+    if (!depositForm.name || !depositForm.amount) return;
+    if (editDepositId) {
+      setDeposits(prev => prev.map(x => x.id === editDepositId ? { ...depositForm, id: editDepositId } : x));
+    } else {
+      setDeposits(prev => [{ ...depositForm, id: Date.now() }, ...prev]);
+    }
+    setDepositForm(EMPTY_DEPOSIT); setEditDepositId(null); setShowDepositForm(false);
+  };
+
+  return (
+    <div>
+      {/* Summary bar */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
+        {[
+          ["Prepaid Asset Balance", fmt(totalPrepaidAsset), "Total unrecognized prepaid costs", T.accent],
+          ["Security Deposits Held", fmt(totalDeposits), "Refundable — not an expense", T.info],
+          ["Active Schedules", String(enriched.length), `${(deposits||[]).length} deposit(s)`, T.text],
+        ].map(([label, val, sub, color]) => (
+          <div key={label} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 4 }}>{label}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color }}>{val}</div>
+            <div style={{ fontSize: 10, color: T.textDim, marginTop: 2 }}>{sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── PREPAID EXPENSES ── */}
+      <div style={{ ...S.sectionTitle, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>🗓️ Prepaid Expenses</span>
+        <button style={{ ...S.btn("primary"), fontSize: 11 }} onClick={() => { setPrepaidForm(EMPTY_PREPAID); setEditPrepaidId(null); setShowPrepaidForm(true); }}>+ Add</button>
+      </div>
+      <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}>
+        The lump-sum you paid is spread monthly across the P&amp;L. Each month's slice reduces recognized balance automatically.
+      </div>
+
+      {showPrepaidForm && (
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>{editPrepaidId ? "Edit Prepaid" : "New Prepaid Expense"}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={S.label}>Description *</label>
+              <input style={S.input} placeholder="e.g. Annual Rent 2026" value={prepaidForm.name} onChange={e => setPrepaidForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.label}>Category</label>
+              <select style={S.select} value={prepaidForm.category} onChange={e => setPrepaidForm(f => ({ ...f, category: e.target.value }))}>
+                {["Rent","Insurance","License / Permit","Software / Subscription","Other"].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={S.label}>Total Amount Paid (XAF) *</label>
+              <input type="number" style={S.input} placeholder="e.g. 1200000" value={prepaidForm.totalPaid} onChange={e => setPrepaidForm(f => ({ ...f, totalPaid: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.label}>Amortization Months *</label>
+              <input type="number" style={S.input} placeholder="12" min="1" max="60" value={prepaidForm.months} onChange={e => setPrepaidForm(f => ({ ...f, months: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.label}>First Recognition Month *</label>
+              <input type="month" style={S.input} value={prepaidForm.startDate} onChange={e => setPrepaidForm(f => ({ ...f, startDate: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.label}>Payment Date</label>
+              <input type="date" style={S.input} value={prepaidForm.paymentDate} onChange={e => setPrepaidForm(f => ({ ...f, paymentDate: e.target.value }))} />
+            </div>
+            <div style={{ gridColumn: "1/-1" }}>
+              <label style={S.label}>Notes</label>
+              <input style={S.input} placeholder="Optional" value={prepaidForm.notes} onChange={e => setPrepaidForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+          </div>
+          {prepaidForm.totalPaid && prepaidForm.months && (
+            <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.7 }}>Monthly Recognition</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: T.accent }}>{fmt(Number(prepaidForm.totalPaid) / Number(prepaidForm.months))}</div>
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, textAlign: "right" }}>
+                {fmt(Number(prepaidForm.totalPaid))} ÷ {prepaidForm.months} months
+              </div>
+            </div>
+          )}
+          <div style={{ ...S.row, marginTop: 12, gap: 8 }}>
+            <button style={S.btn("primary")} onClick={savePrepaid}>Save</button>
+            <button style={S.btn("ghost")} onClick={() => { setShowPrepaidForm(false); setEditPrepaidId(null); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {enriched.length === 0 && !showPrepaidForm ? (
+        <div style={{ textAlign: "center", padding: 30, color: T.textMuted, fontSize: 13 }}>No prepaid schedules yet.</div>
+      ) : (
+        <div style={{ overflowX: "auto", marginBottom: 20 }}>
+          <table style={S.table}>
+            <thead>
+              <tr>{["Description","Category","Paid","Monthly","Start","End","Recognized","Remaining",""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {enriched.map(item => {
+                const pct = Number(item.totalPaid) > 0 ? (item.recognized / Number(item.totalPaid)) * 100 : 0;
+                return (
+                  <tr key={item.id}>
+                    <td style={{ ...S.td, fontWeight: 600 }}>{item.name}</td>
+                    <td style={S.td}>{item.category}</td>
+                    <td style={S.td}>{fmt(Number(item.totalPaid))}</td>
+                    <td style={{ ...S.td, color: T.accent, fontWeight: 700 }}>{fmt(item.monthly)}</td>
+                    <td style={S.td}>{item.startDate}</td>
+                    <td style={S.td}>{item.endDate}</td>
+                    <td style={S.td}>
+                      <div>{fmt(item.recognized)}</div>
+                      <div style={{ marginTop: 3, background: T.border, borderRadius: 3, height: 4, width: 80 }}>
+                        <div style={{ background: T.accent, borderRadius: 3, height: 4, width: `${Math.min(pct,100).toFixed(0)}%` }} />
+                      </div>
+                    </td>
+                    <td style={{ ...S.td, fontWeight: 700, color: item.remaining > 0 ? T.warning : T.textDim }}>{fmt(item.remaining)}</td>
+                    <td style={S.td}>
+                      <button style={{ background: "none", border: "none", color: T.accent, cursor: "pointer", fontSize: 11, marginRight: 6 }}
+                        onClick={() => { setPrepaidForm({ name: item.name, category: item.category, startDate: item.startDate, months: String(item.months), totalPaid: String(item.totalPaid), paymentDate: item.paymentDate || TODAY, notes: item.notes || "" }); setEditPrepaidId(item.id); setShowPrepaidForm(true); }}>✏️</button>
+                      <button style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 11 }}
+                        onClick={() => { if (window.confirm("Delete this prepaid schedule?")) setPrepaidItems(prev => prev.filter(x => x.id !== item.id)); }}>✕</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── SECURITY DEPOSITS ── */}
+      <div style={{ ...S.sectionTitle, marginBottom: 8, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>🔐 Security Deposits (Caution)</span>
+        <button style={{ ...S.btn("primary"), fontSize: 11 }} onClick={() => { setDepositForm(EMPTY_DEPOSIT); setEditDepositId(null); setShowDepositForm(true); }}>+ Add</button>
+      </div>
+      <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}>
+        Refundable deposits — tracked as an asset, never charged to P&amp;L unless forfeited.
+      </div>
+
+      {showDepositForm && (
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>{editDepositId ? "Edit Deposit" : "New Security Deposit"}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={S.label}>Description *</label>
+              <input style={S.input} placeholder="e.g. Shop caution — Marché Central" value={depositForm.name} onChange={e => setDepositForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.label}>Amount (XAF) *</label>
+              <input type="number" style={S.input} placeholder="e.g. 500000" value={depositForm.amount} onChange={e => setDepositForm(f => ({ ...f, amount: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.label}>Paid To (Landlord / Party)</label>
+              <input style={S.input} placeholder="e.g. M. Nkeng Joseph" value={depositForm.party} onChange={e => setDepositForm(f => ({ ...f, party: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.label}>Date Paid</label>
+              <input type="date" style={S.input} value={depositForm.paidDate} onChange={e => setDepositForm(f => ({ ...f, paidDate: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.label}>Status</label>
+              <select style={S.select} value={depositForm.status} onChange={e => setDepositForm(f => ({ ...f, status: e.target.value }))}>
+                <option value="held">Held (refundable)</option>
+                <option value="returned">Returned</option>
+                <option value="forfeited">Forfeited (write off to expenses)</option>
+              </select>
+            </div>
+            <div>
+              <label style={S.label}>Notes</label>
+              <input style={S.input} placeholder="Optional" value={depositForm.notes} onChange={e => setDepositForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+          </div>
+          <div style={{ ...S.row, marginTop: 12, gap: 8 }}>
+            <button style={S.btn("primary")} onClick={saveDeposit}>Save</button>
+            <button style={S.btn("ghost")} onClick={() => { setShowDepositForm(false); setEditDepositId(null); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {(!deposits || deposits.length === 0) && !showDepositForm ? (
+        <div style={{ textAlign: "center", padding: 30, color: T.textMuted, fontSize: 13 }}>No deposits recorded yet.</div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={S.table}>
+            <thead>
+              <tr>{["Description","Amount","Paid To","Date Paid","Status","Notes",""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {(deposits || []).map(dep => (
+                <tr key={dep.id}>
+                  <td style={{ ...S.td, fontWeight: 600 }}>{dep.name}</td>
+                  <td style={{ ...S.td, fontWeight: 700, color: T.accent }}>{fmt(Number(dep.amount || 0))}</td>
+                  <td style={S.td}>{dep.party || "—"}</td>
+                  <td style={S.td}>{dep.paidDate || "—"}</td>
+                  <td style={S.td}>
+                    <span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 700, background: dep.status === "held" ? T.info + "22" : dep.status === "returned" ? T.success + "22" : T.danger + "22", color: dep.status === "held" ? T.info : dep.status === "returned" ? T.success : T.danger }}>
+                      {dep.status === "held" ? "Held" : dep.status === "returned" ? "Returned" : "Forfeited"}
+                    </span>
+                  </td>
+                  <td style={{ ...S.td, color: T.textMuted, fontSize: 11 }}>{dep.notes || "—"}</td>
+                  <td style={S.td}>
+                    <button style={{ background: "none", border: "none", color: T.accent, cursor: "pointer", fontSize: 11, marginRight: 6 }}
+                      onClick={() => { setDepositForm({ name: dep.name, amount: String(dep.amount), party: dep.party || "", paidDate: dep.paidDate || TODAY, status: dep.status || "held", notes: dep.notes || "" }); setEditDepositId(dep.id); setShowDepositForm(true); }}>✏️</button>
+                    <button style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 11 }}
+                      onClick={() => { if (window.confirm("Delete this deposit record?")) setDeposits(prev => prev.filter(x => x.id !== dep.id)); }}>✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -16919,6 +17223,8 @@ export default function App() {
   const [catalogMeta, setCatalogMeta] = useState(() => ls_get("cb_catalog_meta", {}));
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
   const [invPurchases, setInvPurchases] = useState(() => ls_get("cb_inv_purchases", []));
+  const [prepaidItems, setPrepaidItems] = useState(() => ls_get("cb_prepaid_items", []));
+  const [deposits, setDeposits] = useState(() => ls_get("cb_deposits", []));
   const [meals, setMeals] = useState(() => {
     const raw = ls_get("cb_meals", INIT_MEALS);
     return Array.isArray(raw) ? raw.map(m => m?.photo?.startsWith("data:") ? { ...m, photo: null } : m) : raw;
@@ -16942,6 +17248,7 @@ export default function App() {
     "cb_catalog","cb_catalog_cats","cb_catalog_meta","cb_inventory","cb_meals",
     "cb_batches","cb_overheads","cb_logo","cb_biz",
     "cb_customers","cb_vendors","cb_social","cb_inv_purchases",
+    "cb_prepaid_items","cb_deposits",
   ];
 
   // Strip base64 photo blobs from items — replace with null so they
@@ -17032,6 +17339,16 @@ export default function App() {
         const local_v = ls_get("cb_inv_purchases", []);
         if (_v.length > 0 || local_v.length === 0) { setInvPurchases(_v); ls_set("cb_inv_purchases", _v); }
       }
+      if (cloud["cb_prepaid_items"] !== undefined && cloud["cb_prepaid_items"] !== null) {
+        const _v = cloud["cb_prepaid_items"];
+        const local_v = ls_get("cb_prepaid_items", []);
+        if (_v.length > 0 || local_v.length === 0) { setPrepaidItems(_v); ls_set("cb_prepaid_items", _v); }
+      }
+      if (cloud["cb_deposits"] !== undefined && cloud["cb_deposits"] !== null) {
+        const _v = cloud["cb_deposits"];
+        const local_v = ls_get("cb_deposits", []);
+        if (_v.length > 0 || local_v.length === 0) { setDeposits(_v); ls_set("cb_deposits", _v); }
+      }
       if (cloud["cb_meals"] !== undefined && cloud["cb_meals"] !== null) {
         const catCats = cloud["cb_catalog_cats"] || catalogCategories;
         const clean = migrateMealCategories(stripBase64Photos(cloud["cb_meals"]), catCats);
@@ -17091,6 +17408,8 @@ export default function App() {
   useEffect(() => { if (cloudLoaded) syncKey("cb_batches",      batches);      }, [batches,      cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_overheads",    overheads);    }, [overheads,    cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_inv_purchases", invPurchases); }, [invPurchases, cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_prepaid_items", prepaidItems); }, [prepaidItems, cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_deposits",      deposits);     }, [deposits,      cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_logo",         logo,    2000);}, [logo,         cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_biz",          biz);          }, [biz,          cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_customers",    customers);    }, [customers,    cloudLoaded, syncKey]);
@@ -17447,6 +17766,7 @@ export default function App() {
             inventory={inventory}
             meals={meals}
             invPurchases={invPurchases}
+            prepaidItems={prepaidItems}
           />
         )}
         {tab === "catering" && (
@@ -17524,6 +17844,10 @@ export default function App() {
             customers={customers}
             batches={batches}
             invPurchases={invPurchases}
+            prepaidItems={prepaidItems}
+            setPrepaidItems={setPrepaidItems}
+            deposits={deposits}
+            setDeposits={setDeposits}
           />
         )}
         {tab === "studio" && isOwner && (
