@@ -8941,12 +8941,14 @@ function RestaurantPage({
   const [doc, setDoc] = useState(null);
   // Restock modal state
   const [restockItem, setRestockItem] = useState(null); // inventory item being restocked
-  const EMPTY_RESTOCK = { date: TODAY_ISO, qty: "", costPerUnit: "", supplier: "", note: "" };
+  const EMPTY_RESTOCK = { date: TODAY_ISO, qty: "", costPerUnit: "", supplier: "", note: "", receiptUrl: "", receiptUploading: false };
   const [restockForm, setRestockForm] = useState(EMPTY_RESTOCK);
   // Purchase log filter
   const [purchaseFilter, setPurchaseFilter] = useState("week"); // "day" | "week" | "month" | "all"
   const [purchaseFrom, setPurchaseFrom] = useState(TODAY_ISO);
   const [purchaseTo, setPurchaseTo] = useState(TODAY_ISO);
+  const [viewReceiptUrl, setViewReceiptUrl] = useState(null); // lightbox
+  const restockFileRef = useRef(null);
   const EMPTY = {
     date: TODAY_ISO,
     items: [],           // [{ meal, mealId, _catalogItemId, plates, pricePerPlate }]
@@ -11964,12 +11966,26 @@ function RestaurantPage({
         </>
       )}
 
+      {/* ── RECEIPT LIGHTBOX ── */}
+      {viewReceiptUrl && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => setViewReceiptUrl(null)}>
+          <div style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }} onClick={e => e.stopPropagation()}>
+            <img src={viewReceiptUrl} alt="Receipt" style={{ maxWidth: "80vw", maxHeight: "80vh", borderRadius: 8, objectFit: "contain", background: "#fff" }} />
+            <button style={{ position: "absolute", top: -12, right: -12, background: T.danger, border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14 }}
+              onClick={() => setViewReceiptUrl(null)}>✕</button>
+            <a href={viewReceiptUrl} target="_blank" rel="noopener noreferrer"
+              style={{ display: "block", marginTop: 8, textAlign: "center", fontSize: 11, color: T.accent }}>Open full size ↗</a>
+          </div>
+        </div>
+      )}
+
       {/* ── RESTOCK MODAL ── */}
       {restockItem && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ ...S.card, width: "100%", maxWidth: 420, padding: 20 }}>
-            <div style={{ ...S.sectionTitle, marginBottom: 14 }}>🛒 Restock: {restockItem.name}</div>
-            <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 12 }}>Current stock: {restockItem.stock} {restockItem.unit}</div>
+          <div style={{ ...S.card, width: "100%", maxWidth: 460, padding: 20 }}>
+            <div style={{ ...S.sectionTitle, marginBottom: 6 }}>🛒 Restock: {restockItem.name}</div>
+            <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 14 }}>Current stock: {restockItem.stock} {restockItem.unit}</div>
             <div style={S.grid(2)}>
               <div>
                 <label style={S.label}>Date *</label>
@@ -11992,22 +12008,68 @@ function RestaurantPage({
               <label style={S.label}>Note</label>
               <input style={S.input} placeholder="Optional note…" value={restockForm.note} onChange={e => setRestockForm(f => ({ ...f, note: e.target.value }))} />
             </div>
-            {restockForm.qty && restockForm.costPerUnit && (
-              <div style={{ fontSize: 12, fontWeight: 700, color: T.accent, marginTop: 8 }}>
-                Total cost: {fmt(Number(restockForm.qty) * Number(restockForm.costPerUnit))}
+            {/* Receipt upload */}
+            <div style={{ marginTop: 10 }}>
+              <label style={S.label}>Receipt / Invoice (photo or PDF)</label>
+              <input ref={restockFileRef} type="file" accept="image/*,application/pdf" style={{ display: "none" }}
+                onChange={async e => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  setRestockForm(f => ({ ...f, receiptUploading: true }));
+                  try {
+                    let url;
+                    if (isSupabaseConfigured()) {
+                      url = await uploadFile(file, "receipts");
+                    } else {
+                      url = await readAsDataURL(file);
+                    }
+                    setRestockForm(f => ({ ...f, receiptUrl: url || "", receiptUploading: false }));
+                  } catch {
+                    setRestockForm(f => ({ ...f, receiptUploading: false }));
+                  }
+                  e.target.value = "";
+                }}
+              />
+              {restockForm.receiptUploading ? (
+                <div style={{ fontSize: 11, color: T.textMuted, padding: "6px 0" }}>Uploading…</div>
+              ) : restockForm.receiptUrl ? (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
+                  <img src={restockForm.receiptUrl} alt="Receipt preview" style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 4, border: `1px solid ${T.border}`, cursor: "pointer" }}
+                    onClick={() => setViewReceiptUrl(restockForm.receiptUrl)} />
+                  <span style={{ fontSize: 11, color: T.success }}>✓ Receipt attached</span>
+                  <button style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }} onClick={() => setRestockForm(f => ({ ...f, receiptUrl: "" }))}>Remove</button>
+                </div>
+              ) : (
+                <button style={{ ...S.btn("ghost"), fontSize: 11, marginTop: 4 }} onClick={() => restockFileRef.current && restockFileRef.current.click()}>
+                  📎 Attach Receipt
+                </button>
+              )}
+            </div>
+            {/* Total cost summary bar */}
+            <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.8 }}>Total Cost</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: restockForm.qty && restockForm.costPerUnit ? T.accent : T.textDim }}>
+                  {restockForm.qty && restockForm.costPerUnit
+                    ? fmt(Number(restockForm.qty) * Number(restockForm.costPerUnit))
+                    : "—"}
+                </div>
               </div>
-            )}
+              {restockForm.qty && restockForm.costPerUnit && (
+                <div style={{ fontSize: 11, color: T.textMuted, textAlign: "right" }}>
+                  {restockForm.qty} {restockItem.unit} × {fmt(Number(restockForm.costPerUnit))}
+                </div>
+              )}
+            </div>
             <div style={{ ...S.row, marginTop: 14, justifyContent: "flex-end" }}>
               <button style={S.btn("ghost")} onClick={() => { setRestockItem(null); setRestockForm(EMPTY_RESTOCK); }}>Cancel</button>
-              <button style={S.btn("primary")} onClick={() => {
+              <button style={S.btn("primary")} disabled={restockForm.receiptUploading} onClick={() => {
                 const qty = Number(restockForm.qty);
                 const cpu = Number(restockForm.costPerUnit);
                 if (!qty || qty <= 0 || !restockForm.date) return;
-                // Update inventory stock and costPerUnit
                 setInventory(prev => prev.map(it => it.id === restockItem.id
                   ? { ...it, stock: it.stock + qty, costPerUnit: cpu > 0 ? cpu : it.costPerUnit }
                   : it));
-                // Log the purchase
                 const purchase = {
                   id: Date.now(),
                   date: restockForm.date,
@@ -12019,6 +12081,7 @@ function RestaurantPage({
                   totalCost: qty * cpu,
                   supplier: restockForm.supplier.trim(),
                   note: restockForm.note.trim(),
+                  receiptUrl: restockForm.receiptUrl || "",
                 };
                 setInvPurchases(prev => [purchase, ...prev]);
                 setRestockItem(null);
@@ -12087,7 +12150,7 @@ function RestaurantPage({
                     <table style={S.table}>
                       <thead>
                         <tr>
-                          {["Date","Item","Qty","Cost/Unit","Total","Supplier","Note",""].map(h => (
+                          {["Date","Item","Qty","Cost/Unit","Total","Supplier","Note","Receipt",""].map(h => (
                             <th key={h} style={S.th}>{h}</th>
                           ))}
                         </tr>
@@ -12102,6 +12165,25 @@ function RestaurantPage({
                             <td style={{ ...S.td, fontWeight: 700, color: T.accent }}>{fmt(p.totalCost)}</td>
                             <td style={{ ...S.td, color: T.textMuted }}>{p.supplier || "—"}</td>
                             <td style={{ ...S.td, color: T.textMuted, fontSize: 11 }}>{p.note || "—"}</td>
+                            <td style={{ ...S.td, textAlign: "center" }}>
+                              {p.receiptUrl ? (
+                                p.receiptUrl.startsWith("data:application/pdf") || p.receiptUrl.endsWith(".pdf") ? (
+                                  <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer"
+                                    style={{ fontSize: 18, textDecoration: "none", cursor: "pointer" }}
+                                    title="View PDF receipt">🧾</a>
+                                ) : (
+                                  <img
+                                    src={p.receiptUrl}
+                                    alt="Receipt"
+                                    style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, border: `1px solid ${T.border}`, cursor: "pointer" }}
+                                    onClick={() => setViewReceiptUrl(p.receiptUrl)}
+                                    title="Click to enlarge"
+                                  />
+                                )
+                              ) : (
+                                <span style={{ fontSize: 11, color: T.textDim }}>—</span>
+                              )}
+                            </td>
                             <td style={S.td}>
                               <button style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 11 }}
                                 onClick={() => { if (window.confirm("Delete this purchase record?")) setInvPurchases(prev => prev.filter(x => x.id !== p.id)); }}
