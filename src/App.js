@@ -8974,6 +8974,7 @@ function RestaurantPage({
   const [purchaseFrom, setPurchaseFrom] = useState(TODAY_ISO);
   const [purchaseTo, setPurchaseTo] = useState(TODAY_ISO);
   const [viewReceiptUrl, setViewReceiptUrl] = useState(null); // lightbox
+  const [viewPurchase, setViewPurchase] = useState(null); // purchase detail modal
   const restockFileRef = useRef(null);
   const EMPTY = {
     date: TODAY_ISO,
@@ -12006,6 +12007,56 @@ function RestaurantPage({
         </div>
       )}
 
+      {/* ── PURCHASE DETAIL MODAL ── */}
+      {viewPurchase && (() => {
+        const p = viewPurchase;
+        const totalCost = (Number(p.qty) || 0) * (Number(p.costPerUnit) || 0);
+        const Field = ({ label, value }) => (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{label}</div>
+            <div style={{ fontSize: 14, color: T.text, fontWeight: 500 }}>{value || <span style={{ color: T.textDim }}>—</span>}</div>
+          </div>
+        );
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={() => setViewPurchase(null)}>
+            <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: 20, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: T.text }}>🛍️ Purchase Detail</div>
+                <button style={{ background: "none", border: "none", color: T.textMuted, cursor: "pointer", fontSize: 18 }} onClick={() => setViewPurchase(null)}>✕</button>
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: T.accent, marginBottom: 14 }}>{p.itemName}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+                <Field label="Date" value={p.date} />
+                <Field label="Supplier" value={p.supplier} />
+                <Field label="Quantity" value={p.qty ? `${p.qty} ${p.unit || ""}`.trim() : null} />
+                <Field label="Cost / Unit" value={p.costPerUnit ? fmt(p.costPerUnit) : null} />
+                <Field label="Total Cost" value={totalCost > 0 ? fmt(totalCost) : null} />
+                <Field label="Category" value={p.category} />
+              </div>
+              {p.note && <Field label="Note" value={p.note} />}
+              {p.receiptUrl && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Receipt</div>
+                  {p.receiptUrl.startsWith("data:application/pdf") || p.receiptUrl.endsWith(".pdf") ? (
+                    <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 13, color: T.accent }}>🧾 View PDF Receipt ↗</a>
+                  ) : (
+                    <img src={p.receiptUrl} alt="Receipt"
+                      style={{ maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 8, border: `1px solid ${T.border}`, cursor: "pointer" }}
+                      onClick={() => { setViewPurchase(null); setViewReceiptUrl(p.receiptUrl); }} title="Click to enlarge" />
+                  )}
+                </div>
+              )}
+              <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                <button style={{ ...S.btn, background: T.accent, color: "#fff", fontSize: 13 }} onClick={() => setViewPurchase(null)}>Close</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── RESTOCK MODAL ── */}
       {restockItem && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -12183,15 +12234,15 @@ function RestaurantPage({
                       </thead>
                       <tbody>
                         {filtered.map(p => (
-                          <tr key={p.id}>
+                          <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => setViewPurchase(p)}>
                             <td style={S.td}>{p.date}</td>
-                            <td style={{ ...S.td, fontWeight: 600 }}>{p.itemName}</td>
+                            <td style={{ ...S.td, fontWeight: 600, color: T.accent }}>{p.itemName}</td>
                             <td style={S.td}>{p.qty} {p.unit}</td>
                             <td style={S.td}>{fmt(p.costPerUnit)}</td>
                             <td style={{ ...S.td, fontWeight: 700, color: T.accent }}>{fmt(p.totalCost)}</td>
                             <td style={{ ...S.td, color: T.textMuted }}>{p.supplier || "—"}</td>
                             <td style={{ ...S.td, color: T.textMuted, fontSize: 11 }}>{p.note || "—"}</td>
-                            <td style={{ ...S.td, textAlign: "center" }}>
+                            <td style={{ ...S.td, textAlign: "center" }} onClick={e => e.stopPropagation()}>
                               {p.receiptUrl ? (
                                 p.receiptUrl.startsWith("data:application/pdf") || p.receiptUrl.endsWith(".pdf") ? (
                                   <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer"
@@ -12210,7 +12261,9 @@ function RestaurantPage({
                                 <span style={{ fontSize: 11, color: T.textDim }}>—</span>
                               )}
                             </td>
-                            <td style={S.td}>
+                            <td style={S.td} onClick={e => e.stopPropagation()}>
+                              <button style={{ background: "none", border: "none", color: T.textMuted, cursor: "pointer", fontSize: 13, marginRight: 4 }} title="View details"
+                                onClick={() => setViewPurchase(p)}>👁</button>
                               <button style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 11 }}
                                 onClick={() => { if (window.confirm("Delete this purchase record?")) setInvPurchases(prev => prev.filter(x => x.id !== p.id)); }}
                               >✕</button>
@@ -16257,6 +16310,7 @@ function PrepaidDepositsPanel({ prepaidItems, setPrepaidItems, deposits, setDepo
   const [showDepositForm, setShowDepositForm] = useState(false);
   const [depositForm, setDepositForm] = useState(EMPTY_DEPOSIT);
   const [editDepositId, setEditDepositId] = useState(null);
+  const [viewItem, setViewItem] = useState(null); // { type: "prepaid"|"deposit", data: enrichedItem }
 
   // Compute recognition status for each prepaid
   const NOW_YEAR = new Date().getFullYear();
@@ -16390,8 +16444,8 @@ function PrepaidDepositsPanel({ prepaidItems, setPrepaidItems, deposits, setDepo
               {enriched.map(item => {
                 const pct = Number(item.totalPaid) > 0 ? (item.recognized / Number(item.totalPaid)) * 100 : 0;
                 return (
-                  <tr key={item.id}>
-                    <td style={{ ...S.td, fontWeight: 600 }}>{item.name}</td>
+                  <tr key={item.id} style={{ cursor: "pointer" }} onClick={() => setViewItem({ type: "prepaid", data: item })}>
+                    <td style={{ ...S.td, fontWeight: 600, color: T.accent }}>{item.name}</td>
                     <td style={S.td}>{item.category}</td>
                     <td style={S.td}>{fmt(Number(item.totalPaid))}</td>
                     <td style={{ ...S.td, color: T.accent, fontWeight: 700 }}>{fmt(item.monthly)}</td>
@@ -16404,7 +16458,9 @@ function PrepaidDepositsPanel({ prepaidItems, setPrepaidItems, deposits, setDepo
                       </div>
                     </td>
                     <td style={{ ...S.td, fontWeight: 700, color: item.remaining > 0 ? T.warning : T.textDim }}>{fmt(item.remaining)}</td>
-                    <td style={S.td}>
+                    <td style={S.td} onClick={e => e.stopPropagation()}>
+                      <button style={{ background: "none", border: "none", color: T.textMuted, cursor: "pointer", fontSize: 13, marginRight: 4 }} title="View details"
+                        onClick={() => setViewItem({ type: "prepaid", data: item })}>👁</button>
                       <button style={{ background: "none", border: "none", color: T.accent, cursor: "pointer", fontSize: 11, marginRight: 6 }}
                         onClick={() => { setPrepaidForm({ name: item.name, category: item.category, startDate: item.startDate, months: String(item.months), totalPaid: String(item.totalPaid), paymentDate: item.paymentDate || TODAY, notes: item.notes || "" }); setEditPrepaidId(item.id); setShowPrepaidForm(true); }}>✏️</button>
                       <button style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 11 }}
@@ -16477,8 +16533,8 @@ function PrepaidDepositsPanel({ prepaidItems, setPrepaidItems, deposits, setDepo
             </thead>
             <tbody>
               {(deposits || []).map(dep => (
-                <tr key={dep.id}>
-                  <td style={{ ...S.td, fontWeight: 600 }}>{dep.name}</td>
+                <tr key={dep.id} style={{ cursor: "pointer" }} onClick={() => setViewItem({ type: "deposit", data: dep })}>
+                  <td style={{ ...S.td, fontWeight: 600, color: T.accent }}>{dep.name}</td>
                   <td style={{ ...S.td, fontWeight: 700, color: T.accent }}>{fmt(Number(dep.amount || 0))}</td>
                   <td style={S.td}>{dep.party || "—"}</td>
                   <td style={S.td}>{dep.paidDate || "—"}</td>
@@ -16488,7 +16544,9 @@ function PrepaidDepositsPanel({ prepaidItems, setPrepaidItems, deposits, setDepo
                     </span>
                   </td>
                   <td style={{ ...S.td, color: T.textMuted, fontSize: 11 }}>{dep.notes || "—"}</td>
-                  <td style={S.td}>
+                  <td style={S.td} onClick={e => e.stopPropagation()}>
+                    <button style={{ background: "none", border: "none", color: T.textMuted, cursor: "pointer", fontSize: 13, marginRight: 4 }} title="View details"
+                      onClick={() => setViewItem({ type: "deposit", data: dep })}>👁</button>
                     <button style={{ background: "none", border: "none", color: T.accent, cursor: "pointer", fontSize: 11, marginRight: 6 }}
                       onClick={() => { setDepositForm({ name: dep.name, amount: String(dep.amount), party: dep.party || "", paidDate: dep.paidDate || TODAY, status: dep.status || "held", notes: dep.notes || "" }); setEditDepositId(dep.id); setShowDepositForm(true); }}>✏️</button>
                     <button style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 11 }}
@@ -16500,6 +16558,95 @@ function PrepaidDepositsPanel({ prepaidItems, setPrepaidItems, deposits, setDepo
           </table>
         </div>
       )}
+
+      {/* ── VIEW DETAIL MODAL ── */}
+      {viewItem && (() => {
+        const { type, data } = viewItem;
+        const isPrepaid = type === "prepaid";
+        const Field = ({ label, value, accent, large }) => (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 2 }}>{label}</div>
+            <div style={{ fontSize: large ? 18 : 13, fontWeight: large ? 800 : 500, color: accent ? T.accent : T.text }}>{value || "—"}</div>
+          </div>
+        );
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={() => setViewItem(null)}>
+            <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: 20, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>
+                  {isPrepaid ? "🗓️ Prepaid Expense" : "🔐 Security Deposit"}
+                </div>
+                <button style={{ background: "none", border: "none", color: T.textMuted, cursor: "pointer", fontSize: 18, lineHeight: 1 }} onClick={() => setViewItem(null)}>✕</button>
+              </div>
+
+              {isPrepaid ? (
+                <Fragment>
+                  <Field label="Description" value={data.name} large />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4 }}>
+                    <Field label="Category" value={data.category} />
+                    <Field label="Payment Date" value={data.paymentDate} />
+                    <Field label="Total Paid" value={fmt(Number(data.totalPaid))} accent />
+                    <Field label="Monthly Recognition" value={fmt(data.monthly)} accent />
+                    <Field label="Start Month" value={data.startDate} />
+                    <Field label="End Month" value={data.endDate} />
+                    <Field label="Months" value={`${data.months} months`} />
+                    <Field label="Status" value={data.remaining > 0 ? `Active — ${Number(data.months) - Math.round(data.recognized / data.monthly)} mo. left` : "Fully recognized"} />
+                  </div>
+                  <div style={{ background: T.surface, borderRadius: 8, padding: "10px 12px", marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: T.textMuted }}>Recognized so far</span>
+                      <span style={{ fontSize: 12, fontWeight: 700 }}>{fmt(data.recognized)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: T.textMuted }}>Prepaid asset remaining</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: data.remaining > 0 ? T.warning : T.textDim }}>{fmt(data.remaining)}</span>
+                    </div>
+                    <div style={{ background: T.border, borderRadius: 4, height: 6 }}>
+                      <div style={{ background: T.accent, borderRadius: 4, height: 6, width: `${Math.min((data.recognized / Number(data.totalPaid)) * 100, 100).toFixed(0)}%`, transition: "width 0.3s" }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: T.textDim, marginTop: 4, textAlign: "right" }}>
+                      {((data.recognized / Number(data.totalPaid)) * 100).toFixed(0)}% recognized
+                    </div>
+                  </div>
+                  {data.notes && <Field label="Notes" value={data.notes} />}
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <Field label="Description" value={data.name} large />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4 }}>
+                    <Field label="Amount" value={fmt(Number(data.amount || 0))} accent />
+                    <Field label="Date Paid" value={data.paidDate} />
+                    <Field label="Paid To" value={data.party} />
+                    <div>
+                      <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 4 }}>Status</div>
+                      <span style={{ padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, background: data.status === "held" ? T.info + "22" : data.status === "returned" ? T.success + "22" : T.danger + "22", color: data.status === "held" ? T.info : data.status === "returned" ? T.success : T.danger }}>
+                        {data.status === "held" ? "Held (refundable)" : data.status === "returned" ? "Returned" : "Forfeited"}
+                      </span>
+                    </div>
+                  </div>
+                  {data.notes && <Field label="Notes" value={data.notes} />}
+                </Fragment>
+              )}
+
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <button style={{ ...S.btn("primary"), flex: 1 }} onClick={() => {
+                  setViewItem(null);
+                  if (isPrepaid) {
+                    setPrepaidForm({ name: data.name, category: data.category, startDate: data.startDate, months: String(data.months), totalPaid: String(data.totalPaid), paymentDate: data.paymentDate || TODAY, notes: data.notes || "" });
+                    setEditPrepaidId(data.id); setShowPrepaidForm(true);
+                  } else {
+                    setDepositForm({ name: data.name, amount: String(data.amount), party: data.party || "", paidDate: data.paidDate || TODAY, status: data.status || "held", notes: data.notes || "" });
+                    setEditDepositId(data.id); setShowDepositForm(true);
+                  }
+                }}>✏️ Edit</button>
+                <button style={{ ...S.btn("ghost"), flex: 1 }} onClick={() => setViewItem(null)}>Close</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
