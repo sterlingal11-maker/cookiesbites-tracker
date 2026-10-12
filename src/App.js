@@ -4210,6 +4210,7 @@ function Dashboard({
   overheads,
   inventory,
   meals,
+  invPurchases,
 }) {
   const [period, setPeriod] = useState("ytd");
   const [customFrom, setCustomFrom] = useState(`${THIS_YEAR}-01-01`);
@@ -4234,8 +4235,11 @@ function Dashboard({
   );
   const catRev = pEvents.reduce((s, e) => s + e.revenue, 0);
   const catCOGS = pEvents.reduce((s, e) => s + evtCOGS(e), 0);
+  // Ingredient purchases in period count as COGS (direct food production cost)
+  const pIngPurchases = (invPurchases || []).filter(p => inRange(p.date, range[0], range[1]));
+  const ingPurchasesCOGS = pIngPurchases.reduce((s, p) => s + Number(p.totalCost || 0), 0);
   const totalRev = catRev + rdRev;
-  const totalCOGS = catCOGS + rdCOGS;
+  const totalCOGS = catCOGS + rdCOGS + ingPurchasesCOGS;
   const gp = totalRev - totalCOGS;
   const gm = totalRev ? ((gp / totalRev) * 100).toFixed(1) : 0;
   // Period overheads (opex only — capex & liability payments don't hit P&L)
@@ -8924,6 +8928,8 @@ function RestaurantPage({
   biz,
   customers,
   setCustomers,
+  invPurchases,
+  setInvPurchases,
 }) {
   const [tab, setTab] = useState("orders");
   const [filterType, setFilterType] = useState("All");
@@ -8933,6 +8939,14 @@ function RestaurantPage({
   const [addSale, setAddSale] = useState(false);
   const [editSaleId, setEditSaleId] = useState(null);
   const [doc, setDoc] = useState(null);
+  // Restock modal state
+  const [restockItem, setRestockItem] = useState(null); // inventory item being restocked
+  const EMPTY_RESTOCK = { date: TODAY_ISO, qty: "", costPerUnit: "", supplier: "", note: "" };
+  const [restockForm, setRestockForm] = useState(EMPTY_RESTOCK);
+  // Purchase log filter
+  const [purchaseFilter, setPurchaseFilter] = useState("week"); // "day" | "week" | "month" | "all"
+  const [purchaseFrom, setPurchaseFrom] = useState(TODAY_ISO);
+  const [purchaseTo, setPurchaseTo] = useState(TODAY_ISO);
   const EMPTY = {
     date: TODAY_ISO,
     items: [],           // [{ meal, mealId, _catalogItemId, plates, pricePerPlate }]
@@ -9406,6 +9420,7 @@ function RestaurantPage({
       <div style={{ display: "flex", gap: 3, marginBottom: 14 }}>
         {[
           ["inventory", "📦 Inventory"],
+          ["purchases", "🛒 Purchases"],
           ["meals", "🍲 Meals"],
           ["batches", "🍳 Batches"],
           ["orders", "📋 Orders"],
@@ -11927,11 +11942,10 @@ function RestaurantPage({
                             }}
                           >⧉ Dupe</button>
                           <button
-                            style={{ ...S.btn("ghost"), fontSize: 10, padding: "2px 6px" }}
+                            style={{ ...S.btn("primary"), fontSize: 10, padding: "2px 6px" }}
                             onClick={() => {
-                              const qty = prompt(`Restock ${item.name}\nCurrent: ${item.stock} ${item.unit}\nAdd quantity:`);
-                              if (qty && !isNaN(Number(qty)))
-                                setInventory((prev) => prev.map((it) => it.id === item.id ? { ...it, stock: it.stock + Number(qty) } : it));
+                              setRestockItem(item);
+                              setRestockForm({ ...EMPTY_RESTOCK, costPerUnit: item.costPerUnit || "" });
                             }}
                           >+ Restock</button>
                           <button
@@ -11948,6 +11962,161 @@ function RestaurantPage({
           </div>
 
         </>
+      )}
+
+      {/* ── RESTOCK MODAL ── */}
+      {restockItem && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ ...S.card, width: "100%", maxWidth: 420, padding: 20 }}>
+            <div style={{ ...S.sectionTitle, marginBottom: 14 }}>🛒 Restock: {restockItem.name}</div>
+            <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 12 }}>Current stock: {restockItem.stock} {restockItem.unit}</div>
+            <div style={S.grid(2)}>
+              <div>
+                <label style={S.label}>Date *</label>
+                <input type="date" style={S.input} value={restockForm.date} onChange={e => setRestockForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <label style={S.label}>Qty Added ({restockItem.unit}) *</label>
+                <input type="number" style={S.input} placeholder="e.g. 5" value={restockForm.qty} onChange={e => setRestockForm(f => ({ ...f, qty: e.target.value }))} />
+              </div>
+              <div>
+                <label style={S.label}>Cost per {restockItem.unit} (XAF) *</label>
+                <input type="number" style={S.input} placeholder="Unit cost paid" value={restockForm.costPerUnit} onChange={e => setRestockForm(f => ({ ...f, costPerUnit: e.target.value }))} />
+              </div>
+              <div>
+                <label style={S.label}>Supplier</label>
+                <input style={S.input} placeholder="e.g. Marché Mokolo" value={restockForm.supplier} onChange={e => setRestockForm(f => ({ ...f, supplier: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label style={S.label}>Note</label>
+              <input style={S.input} placeholder="Optional note…" value={restockForm.note} onChange={e => setRestockForm(f => ({ ...f, note: e.target.value }))} />
+            </div>
+            {restockForm.qty && restockForm.costPerUnit && (
+              <div style={{ fontSize: 12, fontWeight: 700, color: T.accent, marginTop: 8 }}>
+                Total cost: {fmt(Number(restockForm.qty) * Number(restockForm.costPerUnit))}
+              </div>
+            )}
+            <div style={{ ...S.row, marginTop: 14, justifyContent: "flex-end" }}>
+              <button style={S.btn("ghost")} onClick={() => { setRestockItem(null); setRestockForm(EMPTY_RESTOCK); }}>Cancel</button>
+              <button style={S.btn("primary")} onClick={() => {
+                const qty = Number(restockForm.qty);
+                const cpu = Number(restockForm.costPerUnit);
+                if (!qty || qty <= 0 || !restockForm.date) return;
+                // Update inventory stock and costPerUnit
+                setInventory(prev => prev.map(it => it.id === restockItem.id
+                  ? { ...it, stock: it.stock + qty, costPerUnit: cpu > 0 ? cpu : it.costPerUnit }
+                  : it));
+                // Log the purchase
+                const purchase = {
+                  id: Date.now(),
+                  date: restockForm.date,
+                  itemId: restockItem.id,
+                  itemName: restockItem.name,
+                  unit: restockItem.unit,
+                  qty,
+                  costPerUnit: cpu,
+                  totalCost: qty * cpu,
+                  supplier: restockForm.supplier.trim(),
+                  note: restockForm.note.trim(),
+                };
+                setInvPurchases(prev => [purchase, ...prev]);
+                setRestockItem(null);
+                setRestockForm(EMPTY_RESTOCK);
+              }}>Confirm Restock</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PURCHASES TAB ── */}
+      {tab === "purchases" && (
+        <div>
+          <div style={{ ...S.row, marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
+            {/* Period filter chips */}
+            {[["day","Today"],["week","This Week"],["month","This Month"],["all","All Time"]].map(([v,label]) => (
+              <button key={v} style={{ ...S.btn(purchaseFilter === v ? "primary" : "ghost"), fontSize: 11 }} onClick={() => setPurchaseFilter(v)}>{label}</button>
+            ))}
+            {purchaseFilter === "all" && (
+              <Fragment>
+                <input type="date" style={{ ...S.input, width: 130, marginBottom: 0 }} value={purchaseFrom} onChange={e => setPurchaseFrom(e.target.value)} />
+                <span style={{ alignSelf: "center", fontSize: 11, color: T.textMuted }}>–</span>
+                <input type="date" style={{ ...S.input, width: 130, marginBottom: 0 }} value={purchaseTo} onChange={e => setPurchaseTo(e.target.value)} />
+              </Fragment>
+            )}
+          </div>
+          {(() => {
+            const today = TODAY_ISO;
+            const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 6);
+            const weekAgoStr = weekAgo.toISOString().slice(0, 10);
+            const monthStart = today.slice(0, 7) + "-01";
+            const filtered = (invPurchases || []).filter(p => {
+              if (purchaseFilter === "day") return p.date === today;
+              if (purchaseFilter === "week") return p.date >= weekAgoStr && p.date <= today;
+              if (purchaseFilter === "month") return p.date >= monthStart && p.date <= today;
+              return p.date >= purchaseFrom && p.date <= purchaseTo;
+            });
+            const totalSpent = filtered.reduce((s, p) => s + Number(p.totalCost || 0), 0);
+            const csvRows = [
+              ["Date","Item","Qty","Unit","Cost/Unit (XAF)","Total (XAF)","Supplier","Note"],
+              ...filtered.map(p => [p.date, p.itemName, p.qty, p.unit, p.costPerUnit, p.totalCost, p.supplier || "", p.note || ""])
+            ];
+            const csvContent = csvRows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+            const downloadCSV = () => {
+              const blob = new Blob([csvContent], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url;
+              a.download = `ingredient-purchases-${today}.csv`; a.click();
+              URL.revokeObjectURL(url);
+            };
+            return (
+              <div>
+                <div style={{ ...S.row, marginBottom: 10, justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                  <div>
+                    <span style={{ fontSize: 12, color: T.textMuted }}>{filtered.length} purchase{filtered.length !== 1 ? "s" : ""} · Total: </span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: T.accent }}>{fmt(totalSpent)}</span>
+                  </div>
+                  {filtered.length > 0 && (
+                    <button style={{ ...S.btn("ghost"), fontSize: 11 }} onClick={downloadCSV}>⬇ Download CSV</button>
+                  )}
+                </div>
+                {filtered.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: 40, color: T.textMuted, fontSize: 13 }}>No purchases in this period.<br />Use the + Restock button on any inventory item.</div>
+                ) : (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={S.table}>
+                      <thead>
+                        <tr>
+                          {["Date","Item","Qty","Cost/Unit","Total","Supplier","Note",""].map(h => (
+                            <th key={h} style={S.th}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map(p => (
+                          <tr key={p.id}>
+                            <td style={S.td}>{p.date}</td>
+                            <td style={{ ...S.td, fontWeight: 600 }}>{p.itemName}</td>
+                            <td style={S.td}>{p.qty} {p.unit}</td>
+                            <td style={S.td}>{fmt(p.costPerUnit)}</td>
+                            <td style={{ ...S.td, fontWeight: 700, color: T.accent }}>{fmt(p.totalCost)}</td>
+                            <td style={{ ...S.td, color: T.textMuted }}>{p.supplier || "—"}</td>
+                            <td style={{ ...S.td, color: T.textMuted, fontSize: 11 }}>{p.note || "—"}</td>
+                            <td style={S.td}>
+                              <button style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 11 }}
+                                onClick={() => { if (window.confirm("Delete this purchase record?")) setInvPurchases(prev => prev.filter(x => x.id !== p.id)); }}
+                              >✕</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
       )}
 
       {tab === "batches" && (
@@ -13970,6 +14139,7 @@ function buildReportData({
   catalogItems,
   inventory,
   meals,
+  invPurchases,
 }) {
   const p = REPORT_PERIODS.find((r) => r.id === periodId) || REPORT_PERIODS[0];
   const from = new Date(p.from),
@@ -13982,6 +14152,7 @@ function buildReportData({
     const evt = events.find((e) => e.id === inv.eventId);
     return evt ? inRange(evt.eventDate, from, to) : false;
   });
+  const pIngPurchases = (invPurchases || []).filter(p => inRange(p.date, from, to));
 
   // Revenue
   const rdRevenue = pSales.reduce((s, r) => s + orderTotal(r), 0);
@@ -13994,7 +14165,8 @@ function buildReportData({
     0
   );
   const catCOGS = pEvents.reduce((s, e) => s + evtCOGS(e), 0);
-  const totalCOGS = rdCOGS + catCOGS;
+  const ingPurchasesCOGS = pIngPurchases.reduce((s, p) => s + Number(p.totalCost || 0), 0);
+  const totalCOGS = rdCOGS + catCOGS + ingPurchasesCOGS;
   const grossProfit = totalRevenue - (isNaN(totalCOGS) ? 0 : totalCOGS);
   const _safeTotalCOGS = isNaN(totalCOGS) ? 0 : totalCOGS;
 
@@ -14100,6 +14272,7 @@ function ReportsPage({
   meals,
   customers,
   batches,
+  invPurchases,
 }) {
   const [reportType, setReportType] = useState("pl");
   const [periodId, setPeriodId] = useState(() => {
@@ -14124,6 +14297,7 @@ function ReportsPage({
         catalogItems,
         inventory: inventory || [],
         meals: meals || [],
+        invPurchases: invPurchases || [],
       }),
     [
       periodId,
@@ -14134,6 +14308,7 @@ function ReportsPage({
       catalogItems,
       inventory,
       meals,
+      invPurchases,
     ]
   );
 
@@ -16661,6 +16836,7 @@ export default function App() {
   // catalogMeta: { [nameLower]: { unitType, tags, notes } } — persists user edits independently of sync
   const [catalogMeta, setCatalogMeta] = useState(() => ls_get("cb_catalog_meta", {}));
   const [inventory, setInventory] = useState(() => ls_get("cb_inventory", INIT_INVENTORY));
+  const [invPurchases, setInvPurchases] = useState(() => ls_get("cb_inv_purchases", []));
   const [meals, setMeals] = useState(() => {
     const raw = ls_get("cb_meals", INIT_MEALS);
     return Array.isArray(raw) ? raw.map(m => m?.photo?.startsWith("data:") ? { ...m, photo: null } : m) : raw;
@@ -16683,7 +16859,7 @@ export default function App() {
     "cb_events","cb_sales","cb_invoices","cb_proposals",
     "cb_catalog","cb_catalog_cats","cb_catalog_meta","cb_inventory","cb_meals",
     "cb_batches","cb_overheads","cb_logo","cb_biz",
-    "cb_customers","cb_vendors","cb_social",
+    "cb_customers","cb_vendors","cb_social","cb_inv_purchases",
   ];
 
   // Strip base64 photo blobs from items — replace with null so they
@@ -16769,6 +16945,11 @@ export default function App() {
         setInventory(cloud["cb_inventory"]);
         ls_set("cb_inventory", cloud["cb_inventory"]);
       }
+      if (cloud["cb_inv_purchases"] !== undefined && cloud["cb_inv_purchases"] !== null) {
+        const _v = cloud["cb_inv_purchases"];
+        const local_v = ls_get("cb_inv_purchases", []);
+        if (_v.length > 0 || local_v.length === 0) { setInvPurchases(_v); ls_set("cb_inv_purchases", _v); }
+      }
       if (cloud["cb_meals"] !== undefined && cloud["cb_meals"] !== null) {
         const catCats = cloud["cb_catalog_cats"] || catalogCategories;
         const clean = migrateMealCategories(stripBase64Photos(cloud["cb_meals"]), catCats);
@@ -16827,6 +17008,7 @@ export default function App() {
   useEffect(() => { if (cloudLoaded) syncKey("cb_meals",        meals);        }, [meals,        cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_batches",      batches);      }, [batches,      cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_overheads",    overheads);    }, [overheads,    cloudLoaded, syncKey]);
+  useEffect(() => { if (cloudLoaded) syncKey("cb_inv_purchases", invPurchases); }, [invPurchases, cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_logo",         logo,    2000);}, [logo,         cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_biz",          biz);          }, [biz,          cloudLoaded, syncKey]);
   useEffect(() => { if (cloudLoaded) syncKey("cb_customers",    customers);    }, [customers,    cloudLoaded, syncKey]);
@@ -17182,6 +17364,7 @@ export default function App() {
             overheads={overheads}
             inventory={inventory}
             meals={meals}
+            invPurchases={invPurchases}
           />
         )}
         {tab === "catering" && (
@@ -17227,6 +17410,8 @@ export default function App() {
             biz={biz}
             customers={customers}
             setCustomers={setCustomers}
+            invPurchases={invPurchases}
+            setInvPurchases={setInvPurchases}
           />
         )}
         {tab === "customers" && (
@@ -17256,6 +17441,7 @@ export default function App() {
             meals={meals}
             customers={customers}
             batches={batches}
+            invPurchases={invPurchases}
           />
         )}
         {tab === "studio" && isOwner && (
