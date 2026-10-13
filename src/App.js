@@ -4261,9 +4261,19 @@ function Dashboard({
   const catCOGS = pEvents.reduce((s, e) => s + evtCOGS(e), 0);
   // Ingredient purchases in period count as COGS (direct food production cost)
   const pIngPurchases = (invPurchases || []).filter(p => inRange(p.date, range[0], range[1]));
-  const ingPurchasesCOGS = pIngPurchases.reduce((s, p) => s + Number(p.totalCost || 0), 0);
+  // Only ingredient-type purchases flow through as immediate COGS; resale items are inventory assets
+  const ingPurchasesCOGS = pIngPurchases.reduce((s, p) => {
+    const invItem = (inventory || []).find(i => i.id === p.itemId);
+    const isResale = invItem ? invItem.itemType === "resale" : false;
+    return isResale ? s : s + Number(p.totalCost || 0);
+  }, 0);
+  // Resale COGS: cost of resale items actually sold this period
+  const resaleSalesCOGS = pSales.reduce((s, sale) => {
+    const resaleItems = (sale.items || []).filter(it => it._itemType === "resale");
+    return s + resaleItems.reduce((a, it) => a + (Number(it.qty) || 0) * (Number(it._costPerUnit) || 0), 0);
+  }, 0);
   const totalRev = catRev + rdRev;
-  const totalCOGS = catCOGS + rdCOGS + ingPurchasesCOGS;
+  const totalCOGS = catCOGS + rdCOGS + ingPurchasesCOGS + resaleSalesCOGS;
   const gp = totalRev - totalCOGS;
   const gm = totalRev ? ((gp / totalRev) * 100).toFixed(1) : 0;
   // Period overheads (opex only — capex & liability payments don't hit P&L)
@@ -9010,10 +9020,12 @@ function RestaurantPage({
   const [ni, setNi] = useState({
     name: "",
     category: "Ingredient",
+    itemType: "ingredient", // "ingredient" | "resale"
     unit: "kg",
     stock: "",
     reorderAt: "",
     costPerUnit: "",
+    sellingPrice: "", // only relevant for resale items
     linkedMeals: "",
   });
   const [invCategories, setInvCategories] = useState([
@@ -9169,6 +9181,8 @@ function RestaurantPage({
     const mealDeductions = {};
     const inventoryDeductions = {};
 
+    const resaleDeductions = {}; // resaleItemId → qty sold
+
     items.forEach(item => {
       if (item.mealId) {
         const key = Number(item.mealId);
@@ -9177,6 +9191,9 @@ function RestaurantPage({
       if (!editSaleId && item._catalogItemId) {
         const key = item.meal.toLowerCase();
         inventoryDeductions[key] = (inventoryDeductions[key] || 0) + Number(item.plates);
+      }
+      if (!editSaleId && item._itemType === "resale" && item._resaleItemId) {
+        resaleDeductions[item._resaleItemId] = (resaleDeductions[item._resaleItemId] || 0) + Number(item.plates);
       }
     });
 
@@ -9190,6 +9207,15 @@ function RestaurantPage({
           ? { ...inv, stock: Math.max(0, Number(inv.stock) - inventoryDeductions[key]) }
           : inv;
       }));
+    }
+
+    // Deduct resale items by id (more precise than name matching)
+    if (Object.keys(resaleDeductions).length > 0) {
+      setInventory(prev => prev.map(inv =>
+        resaleDeductions[inv.id] !== undefined
+          ? { ...inv, stock: Math.max(0, Number(inv.stock) - resaleDeductions[inv.id]) }
+          : inv
+      ));
     }
     setEditSaleId(null);
     setNs(EMPTY);
@@ -9258,9 +9284,11 @@ function RestaurantPage({
   const saveInv = () => {
     const item = {
       ...ni,
+      itemType: ni.itemType || "ingredient",
       stock: Number(ni.stock),
       reorderAt: Number(ni.reorderAt),
       costPerUnit: Number(ni.costPerUnit),
+      sellingPrice: ni.itemType === "resale" ? Number(ni.sellingPrice) : 0,
       linkedMeals: ni.linkedMeals
         .split(",")
         .map((s) => s.trim())
@@ -9280,10 +9308,12 @@ function RestaurantPage({
     setNi({
       name: "",
       category: "Ingredient",
+      itemType: "ingredient",
       unit: "kg",
       stock: "",
       reorderAt: "",
       costPerUnit: "",
+      sellingPrice: "",
       linkedMeals: "",
     });
   };
@@ -9677,8 +9707,8 @@ function RestaurantPage({
                 </div>
                 <div style={{ gridColumn: "span 2" }}>
                   {/* Picker mode toggle */}
-                  <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                    {[["batch", "🍳 From Batch"], ["catalog", "🛒 From Catalog"]].map(([mode, label]) => (
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                    {[["batch", "🍳 From Batch"], ["catalog", "🛒 From Catalog"], ["resale", "🍶 Resale Item"]].map(([mode, label]) => (
                       <button key={mode}
                         style={{ ...S.btn((!ns._pickerMode && mode === "batch") || ns._pickerMode === mode ? "primary" : "ghost"), fontSize: 11, padding: "4px 12px" }}
                         onClick={() => { setNs({ ...ns, _pickerMode: mode }); setCurrentItem(EMPTY_ITEM); }}
@@ -9786,6 +9816,68 @@ function RestaurantPage({
                           );
                         })}
                         {currentItem._catalogItemId && (
+                          <button style={{ fontSize: 10, color: T.textMuted, background: "none", border: "none", cursor: "pointer", marginTop: 4, padding: 0 }}
+                            onClick={() => setCurrentItem(EMPTY_ITEM)}>
+                            ✕ Clear selection
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* RESALE ITEM PICKER — drinks, wine, mineral water from inventory */}
+                  {ns._pickerMode === "resale" && (() => {
+                    const resaleItems = inventory.filter(i => i.itemType === "resale");
+                    return (
+                      <div>
+                        <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 8 }}>
+                          Select a resale item (drinks, wine, water). Revenue and COGS are recognized at the time of sale.
+                        </div>
+                        {resaleItems.length === 0 && (
+                          <div style={{ fontSize: 11, color: T.textMuted, padding: "10px 0" }}>
+                            No resale items in inventory yet. Go to Inventory → Add Item and set type to "Resale Item".
+                          </div>
+                        )}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 5, marginBottom: 8 }}>
+                          {resaleItems.map(item => {
+                            const isSelected = currentItem._resaleItemId === item.id;
+                            return (
+                              <button key={item.id}
+                                onClick={() => setCurrentItem({
+                                  ...EMPTY_ITEM,
+                                  meal: item.name,
+                                  _resaleItemId: item.id,
+                                  _itemType: "resale",
+                                  _costPerUnit: item.costPerUnit,
+                                  pricePerPlate: item.sellingPrice || "",
+                                  plates: "",
+                                })}
+                                style={{ background: isSelected ? T.accentSoft : T.surface, border: `1.5px solid ${isSelected ? T.accent : T.border}`, borderRadius: 8, padding: "8px 10px", cursor: "pointer", textAlign: "left" }}
+                              >
+                                <div style={{ fontSize: 11, fontWeight: 700, color: isSelected ? T.accent : T.text, marginBottom: 2 }}>{item.name}</div>
+                                <div style={{ fontSize: 10, color: item.stock < (item.reorderAt || 1) ? T.danger : T.success, fontWeight: 600 }}>Stock: {item.stock} {item.unit}</div>
+                                {item.sellingPrice > 0 && <div style={{ fontSize: 10, color: T.textMuted }}>Sell: {fmt(item.sellingPrice)}</div>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {currentItem._resaleItemId && (
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+                            <div>
+                              <label style={S.label}>Qty *</label>
+                              <input type="number" style={S.input} placeholder="e.g. 3"
+                                value={currentItem.plates}
+                                onChange={e => setCurrentItem({ ...currentItem, plates: e.target.value })} />
+                            </div>
+                            <div>
+                              <label style={S.label}>Price / Unit (XAF)</label>
+                              <input type="number" style={S.input}
+                                value={currentItem.pricePerPlate}
+                                onChange={e => setCurrentItem({ ...currentItem, pricePerPlate: e.target.value })} />
+                            </div>
+                          </div>
+                        )}
+                        {currentItem._resaleItemId && (
                           <button style={{ fontSize: 10, color: T.textMuted, background: "none", border: "none", cursor: "pointer", marginTop: 4, padding: 0 }}
                             onClick={() => setCurrentItem(EMPTY_ITEM)}>
                             ✕ Clear selection
@@ -11658,10 +11750,12 @@ function RestaurantPage({
                 setNi({
                   name: "",
                   category: "Ingredient",
+                  itemType: "ingredient",
                   unit: "kg",
                   stock: "",
                   reorderAt: "",
                   costPerUnit: "",
+                  sellingPrice: "",
                   linkedMeals: "",
                 });
               }}
@@ -11765,6 +11859,13 @@ function RestaurantPage({
                   )}
                 </div>
                 <div>
+                  <label style={S.label}>Item Type</label>
+                  <select style={S.select} value={ni.itemType || "ingredient"} onChange={e => setNi({ ...ni, itemType: e.target.value })}>
+                    <option value="ingredient">Ingredient / Internal Use</option>
+                    <option value="resale">Resale Item (e.g. drinks, wine)</option>
+                  </select>
+                </div>
+                <div>
                   <label style={S.label}>Unit</label>
                   <input
                     style={S.input}
@@ -11804,6 +11905,18 @@ function RestaurantPage({
                     }
                   />
                 </div>
+                {(ni.itemType || "ingredient") === "resale" && (
+                  <div>
+                    <label style={S.label}>Selling Price / Unit (XAF)</label>
+                    <input
+                      type="number"
+                      style={S.input}
+                      placeholder="Price charged to customers"
+                      value={ni.sellingPrice || ""}
+                      onChange={(e) => setNi({ ...ni, sellingPrice: e.target.value })}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label style={S.label}>Linked Meals (comma-sep.)</label>
@@ -14319,6 +14432,11 @@ function buildReportData({
   // Revenue
   const rdRevenue = pSales.reduce((s, r) => s + orderTotal(r), 0);
   const catRevenue = pEvents.reduce((s, e) => s + e.revenue, 0);
+  // Resale revenue: from sales that include resale items
+  const resaleRevenue = pSales.reduce((s, sale) => {
+    const resaleItems = (sale.items || []).filter(it => it._itemType === "resale");
+    return s + resaleItems.reduce((a, it) => a + (Number(it.qty) || 0) * (Number(it.pricePerUnit) || 0), 0);
+  }, 0);
   const totalRevenue = rdRevenue + catRevenue;
 
   // COGS — use meal-level costing for restaurant, event costs for catering
@@ -14327,8 +14445,18 @@ function buildReportData({
     0
   );
   const catCOGS = pEvents.reduce((s, e) => s + evtCOGS(e), 0);
-  const ingPurchasesCOGS = pIngPurchases.reduce((s, p) => s + Number(p.totalCost || 0), 0);
-  const totalCOGS = rdCOGS + catCOGS + ingPurchasesCOGS;
+  // Only ingredient purchases are immediate COGS; resale purchases are inventory assets (COGS recognized on sale)
+  const ingPurchasesCOGS = pIngPurchases.reduce((s, p) => {
+    const invItem = (inventory || []).find(i => i.id === p.itemId);
+    const isResale = invItem ? invItem.itemType === "resale" : false;
+    return isResale ? s : s + Number(p.totalCost || 0);
+  }, 0);
+  // Resale COGS: cost of resale items actually sold this period (qty × costPerUnit at time of sale)
+  const resaleCOGS = pSales.reduce((s, sale) => {
+    const resaleItems = (sale.items || []).filter(it => it._itemType === "resale");
+    return s + resaleItems.reduce((a, it) => a + (Number(it.qty) || 0) * (Number(it._costPerUnit) || 0), 0);
+  }, 0);
+  const totalCOGS = rdCOGS + catCOGS + ingPurchasesCOGS + resaleCOGS;
   const grossProfit = totalRevenue - (isNaN(totalCOGS) ? 0 : totalCOGS);
   const _safeTotalCOGS = isNaN(totalCOGS) ? 0 : totalCOGS;
 
@@ -14385,6 +14513,7 @@ function buildReportData({
     totalRevenue,
     rdCOGS,
     catCOGS,
+    resaleCOGS: isNaN(resaleCOGS) ? 0 : resaleCOGS,
     totalCOGS: _safeTotalCOGS,
     rdCOGS: isNaN(rdCOGS) ? 0 : rdCOGS,
     catCOGS: isNaN(catCOGS) ? 0 : catCOGS,
@@ -14674,6 +14803,7 @@ function ReportsPage({
                 indent
               />
               <Row label="Catering Events COGS" value={fmt(d.catCOGS)} indent />
+              {d.resaleCOGS > 0 && <Row label="Resale Items COGS (drinks/wine)" value={fmt(d.resaleCOGS)} indent />}
               <Row label="Total COGS" value={fmt(d.totalCOGS)} bold borderTop />
               <Row
                 label="Gross Profit"
