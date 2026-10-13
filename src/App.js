@@ -170,7 +170,7 @@ const INIT_BIZ = {
   rccm: "",
   taxId: "",
   paymentTerms:
-    "Payment accepted by Cash, Mobile Money (MoMo), and Bank Transfer.",
+    "Payment accepted by Cash, Mobile Money (MoMo), Orange Money, and Bank Transfer.",
   bankName: "",
   bankAccount: "",
   footer:
@@ -3070,7 +3070,7 @@ function buildInvoiceHTML(inv, evt, biz, logo) {
   )}</span></div><div class="total-row highlight"><span class="label">Amount Paid</span><span class="value">${fmt(
     inv.paid
   )}</span></div><div class="total-row grand" style="background:${bal>0?'#dc2626':'#16a34a'}"><span class="label" style="color:#fff!important;font-size:13px;font-weight:700">Balance Due</span><span class="value" style="color:#fff!important;font-size:16px;font-weight:900">${fmt(bal)}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Accepted methods:</span><strong>${
-    biz.paymentTerms || "Cash · Mobile Money (MoMo) · Bank Transfer"
+    biz.paymentTerms || "Cash · Mobile Money (MoMo) · Orange Money · Bank Transfer"
   }</strong></div><div class="payment-row"><span>Payment due:</span><strong>${
     inv.due
   }</strong></div>${
@@ -3157,7 +3157,7 @@ function buildProposalHTML(prop, biz, logo) {
   const photoHeader = hasPhotos ? `<th class="tc" style="width:54px"></th>` : "";
   const effectivePaymentTerms = (prop.paymentTerms && prop.paymentTerms.trim())
     ? prop.paymentTerms.trim()
-    : (biz.paymentTerms || "Cash · Mobile Money (MoMo) · Bank Transfer");
+    : (biz.paymentTerms || "Cash · Mobile Money (MoMo) · Orange Money · Bank Transfer");
   return `${headerHTML(
     biz,
     logo,
@@ -3333,7 +3333,7 @@ function buildContractHTML(prop, biz, logo, lang = "en", terms = {}) {
 
   const effectivePmt = (prop.paymentTerms && prop.paymentTerms.trim())
     ? prop.paymentTerms.trim()
-    : (biz.paymentTerms || (EN ? "Cash · Mobile Money (MoMo) · Bank Transfer" : "Espèces · Mobile Money · Virement bancaire"));
+    : (biz.paymentTerms || (EN ? "Cash · Mobile Money (MoMo) · Orange Money · Bank Transfer" : "Espèces · Mobile Money · Orange Money · Virement bancaire"));
 
   const rows = prop.lines.map(l =>
     `<tr><td>${l.name}${l.description ? `<div style="font-size:10px;color:#777">${l.description}</div>` : ""}</td><td style="text-align:center">${l.unitType}</td><td style="text-align:center">${l.qty}</td><td style="text-align:right">${fmt(l.price)}</td><td style="text-align:right;font-weight:600">${fmt(l.qty*l.price)}</td></tr>`
@@ -7523,7 +7523,7 @@ function ProposalsPage({
               <textarea
                 style={{ ...S.input, minHeight: 54, resize: "vertical", fontFamily: "inherit", fontSize: 12 }}
                 value={draft.paymentTerms}
-                placeholder={biz.paymentTerms || "Cash · Mobile Money (MoMo) · Bank Transfer"}
+                placeholder={biz.paymentTerms || "Cash · Mobile Money (MoMo) · Orange Money · Bank Transfer"}
                 onChange={(e) => setDraft({ ...draft, paymentTerms: e.target.value })}
               />
             </div>
@@ -8326,7 +8326,7 @@ function ProposalsPage({
                   <textarea
                     style={{ ...S.input, minHeight: 52, resize: "vertical", fontFamily: "inherit", fontSize: 12, width: "100%" }}
                     value={p.paymentTerms !== undefined ? p.paymentTerms : (biz.paymentTerms || "")}
-                    placeholder={biz.paymentTerms || "Cash · Mobile Money (MoMo) · Bank Transfer"}
+                    placeholder={biz.paymentTerms || "Cash · Mobile Money (MoMo) · Orange Money · Bank Transfer"}
                     onClick={(e) => e.stopPropagation()}
                     onChange={(e) => {
                       e.stopPropagation();
@@ -9986,7 +9986,7 @@ function RestaurantPage({
                     value={ns.method}
                     onChange={(e) => setNs({ ...ns, method: e.target.value })}
                   >
-                    {["Cash", "Mobile Money", "Bank Transfer", "Card", "Credit"].map(
+                    {["Cash", "Mobile Money", "Orange Money", "Bank Transfer", "Card", "Credit"].map(
                       (m) => (
                         <option key={m}>{m}</option>
                       )
@@ -12490,7 +12490,7 @@ function InvoicesPage({ invoices, setInvoices, events, logo, biz }) {
               <div style={{ marginBottom:16 }}>
                 <label style={S.label}>Payment Method</label>
                 <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                  {["Mobile Money", "Cash", "Bank Transfer", "Cheque"].map(m => (
+                  {["Mobile Money", "Orange Money", "Cash", "Bank Transfer", "Cheque"].map(m => (
                     <button key={m}
                       style={{ ...S.btn(pmtPanel.method === m ? "primary" : "ghost"), fontSize:11, padding:"4px 12px" }}
                       onClick={() => setPmtPanel(p => ({ ...p, method: m }))}>
