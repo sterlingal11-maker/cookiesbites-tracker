@@ -13451,6 +13451,7 @@ function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
   const [filterYear, setFilterYear] = useState(String(THIS_YEAR));
   const [filterMonth, setFilterMonth] = useState("All");
   const [filterDesc, setFilterDesc] = useState("");
+  const [filterExpDate, setFilterExpDate] = useState("");
   const isMobile = useIsMobile();
 
   const years = [...new Set(overheads.map((o) => o.date.slice(0, 4)))]
@@ -13497,6 +13498,7 @@ function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
       const vendorMatch = (o.vendor || "").toLowerCase().includes(q);
       if (!descMatch && !vendorMatch) return false;
     }
+    if (filterExpDate && o.date !== filterExpDate) return false;
     return true;
   });
 
@@ -13865,6 +13867,17 @@ function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
                   onClick={() => setFilterDesc("")}
                   style={{ position: "absolute", right: 4, background: "none", border: "none", cursor: "pointer", color: T.textDim, fontSize: 13, padding: "0 2px", lineHeight: 1 }}
                 >✕</button>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <input
+                type="date"
+                style={{ ...S.input, marginBottom: 0, fontSize: 11, padding: "3px 7px", width: 140 }}
+                value={filterExpDate}
+                onChange={e => setFilterExpDate(e.target.value)}
+              />
+              {filterExpDate && (
+                <button style={{ ...S.btn("ghost"), fontSize: 11, padding: "3px 7px" }} onClick={() => setFilterExpDate("")}>✕</button>
               )}
             </div>
             <div style={{ flex: 1 }} />
