@@ -8971,6 +8971,7 @@ function RestaurantPage({
   const [filterType, setFilterType] = useState("All");
   const [filterPayment, setFilterPayment] = useState("All"); // All | Unpaid | Paid
   const [filterOrderDate, setFilterOrderDate] = useState(""); // "" = all, or YYYY-MM-DD
+  const [filterItemKind, setFilterItemKind] = useState("All"); // All | Food | Beverage
   const [orderPmtPanel, setOrderPmtPanel] = useState(null); // sale id
   const [addSale, setAddSale] = useState(false);
   const [editSaleId, setEditSaleId] = useState(null);
@@ -9091,6 +9092,20 @@ function RestaurantPage({
       const bal = tot - paid;
       if (filterPayment === "Unpaid") return bal > 0;
       if (filterPayment === "Paid") return bal <= 0;
+      return true;
+    })
+    .filter(s => {
+      if (filterItemKind === "All") return true;
+      const items = Array.isArray(s.items) && s.items.length > 0 ? s.items : [];
+      if (filterItemKind === "Beverage") {
+        // Order contains at least one resale/beverage item
+        return items.some(it => it._itemType === "resale") || s._itemType === "resale";
+      }
+      if (filterItemKind === "Food") {
+        // Order contains only food items (no resale items), or is a legacy single-item food order
+        const hasResale = items.some(it => it._itemType === "resale");
+        return !hasResale && s._itemType !== "resale";
+      }
       return true;
     });
   // All KPIs derive from `filtered` so they're always in sync with active filters
@@ -9655,6 +9670,14 @@ function RestaurantPage({
             <div style={{ display: "flex", gap: 3 }}>
               {["All", "Dine-in", "Takeaway", "Delivery"].map((t) => (
                 <button key={t} style={S.navBtn(filterType === t)} onClick={() => setFilterType(t)}>{t}</button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 3 }}>
+              {[["All","🍽️ All Items"], ["Food","🍲 Food"], ["Beverage","🥤 Beverages"]].map(([val, label]) => (
+                <button key={val}
+                  style={{ ...S.navBtn(filterItemKind === val), ...(val === "Beverage" && filterItemKind === val ? { background: T.info, color: "#fff", borderColor: T.info } : {}), ...(val === "Beverage" ? { color: filterItemKind === val ? "#fff" : T.info, borderColor: (T.info || "#3b82f6") + "60" } : {}) }}
+                  onClick={() => setFilterItemKind(val)}
+                >{label}</button>
               ))}
             </div>
             <div style={{ display: "flex", gap: 3 }}>
@@ -13427,6 +13450,7 @@ function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
   const [filterCat, setFilterCat] = useState("All");
   const [filterYear, setFilterYear] = useState(String(THIS_YEAR));
   const [filterMonth, setFilterMonth] = useState("All");
+  const [filterDesc, setFilterDesc] = useState("");
   const isMobile = useIsMobile();
 
   const years = [...new Set(overheads.map((o) => o.date.slice(0, 4)))]
@@ -13466,8 +13490,13 @@ function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
   const filtered = overheads.filter((o) => {
     if (filterCat !== "All" && o.category !== filterCat) return false;
     if (filterYear !== "All" && !o.date.startsWith(filterYear)) return false;
-    if (filterMonth !== "All" && o.date.slice(5, 7) !== filterMonth)
-      return false;
+    if (filterMonth !== "All" && o.date.slice(5, 7) !== filterMonth) return false;
+    if (filterDesc.trim()) {
+      const q = filterDesc.trim().toLowerCase();
+      const descMatch = (o.description || "").toLowerCase().includes(q);
+      const vendorMatch = (o.vendor || "").toLowerCase().includes(q);
+      if (!descMatch && !vendorMatch) return false;
+    }
     return true;
   });
 
@@ -13823,6 +13852,21 @@ function OverheadsPage({ overheads, setOverheads, vendors, setVendors }) {
                 </option>
               ))}
             </select>
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                type="text"
+                placeholder="🔍 Search description / vendor…"
+                style={{ ...S.input, marginBottom: 0, width: 210, fontSize: 12, paddingRight: filterDesc ? 24 : 8 }}
+                value={filterDesc}
+                onChange={e => setFilterDesc(e.target.value)}
+              />
+              {filterDesc && (
+                <button
+                  onClick={() => setFilterDesc("")}
+                  style={{ position: "absolute", right: 4, background: "none", border: "none", cursor: "pointer", color: T.textDim, fontSize: 13, padding: "0 2px", lineHeight: 1 }}
+                >✕</button>
+              )}
+            </div>
             <div style={{ flex: 1 }} />
             <div
               style={{ fontSize: 11, color: T.textMuted, alignSelf: "center" }}
