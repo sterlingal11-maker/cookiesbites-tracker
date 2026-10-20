@@ -1788,19 +1788,28 @@ const splitOverheads = (overheads) => {
 // Each calendar month that overlaps the amortization window counts as one slice.
 const calcPrepaidRecognized = (prepaidItems, fromDate, toDate) => {
   if (!Array.isArray(prepaidItems) || !fromDate || !toDate) return 0;
+  // Normalise to midnight so day-level comparisons are clean
+  const pFrom = new Date(fromDate); pFrom.setHours(0, 0, 0, 0);
+  const pTo   = new Date(toDate);   pTo.setHours(23, 59, 59, 999);
+  const periodDays = (pTo - pFrom) / 86400000 + 1; // total days in the report window
   let total = 0;
   prepaidItems.forEach(item => {
     if (!item.startDate || !item.months || !item.totalPaid) return;
     const monthlyAmt = Number(item.totalPaid) / Number(item.months);
-    // Generate all month-start dates in the amortization window
     const start = new Date(item.startDate + "-01");
     for (let m = 0; m < Number(item.months); m++) {
-      const sliceDate = new Date(start.getFullYear(), start.getMonth() + m, 1);
-      const sliceEnd = new Date(sliceDate.getFullYear(), sliceDate.getMonth() + 1, 0); // last day of month
-      // Does this month overlap the report period?
-      if (sliceDate <= toDate && sliceEnd >= fromDate) {
-        total += monthlyAmt;
-      }
+      const sliceStart = new Date(start.getFullYear(), start.getMonth() + m, 1);
+      const sliceEnd   = new Date(start.getFullYear(), start.getMonth() + m + 1, 0); // last day of month
+      sliceEnd.setHours(23, 59, 59, 999);
+      // Does this month overlap the report period at all?
+      if (sliceStart > pTo || sliceEnd < pFrom) continue;
+      const daysInMonth = sliceEnd.getDate(); // total days in this calendar month
+      // Overlap window: clamp to the narrower of report period and month slice
+      const overlapStart = sliceStart < pFrom ? pFrom : sliceStart;
+      const overlapEnd   = sliceEnd   > pTo   ? pTo   : sliceEnd;
+      const overlapDays  = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
+      // Prorate: only charge the fraction of the month that falls in the report period
+      total += monthlyAmt * (overlapDays / daysInMonth);
     }
   });
   return total;
