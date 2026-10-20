@@ -14468,6 +14468,8 @@ const REPORT_PERIODS = buildReportPeriods();
 
 function buildReportData({
   periodId,
+  customFrom: customFromOverride,
+  customTo: customToOverride,
   events,
   sales,
   invoices,
@@ -14478,9 +14480,16 @@ function buildReportData({
   invPurchases,
   prepaidItems,
 }) {
-  const p = REPORT_PERIODS.find((r) => r.id === periodId) || REPORT_PERIODS[0];
-  const from = new Date(p.from),
+  let from, to, p;
+  if (periodId === "custom" && customFromOverride && customToOverride) {
+    from = new Date(customFromOverride);
+    to = new Date(customToOverride);
+    p = { id: "custom", label: "Custom Range", from: customFromOverride, to: customToOverride };
+  } else {
+    p = REPORT_PERIODS.find((r) => r.id === periodId) || REPORT_PERIODS[0];
+    from = new Date(p.from);
     to = new Date(p.to);
+  }
 
   const pSales = sales.filter((s) => inRange(s.date, from, to));
   const pEvents = events.filter((e) => inRange(e.eventDate, from, to));
@@ -14644,11 +14653,15 @@ function ReportsPage({
     const found = REPORT_PERIODS.find(p => p.id === candidateId);
     return found ? candidateId : "ytd_current";
   });
+  const [customReportFrom, setCustomReportFrom] = useState(TODAY_ISO);
+  const [customReportTo, setCustomReportTo] = useState(TODAY_ISO);
 
   const d = useMemo(
     () =>
       buildReportData({
         periodId,
+        customFrom: customReportFrom,
+        customTo: customReportTo,
         events,
         sales,
         invoices,
@@ -14661,6 +14674,8 @@ function ReportsPage({
       }),
     [
       periodId,
+      customReportFrom,
+      customReportTo,
       events,
       sales,
       invoices,
@@ -14771,6 +14786,9 @@ function ReportsPage({
           value={periodId}
           onChange={(e) => setPeriodId(e.target.value)}
         >
+          <optgroup label="Custom">
+            <option value="custom">📅 Custom Date Range</option>
+          </optgroup>
           <optgroup label="Annual">
             {REPORT_PERIODS.filter((p) => p.id.startsWith("annual")).map(
               (p) => (
@@ -14797,6 +14815,23 @@ function ReportsPage({
             ))}
           </optgroup>
         </select>
+        {periodId === "custom" && (
+          <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              type="date"
+              style={{ ...S.input, marginBottom: 0, fontSize: 11, padding: "3px 7px", width: 140 }}
+              value={customReportFrom}
+              onChange={e => setCustomReportFrom(e.target.value)}
+            />
+            <span style={{ fontSize: 11, color: T.textDim }}>→</span>
+            <input
+              type="date"
+              style={{ ...S.input, marginBottom: 0, fontSize: 11, padding: "3px 7px", width: 140 }}
+              value={customReportTo}
+              onChange={e => setCustomReportTo(e.target.value)}
+            />
+          </div>
+        )}
         <button
           style={S.btn("primary")}
           onClick={() => printReport()}
