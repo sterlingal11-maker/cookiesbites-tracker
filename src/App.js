@@ -170,7 +170,7 @@ const INIT_BIZ = {
   rccm: "",
   taxId: "",
   paymentTerms:
-    "Payment accepted by Cash, Mobile Money (MoMo), Orange Money, and Bank Transfer.",
+    "Payment accepted by Cash, Mobile Money (MoMo), and Bank Transfer.\nMobile Money: 677 89 67 52, Orange Money: 697 76 28 75. Name for both: Akwa Lunice Anye\nFor bank transfers or direct bank deposits, please contact us for coordinates.",
   bankName: "",
   bankAccount: "",
   footer:
@@ -17753,7 +17753,7 @@ export default function App() {
       // "Orange Money" it's an old value — patch it to the current default.
       if (cloud["cb_biz"] !== undefined && cloud["cb_biz"] !== null) {
         const loadedBiz = cloud["cb_biz"];
-        if (loadedBiz.paymentTerms && !loadedBiz.paymentTerms.includes("Orange Money")) {
+        if (!loadedBiz.paymentTerms || !loadedBiz.paymentTerms.includes("697 76 28 75")) {
           loadedBiz.paymentTerms = INIT_BIZ.paymentTerms;
           // Persist the patched value back to cloud so it won't drift again
           cloudSet("cb_biz", loadedBiz);
