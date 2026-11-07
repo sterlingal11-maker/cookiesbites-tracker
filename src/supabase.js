@@ -73,8 +73,8 @@ export async function uploadFile(file, folder = "misc") {
     .upload(path, compressed, { upsert: false, contentType: "image/jpeg" });
 
   if (error) {
-    console.error("[uploadFile] Storage upload failed:", error.message);
-    return null; // Signal failure — don't silently store base64 in JSONB
+    console.warn("[uploadFile] Storage upload failed, falling back to base64:", error.message);
+    return readAsDataURL(compressed);
   }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
