@@ -3078,9 +3078,9 @@ function buildInvoiceHTML(inv, evt, biz, logo) {
     inv.total
   )}</span></div><div class="total-row highlight"><span class="label">Amount Paid</span><span class="value">${fmt(
     inv.paid
-  )}</span></div><div class="total-row grand" style="background:${bal>0?'#dc2626':'#16a34a'}"><span class="label" style="color:#fff!important;font-size:13px;font-weight:700">Balance Due</span><span class="value" style="color:#fff!important;font-size:16px;font-weight:900">${fmt(bal)}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Accepted methods:</span><strong>${
+  )}</span></div><div class="total-row grand" style="background:${bal>0?'#dc2626':'#16a34a'}"><span class="label" style="color:#fff!important;font-size:13px;font-weight:700">Balance Due</span><span class="value" style="color:#fff!important;font-size:16px;font-weight:900">${fmt(bal)}</span></div></div></div><div class="payment-box"><h4>Payment Information</h4><div class="payment-row"><span>Accepted methods:</span><span>${fmtPaymentTerms(
     biz.paymentTerms || "Cash · Mobile Money (MoMo) · Orange Money · Bank Transfer"
-  }</strong></div><div class="payment-row"><span>Payment due:</span><strong>${
+  )}</span></div><div class="payment-row"><span>Payment due:</span><strong>${
     inv.due
   }</strong></div>${
     biz.bankName
@@ -3204,7 +3204,7 @@ function buildProposalHTML(prop, biz, logo) {
     deposit
   )}</strong></div><div class="payment-row"><span>Balance Due (before event):</span><strong>${fmt(
     total - deposit
-  )}</strong></div><div class="payment-row"><span>Payment methods:</span><strong>${effectivePaymentTerms}</strong></div></div>${
+  )}</strong></div><div class="payment-row"><span>Payment methods:</span><span>${fmtPaymentTerms(effectivePaymentTerms)}</span></div></div>${
     prop.notes
       ? `<div class="notes-box"><strong>Notes</strong>${prop.notes}</div>`
       : ""
