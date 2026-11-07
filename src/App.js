@@ -17749,7 +17749,18 @@ export default function App() {
         if (_v.length > 0 || local_v.length === 0) { setOverheads(_v); ls_set("cb_overheads", _v); }
       }
       apply("cb_logo",         setLogo);
-      apply("cb_biz",          setBiz);
+      // Migrate stale paymentTerms: if the cloud-stored value is missing
+      // "Orange Money" it's an old value — patch it to the current default.
+      if (cloud["cb_biz"] !== undefined && cloud["cb_biz"] !== null) {
+        const loadedBiz = cloud["cb_biz"];
+        if (loadedBiz.paymentTerms && !loadedBiz.paymentTerms.includes("Orange Money")) {
+          loadedBiz.paymentTerms = INIT_BIZ.paymentTerms;
+          // Persist the patched value back to cloud so it won't drift again
+          cloudSet("cb_biz", loadedBiz);
+        }
+        setBiz(loadedBiz);
+        ls_set("cb_biz", loadedBiz);
+      }
       if (cloud["cb_customers"] !== undefined && cloud["cb_customers"] !== null) {
         const _v = cloud["cb_customers"];
         const local_v = ls_get("cb_customers", []);
