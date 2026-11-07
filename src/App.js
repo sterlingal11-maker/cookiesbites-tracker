@@ -17615,7 +17615,15 @@ export default function App() {
   const [batches, setBatches] = useState(() => ls_get("cb_batches", []));
   const [overheads, setOverheads] = useState(() => ls_get("cb_overheads", []));
   const [logo, setLogo] = useState(() => ls_get("cb_logo", { src: LOGO_SRC }));
-  const [biz, setBiz] = useState(() => ls_get("cb_biz", INIT_BIZ));
+  const [biz, setBiz] = useState(() => {
+    const b = ls_get("cb_biz", INIT_BIZ);
+    // Patch stale paymentTerms on init (covers localStorage cache too)
+    if (!b.paymentTerms || !b.paymentTerms.includes("697 76 28 75")) {
+      b.paymentTerms = INIT_BIZ.paymentTerms;
+      ls_set("cb_biz", b);
+    }
+    return b;
+  });
   const staffTabs = biz.staffTabs || ["restaurant", "customers"];
   const visibleTabs = isOwner ? TABS : TABS.filter(t => staffTabs.includes(t.id) && !t.ownerOnly);
   const [customers, setCustomers] = useState(() => ls_get("cb_customers", []));
