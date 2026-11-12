@@ -17590,6 +17590,10 @@ export default function App() {
   const [cloudLoaded, setCloudLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState("idle"); // "idle"|"saving"|"saved"|"offline"
   const syncTimers = useRef({});
+  // syncReady: true only after cloud load + 1-tick settle. Sync effects
+  // gate on this ref (not cloudLoaded state) to prevent race-condition
+  // writes where stale/empty state overwrites freshly-loaded cloud data.
+  const syncReady = useRef(false);
 
   // ── All app state — initialised from localStorage cache first ─────
   const [events, setEvents] = useState(() => ls_get("cb_events", []));
@@ -17709,11 +17713,6 @@ export default function App() {
         const local_v = ls_get("cb_proposals", []);
         if (_v.length > 0 || local_v.length === 0) { setProposals(_v); ls_set("cb_proposals", _v); }
       }
-      // Catalog is derived from Meals — clear items/cats so sync rebuilds them fresh
-      setCatalogItems([]);
-      ls_set("cb_catalog", []);
-      setCatalogCategories([]);
-      ls_set("cb_catalog_cats", []);
       // Load catalogMeta (user-edited unitType/tags/notes) — this persists across syncs
       if (cloud["cb_catalog_meta"] !== undefined && cloud["cb_catalog_meta"] !== null) {
         setCatalogMeta(cloud["cb_catalog_meta"]);
@@ -17778,7 +17777,11 @@ export default function App() {
       apply("cb_social",       setSocialLinks);
       } catch(e) { console.error("Cloud load error:", e); }
       setCloudLoaded(true);
-    }).catch(() => setCloudLoaded(true)); // offline — use local cache
+      // Allow one React render cycle for all setState calls above to settle
+      // before allowing sync effects to write back to cloud. Without this,
+      // stale state (e.g. empty arrays) can race and overwrite cloud data.
+      setTimeout(() => { syncReady.current = true; }, 500);
+    }).catch(() => { setCloudLoaded(true); setTimeout(() => { syncReady.current = true; }, 500); }); // offline — use local cache
   // eslint-disable-next-line
   }, []);
 
@@ -17786,8 +17789,9 @@ export default function App() {
   const syncKey = useCallback((key, value, delay = 800) => {
     // Always write to localStorage immediately
     ls_set(key, value);
-    // Debounce the cloud write
-    if (!isSupabaseConfigured()) return;
+    // Debounce the cloud write — but only once the initial load has settled.
+    // syncReady prevents stale/empty state from racing over freshly-loaded cloud data.
+    if (!isSupabaseConfigured() || !syncReady.current) return;
     clearTimeout(syncTimers.current[key]);
     setSyncStatus("saving");
     syncTimers.current[key] = setTimeout(async () => {
